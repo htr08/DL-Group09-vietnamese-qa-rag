@@ -1,0 +1,18 @@
+﻿id,lang_context,answerable,question,answer,status,has_cjk,prompt_tokens,new_tokens,seconds,tokens_per_second,vram_peak_gb
+en01,en,True,Màn hình của Galaxy S24 có kích thước bao nhiêu inch?,Màn hình của Galaxy S24 có kích thước 6.2 inch.,correct,False,236,18,1.15,15.69,5.75
+en02,en,True,Pin của Galaxy S24 có dung lượng bao nhiêu và sạc có dây công suất bao nhiêu?,Pin của Galaxy S24 có dung lượng 4000 mAh. Công suất sạc có dây là 25W.,correct,False,277,30,1.88,15.92,5.76
+en03,en,True,Camera sau của Galaxy S24 gồm những cảm biến độ phân giải bao nhiêu megapixel?,"Camera sau của Galaxy S24 gồm ba cảm biến có độ phân giải 50 MP, 10 MP và 12 MP.",correct,False,379,31,1.98,15.69,5.78
+en04,en,True,Galaxy S24 được phát hành vào thời điểm nào?,Galaxy S24 được phát hành vào ngày 24 tháng 1 năm 2024.,correct,False,278,24,1.59,15.08,5.76
+en05,en,True,Galaxy S24 nặng bao nhiêu gram?,Galaxy S24 nặng 167 g hoặc 168 g.,correct,False,276,19,1.34,14.21,5.76
+en06,en,True,Galaxy S24 hỗ trợ Bluetooth phiên bản nào?,Galaxy S24 hỗ trợ Bluetooth 5.3.,correct,False,265,14,1.06,13.15,5.76
+en07,en,True,Galaxy S24 có khe cắm thẻ nhớ không?,Galaxy S24 không có khe cắm thẻ nhớ.,correct,False,281,15,1.11,13.57,5.76
+en08,en,True,Phiên bản quốc tế của Galaxy S24 dùng chip xử lý nào?,Exynos 2400 (4 nm),correct,False,284,12,0.96,12.46,5.76
+en09,en,True,Giá bán của Galaxy S24 tại thị trường Mỹ là bao nhiêu?,Giá bán của Galaxy S24 tại thị trường Mỹ là $799.99.,correct,False,302,22,1.54,14.33,5.76
+en10,en,True,Bản 128 GB của Galaxy S24 còn bao nhiêu dung lượng khả dụng?,Bản 128 GB của Galaxy S24 còn 104.6GB dung lượng khả dụng.,correct,False,173,26,1.57,16.52,5.74
+en11,en,False,Galaxy S24 có hỗ trợ bút S Pen không?,Không tìm thấy thông tin trong tài liệu.,correct_refusal,False,233,10,0.77,13.06,5.75
+en12,en,False,Điểm Geekbench của Galaxy S24 là bao nhiêu?,Không tìm thấy thông tin về điểm Geekbench của Galaxy S24 trong ngữ cảnh được cung cấp.,correct_refusal,False,281,23,1.55,14.88,5.76
+en13,en,False,Galaxy S24 Ultra có camera chính bao nhiêu megapixel?,Galaxy S24 Ultra có camera chính triple 50 MP.,possible_hallucination,False,373,16,1.18,13.58,5.78
+en14,en,False,Giá bán của Galaxy S24 tại Việt Nam là bao nhiêu đồng?,Không tìm thấy thông tin về giá bán của Galaxy S24 tại Việt Nam trong ngữ cảnh được cung cấp.,correct_refusal,False,302,25,1.66,15.02,5.76
+vi01,vi,True,Đền Ngọc Sơn nối với bờ hồ bằng cây cầu nào?,Cầu Thê Húc,correct,False,182,7,0.59,11.9,5.74
+vi02,vi,True,Tháp Rùa nằm ở vị trí nào?,Tháp Rùa nằm giữa hồ Gươm.,correct,False,179,13,0.9,14.46,5.74
+vi03,vi,False,Hồ Gươm có diện tích bao nhiêu héc-ta?,Không tìm thấy thông tin trong tài liệu.,correct_refusal,False,183,10,0.73,13.62,5.74
