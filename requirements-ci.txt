@@ -1,0 +1,10 @@
+# Minimal dependencies for GitHub Actions (unit tests only; no GPU, no model downloads).
+# Tests that need heavy libraries (torch, transformers, ...) must call
+# pytest.importorskip(...) so that they are skipped in CI instead of failing.
+# Versions match requirements.txt.
+numpy==2.5.4
+scipy==1.18.1
+scikit-learn==1.9.1
+rank-bm25==0.2.2
+PyYAML==6.0.3
+pytest==9.2.0
