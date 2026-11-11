@@ -1,1 +1,51 @@
-# DL-Group09-vietnamese-qa-rag
+# Vietnamese QA: open-source RAG and extractive reading comprehension
+
+Course project (Deep Learning, Group 9, Topic 10). The system replaces the commercial-API components of an earlier RAG system (Gemini embedding and Gemini 2.5 Flash) with BGE-M3 and Qwen2.5-7B-Instruct, and adds an extractive QA module (PhoBERT, with XLM-R as a comparison) evaluated on UIT-ViQuAD 2.0 and on a self-annotated set of 100 domain questions.
+
+Status: project setup. Results will be added after the experiments in `docs/charter.md` are completed.
+
+## Repository layout
+
+| Path | Content |
+|---|---|
+| `src/` | Library code (QA preprocessing, training, retrieval, generation, metrics, pipeline) |
+| `scripts/` | Entry points: data download, index building, evaluation |
+| `tests/` | Unit tests (run by CI on every pull request) |
+| `notebooks/` | EDA, analysis and the Kaggle smoke test (`00_kaggle_qwen_smoke_test.ipynb`) |
+| `data/raw/` | Downloaded datasets (git-ignored) |
+| `data/domain/` | Application-domain PDFs (Samsung Galaxy S24 specification sheets) |
+| `data/gold/` | Annotated 100-question set (dev/test) |
+| `data/splits/` | Split indices and seeds |
+| `kaggle/smoke_test_dataset/` | Small dataset used by the Kaggle smoke test |
+| `app/` | Demo application |
+| `docs/` | Project plan, charter, AI-usage declaration and reuse-vs-new documentation |
+| `legacy/` | Code of the base system (AI Marketing Assistant), kept for reference only; not imported by `src/` |
+| `report/` | LaTeX reports in the ACL template: `proposal/`, `milestone/`, `final/` |
+
+## Setup
+
+Python 3.12 and, for VnCoreNLP word segmentation, a JDK (Java 8 or later) on `PATH`.
+
+```bash
+python -m venv venv
+# Windows:      venv\Scripts\activate
+# macOS/Linux:  source venv/bin/activate
+pip install -r requirements.txt
+```
+
+`torch` is not pinned in `requirements.txt`; install the build matching the machine (see the comment at the top of that file).
+
+## Tests
+
+```bash
+pip install -r requirements-ci.txt
+pytest
+```
+
+## Self-implemented vs. reused components
+
+To be completed as the project proceeds.
+
+| Component | Self-implemented | Reused (source) |
+|---|---|---|
+| (to be filled) | | |
