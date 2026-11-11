@@ -1,0 +1,98 @@
+% Proposal - Nhom 9 - De tai 10: Hoi dap tieng Viet (extractive QA va RAG)
+% Bien dich bang XeLaTeX hoac LuaLaTeX:  latexmk -xelatex proposal.tex
+\documentclass[11pt]{article}
+
+\usepackage[final]{acl}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{array}
+
+% Ho tro tieng Viet (XeLaTeX/LuaLaTeX); font tuong tu Times theo template ACL.
+\usepackage[vietnamese,bidi=default]{babel}
+\babelfont{rm}{TeXGyreTermesX}
+
+% Rut gon khoang cach danh sach (khong thay doi font, le hay co chu cua template).
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=1.3em}
+
+\title{Hỏi đáp tiếng Việt: Cải tiến hệ thống RAG bằng mô hình mã nguồn mở và đọc hiểu trích xuất}
+
+\author{Nguyễn Thị Hiền Trang \\
+  MSSV: 24022470 \And
+  Nguyễn Hữu Hoà \\
+  MSSV: 24022333 \And
+  Nguyễn Bá Hiển \\
+  MSSV: 24022322 \AND
+  Nhóm 9 \quad|\quad Đề tài 10: Hỏi đáp tiếng Việt (extractive QA và RAG)}
+
+\begin{document}
+\maketitle
+
+\section{Giới thiệu và phát biểu bài toán}
+
+Hỏi đáp trên văn bản tiếng Việt thường được giải quyết theo hai hướng. Hướng thứ nhất là \emph{đọc hiểu trích xuất} (extractive QA), xác định đoạn trả lời nằm ngay trong ngữ cảnh được cung cấp. Hướng thứ hai là \emph{sinh có truy hồi} (retrieval-augmented generation, RAG), kết hợp bộ truy hồi với mô hình ngôn ngữ lớn (LLM) để trả lời dựa trên một kho tài liệu \citep{lewis2020rag}. RAG cho phép cập nhật tri thức mà không cần huấn luyện lại và hạn chế việc LLM sinh nội dung không có căn cứ \citep{ji2023hallucination}.
+
+Thay vì xây dựng hệ thống từ đầu, nhóm lựa chọn cải tiến một hệ thống RAG đã có (Mục~\ref{sec:base}) theo ba hướng: (i) thay các thành phần phụ thuộc API thương mại bằng mô hình mã nguồn mở; (ii) bổ sung mô-đun extractive QA tinh chỉnh từ mô hình tiền huấn luyện tiếng Việt; (iii) xây dựng quy trình đánh giá có nhãn chuẩn do con người gán.
+
+\paragraph{Đầu vào và đầu ra.}
+\begin{itemize}
+  \item \textbf{Extractive QA.} Đầu vào: câu hỏi $q$ và đoạn ngữ cảnh $c$. Đầu ra: khoảng $[s,e]$ trong $c$ là câu trả lời, hoặc nhãn \emph{không có câu trả lời} khi $c$ không chứa đáp án, theo thiết lập của SQuAD~2.0 \citep{rajpurkar-etal-2018-know}.
+  \item \textbf{RAG.} Đầu vào: câu hỏi $q$ và kho tài liệu $\mathcal{D}$. Đầu ra: câu trả lời $a$ cùng danh sách $k$ đoạn nguồn $d_1,\dots,d_k \in \mathcal{D}$ làm căn cứ.
+\end{itemize}
+
+\section{Hệ thống nền và các hạn chế}
+\label{sec:base}
+
+Hệ thống nền là ứng dụng trợ lý hỏi đáp \emph{AI Marketing Assistant}.\footnote{Mã nguồn của nhóm: \url{https://github.com/htr08/DL-Group09-vietnamese-qa-rag}. Phần tái sử dụng từ hệ thống nền và phần phát triển mới sẽ được phân biệt rõ trong báo cáo cuối.} Quy trình xử lý gồm năm bước: chuyển tài liệu sang Markdown bằng MarkItDown và tách đoạn theo tiêu đề; lập chỉ mục vector dense (Gemini \texttt{embedding-001}, 3072 chiều) và vector thưa BM25 \citep{robertson2009bm25} trong Qdrant; hợp nhất hai danh sách xếp hạng bằng Reciprocal Rank Fusion (RRF) \citep{cormack2009rrf}; xếp hạng lại theo độ tương đồng tiêu đề; sinh câu trả lời bằng Gemini~2.5~Flash. Qua rà soát mã nguồn, nhóm xác định bốn hạn chế:
+
+\begin{enumerate}[label=\textbf{H\arabic*.}]
+  \item Cả embedding lẫn bước sinh đều gọi API đóng, nên kết quả khó tái lập, phụ thuộc hạn mức và chi phí, và chưa đáp ứng yêu cầu sử dụng LLM mã nguồn mở.
+  \item Hệ thống chưa có mô-đun trích xuất đáp án và chưa đo bằng EM hay F1.
+  \item Chỉ số truy hồi hiện tại dựa trên bộ 30 câu hỏi tự soạn, với nhãn đúng do chính Gemini chọn (tối đa 5 đoạn mỗi câu). Nhãn do mô hình gán không cho phép so sánh với kết quả công bố.
+  \item Kho dữ liệu đi kèm gồm hai tệp PDF tiếng Anh về Samsung Galaxy S24 trong khi câu hỏi bằng tiếng Việt; hiện tượng ảo giác và độ trễ chưa được đo.
+\end{enumerate}
+
+\section{Phương pháp đề xuất}
+
+\paragraph{C1. Extractive QA.} Tinh chỉnh PhoBERT \citep{nguyen-tuan-nguyen-2020-phobert} và XLM-R \citep{conneau-etal-2020-unsupervised} với lớp dự đoán điểm đầu và điểm cuối của khoảng trả lời. Câu hỏi không có đáp án được xử lý bằng ngưỡng so sánh điểm khoảng tốt nhất với điểm của ký hiệu đầu chuỗi, ngưỡng chọn trên tập dev \citep{rajpurkar-etal-2018-know}. Do PhoBERT chỉ có 258 vị trí nhúng nên ngữ cảnh dài được chia bằng cửa sổ trượt; văn bản được tách từ bằng VnCoreNLP \citep{vu-etal-2018-vncorenlp} trước khi đưa vào PhoBERT. Nhóm tự cài đặt lớp đầu ra, vòng lặp huấn luyện, hậu xử lý n-best và các chỉ số EM/F1; trọng số tiền huấn luyện lấy từ thư viện Transformers.
+
+\paragraph{C2. Bộ truy hồi mã nguồn mở.} So sánh ba cấu hình: BM25 trên văn bản đã tách từ; truy hồi dense \citep{karpukhin-etal-2020-dense} bằng BGE-M3 \citep{chen-etal-2024-m3}, mô hình đa ngôn ngữ mã nguồn mở thay cho Gemini \texttt{embedding-001}; và kết hợp hai nguồn bằng RRF. Chất lượng của BGE-M3 trên tiếng Việt sẽ được kiểm chứng bằng thực nghiệm trên hai tập dữ liệu ở Mục~4. Với tài liệu S24 tiếng Anh và câu hỏi tiếng Việt, BM25 chủ yếu khớp được tên model và số liệu. Nhóm đặt giả thuyết rằng biểu diễn dense đa ngôn ngữ khắc phục được sự lệch ngôn ngữ này (kiểm tra trên tập nhỏ về S24, kèm biến thể dịch câu hỏi sang tiếng Anh bằng LLM) và hybrid vượt từng thành phần riêng lẻ. Xếp hạng lại theo tiêu đề của hệ thống nền được giữ lại như một thành phần để thực hiện ablation.
+
+\paragraph{C3. Sinh câu trả lời và tích hợp.} Thay Gemini~2.5~Flash bằng Qwen2.5-7B-Instruct \citep{qwen2024qwen25}, mô hình giấy phép Apache-2.0 có hỗ trợ tiếng Việt, lượng tử hóa 4~bit khi bộ nhớ GPU không đủ. Lời nhắc yêu cầu trả lời chỉ dựa trên ngữ cảnh truy hồi, nêu nguồn và từ chối khi thiếu căn cứ. Hệ thống cuối có hai chế độ trả lời so sánh được với nhau: sinh bằng LLM, hoặc áp dụng mô hình C1 lên $k$ đoạn truy hồi và chọn khoảng có điểm cao nhất. Phần mở rộng là tinh chỉnh LLM cỡ nhỏ bằng LoRA \citep{hu2022lora}.
+
+\section{Dữ liệu}
+
+\paragraph{UIT-ViQuAD 2.0} \citep{nguyen2022vimrc} gồm 35.990 câu hỏi trên 5.173 đoạn văn từ 176 bài viết, kế thừa các câu hỏi có đáp án của bản 1.0 \citep{nguyen-etal-2020-vietnamese} và bổ sung câu hỏi không thể trả lời. Tập huấn luyện có 28.457 câu hỏi, tập kiểm thử công khai có 3.821 câu hỏi; 3.712 câu còn lại thuộc tập kiểm thử riêng của cuộc thi và nhóm không sử dụng. Do bộ dữ liệu không có tập dev riêng, nhóm tách ngẫu nhiên 10\% số bài viết của tập huấn luyện (cố định hạt giống) làm tập dev, nhằm tránh một đoạn văn xuất hiện ở cả hai tập và báo cáo kết quả trên tập kiểm thử công khai. Với bài toán truy hồi, toàn bộ đoạn văn được gộp thành một kho; đoạn gốc của mỗi câu hỏi có đáp án là nhãn đúng. Câu hỏi không thể trả lời không có đoạn đúng nên bị loại khỏi Recall@$k$ và MRR, và chỉ được dùng khi tính EM/F1.
+
+\paragraph{Tập kiểm thử miền ứng dụng.} Khoảng 100 câu hỏi tiếng Việt trên Quy chế đào tạo đại học của ĐHQGHN (bản 2014), trong đó khoảng 10 câu nằm ngoài phạm vi tài liệu để đo tỉ lệ từ chối đúng. Hai tệp S24 (khoảng 8 trang) được giữ cho tập nhỏ 20--30 câu kiểm tra lệch ngôn ngữ. Mỗi câu được gán đoạn nguồn và đáp án bởi hai thành viên độc lập, các bất đồng được thống nhất lại. Tập được chia thành 30 câu dev (thử giao thức chấm và chỉnh tham số) và 70 câu kiểm thử, chỉ chạy một lần ở giai đoạn đánh giá cuối. Tập này phục vụ so sánh với hệ thống nền và đo ảo giác.
+
+\section{Baseline và cách đánh giá}
+
+\paragraph{Baseline.} (B1) BM25 kết hợp mô hình đọc hiểu. (B2) Hệ thống nền (Gemini) chạy trên tập kiểm thử miền ứng dụng; do giới hạn hạn mức API, B2 không chạy trên toàn bộ UIT-ViQuAD. (B3) mBERT tinh chỉnh: EM 53,55 và F1 63,03 trên tập kiểm thử công khai \citep{nguyen2022vimrc}.
+
+\paragraph{Chỉ số.} Extractive QA: EM và F1 theo SQuAD~2.0, báo cáo riêng cho câu hỏi có và không có đáp án. Truy hồi: Recall@$k$ với $k \in \{1,5,10,20\}$ và MRR@10. Toàn hệ thống: EM/F1 mức câu trả lời, tỉ lệ ảo giác (câu trả lời chứa thông tin không có trong đoạn truy hồi, chấm thủ công trên 70 câu kiểm thử của tập miền ứng dụng), tỉ lệ từ chối đúng, độ trễ và bộ nhớ GPU.
+
+\paragraph{Ablation.} BM25, dense và hybrid; số đoạn truy hồi $k \in \{3,5,10\}$; có và không có xếp hạng lại theo tiêu đề; có và không tách từ; có và không dịch câu hỏi; chế độ sinh so với chế độ trích xuất. Log huấn luyện được ghi bằng Weights \& Biases.
+
+\paragraph{Tiêu chí thành công.} (i) Mô hình C1 có F1 cao hơn baseline B3 trên tập kiểm thử công khai; (ii) cấu hình hybrid có Recall@10 cao hơn BM25 đơn lẻ; (iii) hệ thống mã nguồn mở có tỉ lệ ảo giác không cao hơn hệ thống nền (B2) trên tập miền ứng dụng. Nếu không đạt, nhóm phân tích nguyên nhân thay vì điều chỉnh tiêu chí.
+
+\section{Phân công và kế hoạch}
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.36\columnwidth}>{\raggedright\arraybackslash}p{0.58\columnwidth}@{}}
+\toprule
+\textbf{Thành viên} & \textbf{Nhiệm vụ} \\
+\midrule
+Nguyễn Hữu Hoà & C1: extractive QA (PhoBERT, XLM-R), chỉ số EM/F1, phân tích lỗi \\
+Nguyễn Bá Hiển & C2: BM25, BGE-M3, hybrid; đánh giá truy hồi; gán nhãn tập miền ứng dụng \\
+Nguyễn Thị Hiền Trang & C3: LLM mã nguồn mở, tích hợp vào hệ thống nền, đo ảo giác, demo \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Tiến độ: tuần~2 chạy các baseline B1 và B2 (số liệu B3 lấy từ bài báo); tuần~3 hoàn thành C1--C3 ở mức cơ bản (milestone); tuần~4 thực hiện thí nghiệm và ablation; tuần~5 mở rộng (LoRA), phân tích lỗi, trực quan hóa; tuần~6 hoàn thiện báo cáo, slide và demo.
+
+\bibliography{references}
+
+\end{document}
