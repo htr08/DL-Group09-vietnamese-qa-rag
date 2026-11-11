@@ -1,0 +1,31 @@
+Query_Index,Question,Vector_Search_Acc(%),Sparse_Search_Acc(%),Advanced_Hybrid_Acc(%)
+1,Dung lượng pin của iPhone 15 Pro Max là bao nhiêu?,60,80,100
+2,Samsung Galaxy S24 Ultra sử dụng chip gì?,80,60,80
+3,Giá bán của iPhone 14 Pro hiện tại là bao nhiêu?,40,80,100
+4,Màn hình của Xiaomi 14 có kích thước bao nhiêu inch?,60,60,80
+5,Oppo Find X7 có hỗ trợ sạc nhanh bao nhiêu W?,80,60,100
+6,Camera chính của Samsung S23 Ultra có độ phân giải bao nhiêu?,60,80,80
+7,iPhone 13 có mấy màu sắc để lựa chọn?,60,40,80
+8,iPad Pro M4 2024 có những tuỳ chọn dung lượng lưu trữ nào?,80,60,100
+9,Điện thoại Samsung nào có bút S-Pen tích hợp sẵn?,40,60,80
+10,Xiaomi Redmi Note 13 Pro 5G ra mắt năm nào?,60,80,100
+11,Chính sách bảo hành của điện thoại iPhone tại CellphoneS là bao lâu?,80,60,80
+12,MacBook Air M3 có thời lượng pin tối đa bao nhiêu tiếng?,60,40,80
+13,Tai nghe AirPods Pro 2 có tính năng chống ồn chủ động không?,80,80,100
+14,Samsung Galaxy Z Fold 5 nặng bao nhiêu gram?,60,60,80
+15,Chất liệu khung viền của iPhone 15 Pro Max là gì?,40,60,80
+16,"Tôi cần tìm một điện thoại có pin trên 5000mAh, sạc nhanh trên 60W và giá dưới 15 triệu.",40,20,80
+17,"So sánh camera của iPhone 15 Pro Max và Samsung S24 Ultra, máy nào quay video thiếu sáng tốt hơn?",60,40,80
+18,"Điện thoại có 'quả táo cắn dở' dòng Pro lớn nhất mới nhất giá bao nhiêu?",80,40,60
+19,S24 Ultra,20,100,80
+20,Máy tính bảng nào của Apple dùng chip M giống Macbook nhưng màn hình OLED?,80,40,80
+21,Dòng máy S23 có bị lỗi quá nhiệt khi chơi game đồ hoạ nặng không?,60,60,60
+22,Sản phẩm nào vừa ra mắt tháng trước có khung titan nhưng không phải của Apple?,60,40,80
+23,Điện thoại nào tầm giá 10 triệu mà chụp ảnh chân dung đẹp nhất?,80,40,80
+24,Sự khác biệt về cổng kết nối giữa iPhone 14 và iPhone 15 là gì?,60,60,100
+25,Z Flip 5 có gập khít được không hay vẫn còn khe hở như thế hệ trước?,60,40,80
+26,Có dòng máy nào rẻ hơn iPhone 15 nhưng màn hình tần số quét cao hơn không?,40,40,60
+27,Thông số kỹ thuật của camera góc siêu rộng trên Xiaomi 14 Ultra?,40,80,100
+28,Chương trình khuyến mãi giảm giá 20% tháng này áp dụng cho những model nào?,60,60,80
+29,Nếu tôi mua S24 Ultra cũ thì có được tặng kèm củ sạc 45W không?,60,40,60
+30,"Tìm cho tôi một chiếc điện thoại gập, pin trâu, màn hình phụ lớn có thể xem Youtube.",80,40,80
