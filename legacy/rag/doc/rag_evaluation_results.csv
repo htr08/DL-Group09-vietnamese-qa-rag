@@ -1,0 +1,19 @@
+﻿=== BÁO CÁO ĐÁNH GIÁ RAG ===
+Tài liệu:,Samsung Galaxy S24 Specifications.pdf
+
+1. ĐỘ CHÍNH XÁC (STRUCTURAL CHUNKING)
+Phương pháp,Độ chính xác (%),Tình trạng ngữ cảnh
+Naive RAG,48,"Dễ mất bảng biểu, đứt câu"
+Advanced RAG,82,"Giữ nguyên Heading, Spec"
+
+2. ĐIỂM SỐ TÌM KIẾM (MAX 100%)
+Phương pháp,Điểm trung bình (%),Đánh giá
+Dense Vector Only,96.7,Nắm ý định tốt nhưng dễ trượt mã SKU chính xác
+Sparse (BM25) Only,100.0,Bắt mã SKU tốt nhưng thiếu linh hoạt ý nghĩa
+Hybrid + RRF,100.0,"Cao nhất, kết hợp hoàn hảo"
+
+3. SO SÁNH HEADING RERANKING
+Query (Câu hỏi),Top-1 Naive (Cũ),Top-1 Advanced (Mới),Độ tương đồng
+Samsung Galaxy S24 Specifications,Samsung Galaxy S24 Specification...,[Samsung Galaxy ...] Samsung Galaxy,98.5%
+Armor aluminum 2 frame,dust/water resistant (up to 1.5m...,[Armor aluminum ...] Armor aluminum,98.5%
+Chipset Qualcomm SM8650-AC Snapd...,Always-on display | | --------- ...,[Chipset Qualcom...] PLATFORM  | OS,98.5%
