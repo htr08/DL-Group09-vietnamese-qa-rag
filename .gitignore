@@ -1,0 +1,81 @@
+# ---------------------------------------------------------------
+# Python / virtual environments
+# ---------------------------------------------------------------
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# ---------------------------------------------------------------
+# Secrets (the repository is public: never commit keys or tokens)
+# ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.key
+kaggle.json
+.netrc
+
+# ---------------------------------------------------------------
+# Data, indexes, model artifacts (large files are shared by link)
+# ---------------------------------------------------------------
+# Raw downloads (ViQuAD etc.) are re-created by scripts/download_data.py.
+data/raw/*
+!data/raw/.gitkeep
+# Vector store and search indexes are re-created by scripts/build_index.py.
+qdrant_storage/
+indexes/
+*.faiss
+# Checkpoints and weights.
+checkpoints/
+outputs/
+runs/
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+*.gguf
+# VnCoreNLP jar and models (downloaded at setup time).
+vncorenlp/
+# Hugging Face / package caches.
+hf_cache/
+.cache/
+
+# ---------------------------------------------------------------
+# Experiment tracking and local outputs
+# ---------------------------------------------------------------
+wandb/
+mlruns/
+lightning_logs/
+*.log
+
+# ---------------------------------------------------------------
+# LaTeX build files (report/)
+# ---------------------------------------------------------------
+*.aux
+*.out
+*.bbl
+*.blg
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.toc
+*.nav
+*.snm
+*.vrb
+
+# ---------------------------------------------------------------
+# Editors and operating systems
+# ---------------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
