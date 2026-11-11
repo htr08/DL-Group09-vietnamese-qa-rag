@@ -1,0 +1,175 @@
+=== PAGE 1 ===
+Samsung Galaxy S24 Specifications 
+NETWORK Technology GSM / CDMA / HSPA / EVDO / LTE / 5G 
+LAUNCH Status Release 2024, January 24 
+BODY Dimensions 147 x 70.6 x 7.6 mm (5.79 x 2.78 x 0.30 in) 
+Weight 167 g or 168 g (5.89 oz) 
+Build Glass front (Gorilla Glass Victus 2), glass back (Gorilla Glass Victus 2), aluminum 
+frame 
+SIM Nano-SIM and eSIM/ Dual eSIM or Dual SIM (2 Nano-SIMs and eSIM, dual stand-by) 
+  IP68 dust/water resistant (up to 1.5m for 30 min) 
+Armor aluminum 2 frame with tougher drop and scratch resistance (advertised) 
+DISPLAY Type Dynamic LTPO AMOLED 2X, 120Hz, HDR10+, 2600 nits (peak) 
+Size 6.2 inches, 94.4 cm2 (~90.9% screen-to-body ratio) 
+Resolution 1080 x 2340 pixels, 19.5:9 ratio (~416 ppi density) 
+Protection Corning Gorilla Glass Victus 2 
+  Always-on display 
+PLATFORM OS Android 14, One UI 6.1 
+Chipset Qualcomm SM8650-AC Snapdragon 8 Gen 3 (4 nm) - USA/Canada/China 
+Exynos 2400 (4 nm) - International 
+CPU 8-core (1x3.39GHz Cortex-X4 & 3x3.1GHz Cortex-A720 & 2x2.9GHz Cortex-A720 & 
+2x2.2GHz Cortex-A520) 
+10-core (1x3.2GHz Cortex-X4 & 2x2.9GHz Cortex-A720 & 3x2.6GHz Cortex-A720 & 
+4x1.95GHz Cortex-A520) 
+GPU Adreno 750 (1 GHz) - USA/Canada/China 
+Xclipse 940 - International 
+MEMORY Card slot No 
+Internal 128GB 8GB RAM, 256GB 8GB RAM, 256GB 12GB RAM, 512GB 8GB RAM 
+  UFS 3.1 - 128GB only 
+UFS 4.0 
+=== PAGE 2 ===
+Samsung Galaxy S24 Specifications 
+MAIN 
+CAMERA 
+Triple 50 MP , f/1.8, 24mm (wide), 1/1.56", 1.0µm, Dual Pixel PDAF, OIS 
+10 MP , f/2.4, 67mm (telephoto), 1/3.94", 1.0µm, PDAF, OIS, 3x optical zoom 
+12 MP , f/2.2, 13mm, 120˚  (ultrawide), 1/2.55" 1.4µm, Super Steady video 
+Features LED flash, auto-HDR, panorama 
+Video 8K@24/30fps, 4K@30/60fps, 1080p@30/60/240fps, 1080p@960fps, HDR10+, 
+stereo sound rec., gyro-EIS 
+SELFIE 
+CAMERA 
+Single 12 MP , f/2.2, 26mm (wide), Dual Pixel PDAF 
+Features Dual video call, Auto-HDR, HDR10+ 
+Video 4K@30/60fps, 1080p@30fps 
+SOUND Loudspeaker Yes, with stereo speakers 
+3.5mm jack No 
+  32-bit/384kHz audio 
+Tuned by AKG 
+COMMS WLAN Wi-Fi 802.11 a/b/g/n/ac/6e/7, tri-band, Wi-Fi Direct 
+Bluetooth 5.3, A2DP , LE 
+Positioning GPS, GLONASS, BDS, GALILEO 
+NFC Yes 
+Radio No 
+USB USB Type-C 3.2, OTG 
+FEATURES Sensors Fingerprint (under display, ultrasonic), accelerometer, gyro, proximity, compass, 
+barometer 
+  Samsung DeX, Samsung Wireless DeX (desktop experience support) 
+BATTERY Type Li-Ion 4000 mAh, non-removable 
+Charging 25W wired, PD3.0, 50% in 30 min (advertised) 
+15W wireless (Qi/PMA) 
+4.5W reverse wireless 
+MISC Colors Onyx Black, Marble Grey, Cobalt Violet, Amber Yellow, Jade Green, Sandstone 
+Orange, Sapphire Blue 
+=== PAGE 3 ===
+Samsung Galaxy S24 Specifications 
+Models SM-S921B, SM-S921B/DS, SM-S921U, SM-S921U1, SM-S921W, SM-S921N, SM-
+S9210, SM-S921E, SM-S921E/DS 
+SAR 1.23 W/kg (head)     1.10 W/kg (body)     
+SAR EU 0.87 W/kg (head)     1.35 W/kg (body)     
+Price $ 799.99 / C$ 1,099.99 / £ 799.00 / € 899.00 / ₹ 79,999 
+ 
+
+=== PAGE 1 ===
+Page 1 of 5 
+ 
+Samsung Galaxy S24 128 GB Specs 
+Carrier 
+Type 
+Unlocked by Samsung 
+Color 
+Color 
+Sapphire Blue  
+Processor 
+CPU Type CPU Speed 
+Octa-Core 3.39GHz, 3.1GHz, 2.9GHz, 2.2GHz 
+Display 
+Resolution (Main Display) Color Depth (Main Display)  Technology (Main Display) 
+2340 x 1080 (FHD+)  16M Dynamic AMOLED 2  
+Main Display Size  
+156.4mm (6.2" full rectangle) / 152.3mm (6.0" rounded corners) 
+  
+=== PAGE 2 ===
+Page 2 of 5 
+ 
+Camera 
+Camera resolution (Front) Camera resolution (Rear) Video Recording Resolution 
+12.0 MP 50.0 MP + 10.0 MP + 12.0 MP  UHD 8K (7680 x 4320)@30fps  
+Main Camera – Flash Main Camera – Auto Focus Front Camera - F Number 
+Yes  Yes F2.2 
+Front Camera – Auto Focus Slow Motion Main Camera - F Number (Multiple) 
+Yes  240fps @FHD, 120fps @UHD F1.8 ,  F2.4 ,  F2.2 
+Main Camera – OIS Main Camera – Zoom  
+Yes Optical Zoom 3x,  Optical quality Zoom 2x (Enabled by Adaptive Pixel sensor), Digital Zoom up to 
+30x 
+Storage 
+Internal Storage Available Storage (GB) RAM Size (GB) 
+128GB  104.6GB 8GB  
+  
+=== PAGE 3 ===
+Page 3 of 5 
+ 
+Network 
+2G GSM 3G UMTS 
+GSM850GSM900 , DCS1800, PCS1900 B1(2100), B2(1900), B4(AWS), B5(850), B8(900)  
+4G FDD LTE 
+B1(2100), B2(1900), B3(1800), B4(AWS), B5(850), B7(2600), B8(900), B12(700), B13(700), B14(700), B18(800), B19(800), B20(800), B25(1900) , 
+B26(850), B28(700), B29(700), B30(2300) , B66(AWS-3), B71(600) 
+4G TDD LTE SIM Slot Type 
+B38(2600) , B39(1900) , B40(2300) ,  SIM 1 + eSIM / Dual eSIM 
+B41(2500), B48(3600)  
+5G FDD Sub6 5G TDD Sub6 5G TDD mmWave 
+N1(2100), N7(2600), N25(1900),  N257(28GHz), N258(26GHz),  N41(2500), N78(3500) 
+N28(700), N66(AWS -3), N71(600)  N260(39GHz), N261(28GHz)  
+Connectivity 
+Wi-Fi Connectivity USB Bluetooth® 
+802.11a/b/g/n/ac/ax 2.4GHz+5GHz+6GHz , USB 3.2 Gen 1 Bluetooth v5.3  
+HE160,  MIMO,  1024-QAM 
+Location Technology Earjack MHL 
+GPS, Glonass, Beidou, Galileo USB Type-C No 
+Wi-Fi Direct NFC PC Sync  
+Yes Yes Smart Switch (PC version) 
+USB Interface 
+USB Type-C 
+=== PAGE 4 ===
+Page 4 of 5 
+ 
+OS 
+OS 
+Android 
+General Information 
+General Information 
+Touch Bar 
+Sensor Type 
+Type 
+Accelerometer, Barometer, Fingerprint Sensor, Gyro Sensor, Geomagnetic Sensor, Hall Sensor, Light Sensor, Proximity Sensor 
+Size 
+Weight 
+5.93 oz 
+Battery 
+Removable Internet Usage Time(LTE) (Hours) Internet Usage Time(Wi-Fi) (Hours) 
+No Up to 25 Up to 25 
+Battery Capacity (mAh, Typical) Audio Playback Time (Hours, Wireless)  Video Playback Time (Hours, Wireless)  
+4000 Up to 72 Up to 28 
+  
+=== PAGE 5 ===
+Page 5 of 5 
+ 
+Audio 
+Audio Playing Format 
+MP3, M4A, 3GA, AAC, OGG, OGA, WAV, AMR, AWB, FLAC, MID, MIDI, XMF, MXMF, IMY, RTTTL, RTX, OTA, DFF, DSF, APE 
+Video 
+Video Playing Format Video Playing Resolution  Stereo Support  
+MP4, M4V, 3GP, 3G2, AVI, FLV, MKV, WEBM UHD 8K (7680 x 4320)@60fps  Yes 
+Services and Applications 
+Samsung DeX Support Mobile TV 
+Yes No 
+Gear Manager 
+Galaxy Buds2 Pro, Galaxy Buds Pro, Galaxy Buds Live, Galaxy Buds+, Galaxy Buds2, Galaxy Buds, Galaxy Buds FE, Galaxy Fit2, Galaxy Fit e,  
+Galaxy Fit, Galaxy Watch6, Galaxy Watch5, Galaxy Watch4, Galaxy Watch3, Galaxy Watch, Galaxy Watch Active2, Galaxy Watch Active 
+Key Features 
+NFC 
+Yes 
+Physical specifications 
+Dimension (HxWxD, mm) Weight (g) * 
+147.0 x 70.6 x 7.6  168 
