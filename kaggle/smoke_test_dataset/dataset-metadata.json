@@ -1,0 +1,6 @@
+{
+  "title": "Vietnamese QA RAG - Qwen smoke test data",
+  "id": "YOUR_KAGGLE_USERNAME/vi-qa-rag-smoke-test",
+  "licenses": [{"name": "other"}],
+  "description": "Small hand-checked set (17 questions) used only to test Qwen2.5-7B-Instruct 4-bit loading, latency, VRAM and context-only answering. Not part of the 100-question evaluation set."
+}

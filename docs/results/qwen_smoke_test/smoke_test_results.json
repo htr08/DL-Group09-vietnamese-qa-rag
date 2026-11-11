@@ -1,0 +1,63 @@
+{
+  "env": {
+    "gpu_name": "Tesla T4",
+    "gpu_total_gb": 15.64,
+    "compute_capability": "7.5",
+    "python": "3.13.16",
+    "torch": "2.11.0+cu130",
+    "cuda": "13.0",
+    "transformers": "5.20.2",
+    "accelerate": "1.15.0",
+    "bitsandbytes": "0.50.2"
+  },
+  "load": {
+    "model_id": "Qwen/Qwen2.5-7B-Instruct",
+    "load_seconds": 111.1,
+    "model_footprint_gb": 5.44,
+    "vram_allocated_after_load_gb": 5.56,
+    "vram_peak_during_load_gb": 5.69
+  },
+  "summary": {
+    "n_items": 17,
+    "status_counts": {
+      "correct": 12,
+      "correct_refusal": 4,
+      "possible_hallucination": 1
+    },
+    "cjk_rate": 0.0,
+    "median_seconds": 1.18,
+    "median_tokens_per_second": 14.33,
+    "max_vram_peak_gb": 5.78
+  },
+  "length_test": [
+    {
+      "target_context_tokens": 512,
+      "prompt_tokens": 634,
+      "seconds": 1.61,
+      "tokens_per_second": 11.77,
+      "vram_peak_gb": 5.82,
+      "oom": false
+    },
+    {
+      "target_context_tokens": 1536,
+      "prompt_tokens": 1658,
+      "seconds": 3.02,
+      "tokens_per_second": 6.29,
+      "vram_peak_gb": 6.53,
+      "oom": false
+    },
+    {
+      "target_context_tokens": 3072,
+      "prompt_tokens": 3193,
+      "seconds": 6.37,
+      "tokens_per_second": 2.98,
+      "vram_peak_gb": 8.66,
+      "oom": false
+    },
+    {
+      "target_context_tokens": 6144,
+      "oom": true
+    }
+  ],
+  "system_prompt": "Bạn là trợ lý hỏi đáp tiếng Việt. Chỉ trả lời dựa trên phần NGỮ CẢNH được cung cấp, không dùng kiến thức bên ngoài. Luôn trả lời bằng tiếng Việt, ngắn gọn, chỉ dùng chữ Latinh (không dùng chữ Hán). Nếu ngữ cảnh không chứa thông tin để trả lời, chỉ trả lời đúng một câu: 'Không tìm thấy thông tin trong tài liệu.'"
+}
