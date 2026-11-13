@@ -19,8 +19,9 @@ Status: project setup. Results will be added after the experiments in `docs/char
 | `kaggle/smoke_test_dataset/` | Small dataset used by the Kaggle smoke test |
 | `app/` | Demo application |
 | `docs/` | Project plan, charter, AI-usage declaration and reuse-vs-new documentation |
-| `legacy/` | Code of the base system (AI Marketing Assistant), kept for reference only; not imported by `src/` |
 | `report/` | LaTeX reports in the ACL template: `proposal/`, `milestone/`, `final/` |
+
+The code of the base system (AI Marketing Assistant) is not copied into this repository. Its source repository is linked in `docs/reuse_vs_new.md`.
 
 ## Setup
 

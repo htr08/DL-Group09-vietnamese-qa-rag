@@ -2,7 +2,11 @@
 
 Ghi nhận phần dùng lại từ hệ thống nền (AI Marketing Assistant, dự án trước đó, dùng làm điểm xuất phát theo Proposal) và phần làm mới trong dự án này. File này là nguồn cho bảng "tự cài đặt so với dùng sẵn" trong báo cáo và cho phần khai báo khi kiểm tra trùng lặp mã.
 
-- Mã gốc của hệ thống nền được lưu trong `legacy/` chỉ để tham khảo. Mã đó không chạy được trong repository này (đã bỏ `backend.config`) và không được `import` từ `src/`.
+<<<<<<< Updated upstream
+- Mã gốc của hệ thống nền nằm ở repo https://github.com/htr08/2526II-KNHTTTNT-Project-AIT3004-4-10. 
+=======
+- Mã gốc của hệ thống nền nằm ở repo https://github.com/htr08/2526II-KNHTTTNT-Project-AIT3004-4-10 và không được chép vào repository này, để công cụ kiểm tra trùng lặp (MOSS/JPlag) không khớp mã gốc với repo của nhóm. Bản sao tạm trước đây (thư mục `legacy/`, nhập ở commit `ec633c1`, đã gỡ) vẫn xem được qua lịch sử git, ví dụ `git show ec633c1:legacy/rag/retrieval/fusion.py`. Cột "Nguồn" bên dưới ghi đường dẫn tương đối theo bản sao đó. Commit cố định của repo gốc dùng để dẫn link: chưa ghi.
+>>>>>>> Stashed changes
 - Một thành phần chỉ được coi là "đã dùng lại" khi mã tương ứng đã nằm trong `src/` hoặc `scripts/`. Mỗi lần chuyển mã sang, cập nhật cột *Trạng thái* và ghi tên Pull Request.
 - Việc dùng công cụ AI được ghi riêng ở `docs/ai_usage.md`.
 
@@ -11,13 +15,13 @@ Bảng dưới phản ánh tình trạng ngày 2026-11-08: chưa có thành ph�
 
 ## 1. Dùng lại từ hệ thống nền
 
-| Thành phần | Nguồn trong `legacy/rag/` | Dự định trong dự án này | Người phụ trách | Trạng thái |
+| Thành phần | Nguồn (đường dẫn trong `legacy/rag/` ở commit `ec633c1`) | Dự định trong dự án này | Người phụ trách | Trạng thái |
 |---|---|---|---|---|
 | Lưu và tìm vector trong Qdrant | `vectorstore/qdrant_store.py` | Tách thành module độc lập; đổi kích thước vector theo BGE-M3; bỏ phụ thuộc cấu hình của backend | B | Dự kiến |
 | Tìm kiếm thưa (từ khóa) | `retrieval/query_encoder.py` (`SparseTextEncoder`), `retrieval/searcher.py` | Đối chiếu với `rank_bm25` của Proposal; B chọn một cách và ghi lý do vào bảng này | B | Dự kiến, chưa quyết định |
 | Hợp nhất RRF | `retrieval/fusion.py` | Dùng làm tham chiếu; bản trong `src/` có tham số `k` (thử 15 và 60) và unit test | B | Dự kiến |
 | Xếp hạng lại theo tiêu đề | `retrieval/reranker.py` | Dùng lại làm thành phần ablation "có/không xếp hạng lại" | B | Dự kiến |
-| Nạp, xử lý và cắt đoạn tài liệu | `ingestion/loader.py`, `processor.py`, `splitter.py` | Giữ khung; sửa cách cắt cho văn bản quy chế (theo Điều) và loại phần mục lục; đổi thư viện đọc PDF sang `pdfplumber` | B | Dự kiến |
+| Nạp, xử lý và cắt đoạn tài liệu | `ingestion/loader.py`, `processor.py`, `splitter.py` | Giữ khung; sửa cách cắt cho văn bản quy chế (theo Điều → Khoản) và loại phần mục lục; đổi thư viện đọc PDF sang `pdfplumber` | B | Dự kiến |
 | Kiểu dữ liệu nguồn và câu trả lời | `models.py` (`RAGSource`, `RAGResponse`), `retrieval/source_mapper.py` | Dùng cho phần hiển thị nguồn trong demo | C | Dự kiến |
 | Ghép ngữ cảnh đưa vào LLM | `retrieval/context_assembler.py` | Xem xét; có thể viết lại gọn hơn | C | Dự kiến, chưa quyết định |
 | Chạy baseline B2 | `generation/`, `embeddings/gemini.py`, `pipeline.py`, `legacy/scripts/evaluate_*.py` | Chỉ để chạy B2 (Gemini, `RRF_K = 15` giữ nguyên cấu hình gốc) trên tập 100 câu | C | Dự kiến |
@@ -64,3 +68,4 @@ Bản đầy đủ kèm trích dẫn được hoàn thiện ở bảng "tự cà
 | Ngày | Nội dung |
 |---|---|
 | 2026-11-08 | Lập bản đầu từ cấu trúc mã trong `legacy/rag/` và kế hoạch dự án; chưa chuyển mã nào. |
+| 2026-11-12 | Quyết định thay `legacy/` bằng link tới repo gốc; cắt kho Quy chế theo Điều → Khoản. |
