@@ -35,6 +35,32 @@ pip install -r requirements.txt
 
 `torch` is not pinned in `requirements.txt`; install the build matching the machine (see the comment at the top of that file).
 
+## Experiment tracking (Weights & Biases)
+
+Every run that produces numbers for the report (training, evaluation, index builds) is logged to the shared W&B project: team `nhom09-vi-qa-rag`, project `vi-qa-rag`. Run names follow `<role>_<model>_<config>_seed<k>`.
+
+```bash
+pip install wandb==0.31.0
+wandb login            # paste your own key from https://wandb.ai/authorize; never commit it
+```
+
+On Kaggle, add the key as a secret named `WANDB_API_KEY` (Add-ons, Secrets) and export it in the notebook:
+
+```python
+import os
+from kaggle_secrets import UserSecretsClient
+os.environ["WANDB_API_KEY"] = UserSecretsClient().get_secret("WANDB_API_KEY")
+```
+
+Use the shared helper so entity, project and commit hash stay consistent:
+
+```python
+from src.tracking import init_run
+run = init_run("A_phobert_lr3e-5_seed42", job_type="train", config={"lr": 3e-5})
+```
+
+Set `WANDB_MODE=disabled` to switch logging off (CI, quick local checks).
+
 ## Tests
 
 ```bash
