@@ -2,7 +2,8 @@ from src.retrieval import (
     simple_tokenize,
     reciprocal_rank_fusion,
     BM25Retriever,
-    rerank_by_title
+    DenseRetriever,
+    rerank_by_title,
 )
 
 
@@ -39,3 +40,28 @@ def test_rerank_by_title():
     # Query có chữ 'tín chỉ' nên d2 được cộng boost và vượt lên d1
     reranked = rerank_by_title(ranked, doc_titles, query="tín chỉ", boost=0.2)
     assert reranked[0][0] == "d2"
+
+
+def test_dense_retriever_save_load_index(tmp_path):
+    """Kiểm tra save_index / load_index của DenseRetriever không cần model thật."""
+    import numpy as np
+
+    # Tạo DenseRetriever với dữ liệu giả, bỏ qua model thật
+    retriever = DenseRetriever.__new__(DenseRetriever)
+    retriever.doc_ids = ["d1", "d2", "d3"]
+    retriever.embeddings = np.array([[1.0, 0.0], [0.0, 1.0], [0.5, 0.5]])
+    retriever.model = None  # không dùng model khi test persistence
+
+    # Lưu và nạp lại
+    prefix = tmp_path / "dense"
+    retriever.save_index(prefix)
+
+    retriever2 = DenseRetriever.__new__(DenseRetriever)
+    retriever2.model = None
+    retriever2.embeddings = None
+    retriever2.doc_ids = []
+    retriever2.load_index(prefix)
+
+    assert retriever2.doc_ids == ["d1", "d2", "d3"]
+    assert retriever2.embeddings.shape == (3, 2)
+    np.testing.assert_array_almost_equal(retriever2.embeddings, retriever.embeddings)

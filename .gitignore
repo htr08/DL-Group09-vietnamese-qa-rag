@@ -31,6 +31,7 @@ data/raw/*
 # Vector store and search indexes are re-created by scripts/build_index.py.
 qdrant_storage/
 indexes/
+data/index/
 *.faiss
 # Checkpoints and weights.
 checkpoints/

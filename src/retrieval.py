@@ -79,6 +79,38 @@ class DenseRetriever:
         ranked_indices = np.argsort(scores)[::-1][:top_k]
         return [(self.doc_ids[i], float(scores[i])) for i in ranked_indices]
 
+    def save_index(self, path_prefix) -> None:
+        """
+        Lưu embedding và danh sách doc_id ra đĩa.
+        Tạo hai file: <path_prefix>.npy (embeddings) và <path_prefix>_ids.json (doc_ids).
+        Gọi sau khi đã index() để không cần encode lại mỗi lần chạy.
+        """
+        import numpy as np
+        import json as _json
+        from pathlib import Path as _Path
+
+        prefix = _Path(path_prefix)
+        prefix.parent.mkdir(parents=True, exist_ok=True)
+        np.save(str(prefix) + ".npy", self.embeddings)
+        with open(str(prefix) + "_ids.json", "w", encoding="utf-8") as f:
+            _json.dump(self.doc_ids, f, ensure_ascii=False)
+
+    def load_index(self, path_prefix) -> None:
+        """
+        Nạp embedding và doc_id đã lưu từ đĩa vào retriever.
+        Không cần gọi index() nếu index đã được build_index.py tạo sẵn.
+        """
+        import numpy as np
+        import json as _json
+        from pathlib import Path as _Path
+
+        prefix = _Path(path_prefix)
+        emb_path = str(prefix) + ".npy"
+        ids_path = str(prefix) + "_ids.json"
+        self.embeddings = np.load(emb_path)
+        with open(ids_path, encoding="utf-8") as f:
+            self.doc_ids = _json.load(f)
+
 
 def rerank_by_title(
     ranked_results: List[Tuple[str, float]],
