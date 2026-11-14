@@ -10,9 +10,16 @@ import argparse
 import json
 import pickle
 import re
+import sys
+import time
 import unicodedata
 from pathlib import Path
 from typing import List, Dict, Tuple
+
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
+    sys.stderr.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = ROOT / "data" / "raw"
@@ -72,46 +79,65 @@ def save_bm25_index(doc_ids: List[str], corpus_texts: List[str], out_path: Path)
 
 def save_dense_index(doc_ids: List[str], corpus_texts: List[str],
                      collection: str, out_path: Path):
-    """Encode bằng BGE-M3 và lưu numpy array; optionally upsert vào Qdrant."""
+    """Encode bằng BGE-M3 và lưu numpy array; upsert vào Qdrant."""
     import numpy as np
     from sentence_transformers import SentenceTransformer
 
     model = SentenceTransformer("BAAI/bge-m3")
-    print(f"  Encoding {len(doc_ids)} docs với BGE-M3 ...")
+    print(f"  Encoding {len(doc_ids)} chunks với BGE-M3...")
+    t0 = time.time()
     embeddings = model.encode(
         corpus_texts,
         batch_size=16,
         show_progress_bar=True,
         normalize_embeddings=True,
     )
+    encode_time = time.time() - t0
+    print(f"  Thời gian encode: {encode_time:.2f}s ({encode_time/len(doc_ids):.4f}s/chunk)")
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     np.save(str(out_path) + ".npy", embeddings)
     with open(str(out_path) + "_ids.json", "w", encoding="utf-8") as f:
         json.dump(doc_ids, f, ensure_ascii=False)
-    print(f"  Dense → {out_path}.npy + {out_path}_ids.json")
+    print(f"  Dense file lưu tại: {out_path}.npy + {out_path}_ids.json")
 
-    # Upsert vào Qdrant nếu server đang chạy (bỏ qua nếu lỗi kết nối)
+    # Upsert vào Qdrant
     try:
         from qdrant_client import QdrantClient
         from qdrant_client.models import Distance, VectorParams, PointStruct
 
         client = QdrantClient(host="localhost", port=6333)
         dim = embeddings.shape[1]
-        if collection not in [c.name for c in client.get_collections().collections]:
-            client.create_collection(
-                collection_name=collection,
-                vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
-            )
-        points = [
-            PointStruct(id=i, vector=embeddings[i].tolist(),
-                        payload={"doc_id": doc_ids[i], "text": corpus_texts[i]})
-            for i in range(len(doc_ids))
-        ]
-        client.upsert(collection_name=collection, points=points)
-        print(f"  Qdrant collection '{collection}': {len(points)} vectors upserted")
+        
+        # Nếu collection đã tồn tại, xóa đi tạo lại để số point khớp đúng 100%
+        existing_cols = [c.name for c in client.get_collections().collections]
+        if collection in existing_cols:
+            client.delete_collection(collection_name=collection)
+            
+        client.create_collection(
+            collection_name=collection,
+            vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
+        )
+
+        batch_size = 500
+        total_points = len(doc_ids)
+        for b_start in range(0, total_points, batch_size):
+            b_end = min(b_start + batch_size, total_points)
+            points = [
+                PointStruct(
+                    id=i,
+                    vector=embeddings[i].tolist(),
+                    payload={"doc_id": doc_ids[i], "text": corpus_texts[i]}
+                )
+                for i in range(b_start, b_end)
+            ]
+            client.upsert(collection_name=collection, points=points)
+
+        info = client.get_collection(collection_name=collection)
+        points_count = info.points_count if hasattr(info, 'points_count') else info.vectors_count
+        print(f"  Qdrant collection '{collection}': {points_count} vectors đã ghi (khớp {total_points} chunks)")
     except Exception as exc:
-        print(f"  (Qdrant không khả dụng, bỏ qua: {exc})")
+        print(f"  (Lỗi khi ghi Qdrant: {exc})")
 
 
 # ---------------------------------------------------------------------------

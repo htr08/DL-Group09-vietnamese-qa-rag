@@ -15,6 +15,11 @@ from typing import List, Dict, Any, Optional
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
+    sys.stderr.reconfigure(encoding="utf-8")
+
 INDEX_DIR = ROOT / "data" / "index"
 SPLITS_DIR = ROOT / "data" / "splits"
 RAW_DIR = ROOT / "data" / "raw"
