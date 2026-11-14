@@ -34,6 +34,16 @@ REQUIRED_FIELDS = {
     "plausible_answers",
 }
 
+def validate_no_title_leakage(train_records, dev_records):
+    train_titles = {record["title"] for record in train_records}
+    dev_titles = {record["title"] for record in dev_records}
+
+    overlap = train_titles & dev_titles
+
+    if overlap:
+        raise ValueError(
+            f"Train and Dev have overlapping titles: {sorted(overlap)[:5]}"
+        )
 
 def validate_records(records, split_name):
     if not records:
@@ -111,11 +121,7 @@ def validate_existing_files():
     validate_records(dev, "Dev")
     validate_records(public_test, "Public Test")
 
-    train_titles = {record["title"] for record in train}
-    dev_titles = {record["title"] for record in dev}
-
-    if train_titles & dev_titles:
-        raise ValueError("Train and Dev have overlapping titles.")
+    validate_no_title_leakage(train, dev)
 
     saved_titles = {
         line.strip()
@@ -195,11 +201,7 @@ def main():
     validate_records(dev_records, "Dev")
     validate_records(public_test_records, "Public Test")
 
-    train_titles = {record["title"] for record in train_records}
-    dev_title_set = {record["title"] for record in dev_records}
-
-    if train_titles & dev_title_set:
-        raise ValueError("Train and Dev have overlapping titles.")
+    validate_no_title_leakage(train_records, dev_records)
 
     if len(train_records) + len(dev_records) != len(original_train):
         raise ValueError("Train/Dev sample count mismatch.")
