@@ -79,3 +79,9 @@ lightning_logs/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Generated QA features and local Kaggle staging
+data/processed/viquad/
+data/processed/qa_features/
+data/processed/qa_features.zip
+upload_kaggle/
