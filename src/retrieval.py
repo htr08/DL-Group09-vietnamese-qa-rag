@@ -1,11 +1,18 @@
-"""Truy hồi: BM25, dense (BGE-M3), RRF, xếp hạng lại theo tiêu đề."""
+﻿"""Truy hồi: BM25, dense (BGE-M3), RRF, xếp hạng lại theo tiêu đề."""
 import re
-from typing import List, Dict, Tuple, Optional, Any
+from typing import List, Dict, Tuple, Optional, Any, Set
 from rank_bm25 import BM25Okapi
+
+# Stopwords tiếng Việt phổ biến để tránh boost nhầm cho tiêu đề
+VIETNAMESE_STOPWORDS: Set[str] = {
+    "và", "của", "các", "những", "cho", "về", "trong", "có", "được", "là",
+    "khi", "do", "tại", "theo", "với", "từ", "này", "đó", "ra", "đến",
+    "đã", "sẽ", "đang", "bị", "một", "nhiều", "như", "thì", "để", "ở"
+}
 
 
 def simple_tokenize(text: str) -> List[str]:
-    """Tách từ cơ bản dựa trên regex và chữ thường (dùng cho BM25)."""
+    """Tách từ cơ bản dựa trên regex \\w+ và chuyển thành chữ thường (dùng cho BM25)."""
     return re.findall(r"\w+", text.lower())
 
 
@@ -34,7 +41,7 @@ def reciprocal_rank_fusion(
 
 
 class BM25Retriever:
-    """Truy hồi thưa (Sparse) bằng BM25 trên văn bản đã tách từ."""
+    """Truy hồi thưa (Sparse) bằng BM25 trên văn bản được tách token theo regex \\w+."""
 
     def __init__(self, doc_ids: List[str], corpus_texts: List[str]):
         self.doc_ids = doc_ids
@@ -46,13 +53,12 @@ class BM25Retriever:
         if not tokenized_query:
             return []
         scores = self.bm25.get_scores(tokenized_query)
-        # Sắp xếp top_k theo điểm BM25 giảm dần
         ranked_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
         return [(self.doc_ids[i], float(scores[i])) for i in ranked_indices]
 
 
 class DenseRetriever:
-    """Truy hồi dense bằng mô hình BGE-M3 (BAAI/bge-m3)."""
+    """Truy hồi dày (Dense) bằng embedding BGE-M3 (hỗ trợ cosine similarity)."""
 
     def __init__(self, model_name: str = "BAAI/bge-m3", device: Optional[str] = None):
         from sentence_transformers import SentenceTransformer
@@ -60,7 +66,7 @@ class DenseRetriever:
         self.doc_ids: List[str] = []
         self.embeddings = None
 
-    def index(self, doc_ids: List[str], corpus_texts: List[str], batch_size: int = 16):
+    def index(self, doc_ids: List[str], corpus_texts: List[str], batch_size: int = 16) -> None:
         self.doc_ids = doc_ids
         self.embeddings = self.model.encode(
             corpus_texts,
@@ -74,17 +80,11 @@ class DenseRetriever:
         if self.embeddings is None or len(self.doc_ids) == 0:
             return []
         q_emb = self.model.encode([query], normalize_embeddings=True)[0]
-        # Cosine similarity khi embeddings đã được normalize là tích vô hướng (dot product)
         scores = np.dot(self.embeddings, q_emb)
         ranked_indices = np.argsort(scores)[::-1][:top_k]
         return [(self.doc_ids[i], float(scores[i])) for i in ranked_indices]
 
     def save_index(self, path_prefix) -> None:
-        """
-        Lưu embedding và danh sách doc_id ra đĩa.
-        Tạo hai file: <path_prefix>.npy (embeddings) và <path_prefix>_ids.json (doc_ids).
-        Gọi sau khi đã index() để không cần encode lại mỗi lần chạy.
-        """
         import numpy as np
         import json as _json
         from pathlib import Path as _Path
@@ -96,10 +96,6 @@ class DenseRetriever:
             _json.dump(self.doc_ids, f, ensure_ascii=False)
 
     def load_index(self, path_prefix) -> None:
-        """
-        Nạp embedding và doc_id đã lưu từ đĩa vào retriever.
-        Không cần gọi index() nếu index đã được build_index.py tạo sẵn.
-        """
         import numpy as np
         import json as _json
         from pathlib import Path as _Path
@@ -116,18 +112,26 @@ def rerank_by_title(
     ranked_results: List[Tuple[str, float]],
     doc_titles: Dict[str, str],
     query: str,
-    boost: float = 0.1
+    boost: float = 0.003
 ) -> List[Tuple[str, float]]:
     """
-    Xếp hạng lại theo độ trùng khớp tiêu đề (Ablation component từ hệ thống nền).
-    Nếu tiêu đề chứa các từ trong query, cộng thêm điểm boost.
+    Xếp hạng lại theo độ trùng khớp tiêu đề (Ablation component).
+    Boost được thiết kế cùng thang với RRF (RRF score ~0.016-0.033, boost ~0.003 mỗi từ trùng),
+    đồng thời loại trừ các stopwords tiếng Việt để tránh cộng điểm nhầm.
     """
-    query_tokens = set(simple_tokenize(query))
+    if not ranked_results:
+        return []
+
+    query_tokens = {w for w in simple_tokenize(query) if w not in VIETNAMESE_STOPWORDS and len(w) > 1}
+    if not query_tokens:
+        return list(ranked_results)
+
     reranked = []
     for doc_id, score in ranked_results:
         title = doc_titles.get(doc_id, "")
-        title_tokens = set(simple_tokenize(title))
+        title_tokens = {w for w in simple_tokenize(title) if w not in VIETNAMESE_STOPWORDS and len(w) > 1}
         overlap = len(query_tokens.intersection(title_tokens))
         new_score = score + (boost * overlap)
         reranked.append((doc_id, new_score))
+
     return sorted(reranked, key=lambda item: item[1], reverse=True)

@@ -194,9 +194,12 @@ _KHOAN_HEADER = re.compile(
 
 def chunk_quy_che(text: str) -> List[Tuple[str, str, str]]:
     """
-    Cắt văn bản Quy chế theo cấu trúc Điều → Khoản.
+    Cắt văn bản Quy chế theo cấu trúc Điều → Khoản (và Điểm nếu Khoản dài).
     Trả về [(chunk_id, title, chunk_text), ...].
     Loại bỏ phần mục lục (3 trang cuối = sau "MỤC LỤC" hoặc "Điều 47").
+    Đoạn dẫn trước Khoản 1 được đặt ID là dieuN_intro.
+    Số Khoản được lấy chính xác từ regex ^(\\d+)\\., không đếm tuần tự enumerate.
+    Giữ nguyên các dấu ngắt dòng \\n để không làm biến dạng văn bản.
     """
     # Loại phần mục lục
     muc_luc_match = re.search(r"(?im)^MỤC\s*LỤC", text)
@@ -205,7 +208,6 @@ def chunk_quy_che(text: str) -> List[Tuple[str, str, str]]:
 
     # Tách thành các Điều
     parts = _DIEU_HEADER.split(text)
-    # parts[0] = phần trước Điều 1 (lời mở đầu), parts[1] = tiêu đề Điều 1, ...
     chunks = []
 
     i = 1
@@ -218,25 +220,39 @@ def chunk_quy_che(text: str) -> List[Tuple[str, str, str]]:
         dieu_num_match = re.search(r"\d+", dieu_title)
         dieu_num = dieu_num_match.group() if dieu_num_match else str(i)
 
-        # Tách Khoản bên trong Điều
+        # Tách Khoản bên trong Điều bằng regex (?m)^(?=\d+\.\s)
         khoan_parts = re.split(r"(?m)^(?=\d+\.\s)", dieu_body)
         khoan_parts = [p.strip() for p in khoan_parts if p.strip()]
 
-        if len(khoan_parts) <= 1:
-            # Điều không có Khoản hoặc chỉ 1 Khoản
-            sub_chunks = sliding_window(
-                dieu_title + "\n" + dieu_body,
-                f"dieu{dieu_num}"
-            )
-            for cid, ctxt in sub_chunks:
-                chunks.append((cid, dieu_title, ctxt))
-        else:
-            for khoan_idx, khoan_text in enumerate(khoan_parts, start=1):
-                chunk_id = f"dieu{dieu_num}_khoan{khoan_idx}"
-                full_text = f"{dieu_title}\n{khoan_text}"
-                sub_chunks = sliding_window(full_text, chunk_id)
-                for cid, ctxt in sub_chunks:
-                    chunks.append((cid, dieu_title, ctxt))
+        if not khoan_parts:
+            chunks.append((f"dieu{dieu_num}", dieu_title, f"{dieu_title}\n{dieu_body}"))
+            continue
+
+        for k_part in khoan_parts:
+            m = re.match(r"^(\d+)\.\s", k_part)
+            if m:
+                khoan_num = m.group(1)
+                chunk_id = f"dieu{dieu_num}_khoan{khoan_num}"
+            else:
+                # Đoạn dẫn đầu trước Khoản 1 (ví dụ Điều 10, 11, 22, 27, 28, 37, 39, 41)
+                chunk_id = f"dieu{dieu_num}_intro"
+
+            words = k_part.split()
+            # Nếu Khoản dài > 250 từ và có phân Điểm rõ ràng (a, b, c) -> tách theo Điểm
+            if len(words) > 250 and re.search(r"(?m)^[a-z]\)\s", k_part):
+                diem_parts = re.split(r"(?m)^(?=[a-z]\)\s)", k_part)
+                diem_intro = diem_parts[0].strip()
+                for d_part in diem_parts[1:]:
+                    dm = re.match(r"^([a-z])\)\s", d_part.strip())
+                    if dm:
+                        diem_letter = dm.group(1)
+                        sub_id = f"{chunk_id}_diem{diem_letter}"
+                        sub_text = f"{dieu_title}\n{diem_intro}\n{d_part.strip()}"
+                        chunks.append((sub_id, dieu_title, sub_text))
+                    else:
+                        chunks.append((chunk_id, dieu_title, f"{dieu_title}\n{d_part.strip()}"))
+            else:
+                chunks.append((chunk_id, dieu_title, f"{dieu_title}\n{k_part}"))
 
     return chunks
 
