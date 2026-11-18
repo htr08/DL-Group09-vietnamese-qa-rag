@@ -1,4 +1,6 @@
 import unicodedata
+import re
+import unicodedata
 
 MAX_LEN = 256
 MAX_QUESTION_LEN = 64
@@ -24,22 +26,58 @@ def align_tokens_to_text(text, tokens):
     cursor = 0
 
     for token in tokens:
-        normalized_token, _ = normalize_with_mapping(
-            token.replace("_", " ")
-        )
+        parts = [
+            normalize_with_mapping(part)[0]
+            for part in token.split("_")
+        ]
 
-        position = normalized_text.find(normalized_token, cursor)
+        if not parts or any(not part for part in parts):
+            raise ValueError(f"Invalid token: {token}")
 
-        if position < 0:
+        pattern_parts = []
+
+        for i, part in enumerate(parts):
+            if i == 0:
+                pattern_parts.append(re.escape(part))
+                continue
+
+            previous = parts[i - 1]
+
+            previous_is_punctuation = all(
+                unicodedata.category(c).startswith(("P", "S"))
+                for c in previous
+            )
+
+            current_is_punctuation = all(
+                unicodedata.category(c).startswith(("P", "S"))
+                for c in part
+            )
+
+            separator = r"\s*" if (
+                previous_is_punctuation or current_is_punctuation
+            ) else r"\s+"
+
+            pattern_parts.append(separator + re.escape(part))
+
+        pattern = "".join(pattern_parts)
+
+        match = re.search(pattern, normalized_text[cursor:])
+
+        if match is None:
             raise ValueError(f"Cannot align token: {token}")
 
+        position = cursor + match.start()
+        match_end = cursor + match.end()
+
         start = mapping[position]
-        end = mapping[position + len(normalized_token) - 1] + 1
+        end = mapping[match_end - 1] + 1
 
         spans.append((start, end))
-        cursor = end
+        cursor = match_end
 
     return spans
+
+
 def tokenize_words(tokenizer, tokens):
     input_ids = []
     subword_spans = []
@@ -74,16 +112,25 @@ def map_answer_to_subwords(
     if not overlapping:
         raise ValueError("Answer does not overlap any token")
 
-    start_subword = subword_spans[overlapping[0]][0]
-    end_subword = subword_spans[overlapping[-1]][1] - 1
+    first = overlapping[0]
+    last = overlapping[-1]
+
+    if word_spans[first][0] != answer_start or word_spans[last][1] != answer_end:
+        raise ValueError("Answer does not align with token boundaries")
+
+    start_subword = subword_spans[first][0]
+    end_subword = subword_spans[last][1] - 1
 
     return start_subword, end_subword
+
 def create_sliding_windows(
     question_ids,
     context_ids,
     max_len=MAX_LEN,
     max_question_len=MAX_QUESTION_LEN,
-    doc_stride=DOC_STRIDE
+    doc_stride=DOC_STRIDE,
+    answer_start=None,
+    answer_end=None
 ):
     question_ids = question_ids[:max_question_len]
 
@@ -95,6 +142,30 @@ def create_sliding_windows(
 
     if not 0 <= doc_stride < context_capacity:
         raise ValueError("doc_stride must be smaller than context capacity")
+
+    overlap = doc_stride
+
+    if answer_start is not None or answer_end is not None:
+        if answer_start is None or answer_end is None:
+            raise ValueError("Both answer_start and answer_end are required")
+
+        if answer_start < 0 or answer_end < answer_start:
+            raise ValueError("Invalid answer subword span")
+
+        if answer_end >= len(context_ids):
+            raise ValueError("Answer span exceeds context length")
+
+        answer_length = answer_end - answer_start + 1
+
+        if answer_length > context_capacity:
+            raise ValueError(
+                f"answer_too_long: answer has {answer_length} subwords, "
+                f"context capacity is {context_capacity}"
+            )
+
+        overlap = max(overlap, answer_length - 1)
+
+    step = context_capacity - overlap
 
     windows = []
     start = 0
@@ -115,8 +186,11 @@ def create_sliding_windows(
         if end == len(context_ids):
             break
 
-        start += context_capacity - doc_stride
+        start += step
+
     return windows
+
+
 def label_sliding_windows(
     windows,
     answer_start,
@@ -175,6 +249,33 @@ def read_vncorenlp_output(output_path):
             tokens.append(columns[1])
 
     return tokens
+
+def refine_tokens_for_answer(text, tokens, answer_start, answer_text):
+    answer_end = answer_start + len(answer_text)
+    spans = align_tokens_to_text(text, tokens)
+
+    refined = []
+
+    for token, (start, end) in zip(tokens, spans):
+        boundaries = sorted(
+            boundary
+            for boundary in (answer_start, answer_end)
+            if start < boundary < end
+        )
+
+        if not boundaries:
+            refined.append(token)
+            continue
+
+        positions = [start] + boundaries + [end]
+
+        for left, right in zip(positions, positions[1:]):
+            part = text[left:right].strip()
+            if part:
+                refined.extend(part.split())
+
+    return refined
+
 def preprocess_example(row, question_tokens, context_tokens, tokenizer):
     if not row["context"]:
         raise ValueError("Context is empty")
@@ -182,34 +283,11 @@ def preprocess_example(row, question_tokens, context_tokens, tokenizer):
     question_ids, _ = tokenize_words(tokenizer, question_tokens)
     question_ids = question_ids[:MAX_QUESTION_LEN]
 
-    context_word_spans = align_tokens_to_text(
-        row["context"],
-        context_tokens
-    )
-
-    context_ids, context_subword_spans = tokenize_words(
-        tokenizer,
-        context_tokens
-    )
-
-    if not context_ids:
-        raise ValueError("Context tokens are empty")
-
-    windows = create_sliding_windows(
-        question_ids,
-        context_ids
-    )
-
     is_impossible = row["is_impossible"]
 
     if is_impossible:
-        features = label_sliding_windows(
-            windows,
-            0,
-            0,
-            len(question_ids),
-            is_impossible=True
-        )
+        answer_text = None
+        answer_start = None
     else:
         answers = row["answers"]
         answer_texts = answers["text"]
@@ -230,11 +308,53 @@ def preprocess_example(row, question_tokens, context_tokens, tokenizer):
         if row["context"][answer_start:answer_start + len(answer_text)] != answer_text:
             raise ValueError("Answer span does not match context")
 
+        context_tokens = refine_tokens_for_answer(
+            row["context"],
+            context_tokens,
+            answer_start,
+            answer_text
+        )
+
+    context_word_spans = align_tokens_to_text(
+        row["context"],
+        context_tokens
+    )
+
+    context_ids, context_subword_spans = tokenize_words(
+        tokenizer,
+        context_tokens
+    )
+
+    if not context_ids:
+        raise ValueError("Context tokens are empty")
+
+    if is_impossible:
+        windows = create_sliding_windows(
+            question_ids,
+            context_ids
+        )
+
+        features = label_sliding_windows(
+            windows,
+            0,
+            0,
+            len(question_ids),
+            is_impossible=True
+        )
+
+    else:
         start_subword, end_subword = map_answer_to_subwords(
             answer_start,
             answer_text,
             context_word_spans,
             context_subword_spans
+        )
+
+        windows = create_sliding_windows(
+            question_ids,
+            context_ids,
+            answer_start=start_subword,
+            answer_end=end_subword
         )
 
         features = label_sliding_windows(
@@ -244,6 +364,8 @@ def preprocess_example(row, question_tokens, context_tokens, tokenizer):
             len(question_ids)
         )
 
+        if not any(feature["start_positions"] != 0 for feature in features):
+            raise ValueError("Answerable example has no positive window")
     for feature in features:
         feature["id"] = row["id"]
         feature["is_impossible"] = is_impossible
