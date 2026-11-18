@@ -1,4 +1,4 @@
-﻿"""Truy hồi: BM25, dense (BGE-M3), RRF, xếp hạng lại theo tiêu đề."""
+"""Truy hồi: BM25, dense (BGE-M3), RRF, xếp hạng lại theo tiêu đề."""
 import re
 from typing import List, Dict, Tuple, Optional, Any, Set
 from rank_bm25 import BM25Okapi
@@ -112,7 +112,7 @@ def rerank_by_title(
     ranked_results: List[Tuple[str, float]],
     doc_titles: Dict[str, str],
     query: str,
-    boost: float = 0.003
+    boost: float = 0.0003
 ) -> List[Tuple[str, float]]:
     """
     Xếp hạng lại theo độ trùng khớp tiêu đề (Ablation component).

@@ -28,9 +28,7 @@ INDEX_DIR = ROOT / "data" / "index"  # gitignore
 
 # Kích thước cửa sổ trượt cho Khoản quá dài (tính theo token BM25 xấp xỉ)
 SLIDING_MAX_WORDS = 200
-SLIDING_STRIDE = 100
-
-VIQUAD_HF_NAME = "taidng/UIT-ViQuAD2.0"
+SLIDING_STRIDE = 180  # Chồng lặp nhẹ 10% ở biên để giữ mạch văn, tránh lặp 50% làm phình chunk
 
 
 # ---------------------------------------------------------------------------
@@ -45,17 +43,26 @@ def normalize_text(text: str) -> str:
 
 def sliding_window(text: str, chunk_id: str, max_words: int = SLIDING_MAX_WORDS,
                    stride: int = SLIDING_STRIDE) -> List[Tuple[str, str]]:
-    """Cắt đoạn dài thành các cửa sổ trượt; trả về [(sub_id, sub_text), ...]."""
-    words = text.split()
-    if len(words) <= max_words:
-        return [(chunk_id, text)]
+    """
+    Cắt đoạn dài thành các cửa sổ trượt, bảo tồn nguyên vẹn dấu xuống dòng (\\n).
+    Cắt theo character slice dựa trên vị trí token, không dùng ' '.join() làm mất cấu trúc dòng.
+    """
+    tokens = list(re.finditer(r"\S+", text))
+    if len(tokens) <= max_words:
+        return [(chunk_id, text.strip())]
+
     chunks = []
     start = 0
     part = 0
-    while start < len(words):
-        window = words[start: start + max_words]
+    while start < len(tokens):
+        end = min(start + max_words, len(tokens))
+        char_start = tokens[start].start()
+        char_end = tokens[end - 1].end()
+        sub_text = text[char_start:char_end].strip()
         sub_id = f"{chunk_id}_w{part}"
-        chunks.append((sub_id, " ".join(window)))
+        chunks.append((sub_id, sub_text))
+        if end >= len(tokens):
+            break
         start += stride
         part += 1
     return chunks
@@ -101,19 +108,21 @@ def save_dense_index(doc_ids: List[str], corpus_texts: List[str],
         json.dump(doc_ids, f, ensure_ascii=False)
     print(f"  Dense file lưu tại: {out_path}.npy + {out_path}_ids.json")
 
-    # Upsert vào Qdrant
+    # Ghi vào Qdrant (tùy chọn — eval dùng numpy brute-force, không dùng Qdrant).
+    # Qdrant chỉ phục vụ demo trực tiếp sau này; không ảnh hưởng kết quả đánh giá.
+    # Nếu Qdrant chưa chạy hoặc không kết nối được, cảnh báo rõ và tiếp tục bình thường.
     try:
         from qdrant_client import QdrantClient
         from qdrant_client.models import Distance, VectorParams, PointStruct
 
         client = QdrantClient(host="localhost", port=6333)
         dim = embeddings.shape[1]
-        
+
         # Nếu collection đã tồn tại, xóa đi tạo lại để số point khớp đúng 100%
         existing_cols = [c.name for c in client.get_collections().collections]
         if collection in existing_cols:
             client.delete_collection(collection_name=collection)
-            
+
         client.create_collection(
             collection_name=collection,
             vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
@@ -135,9 +144,10 @@ def save_dense_index(doc_ids: List[str], corpus_texts: List[str],
 
         info = client.get_collection(collection_name=collection)
         points_count = info.points_count if hasattr(info, 'points_count') else info.vectors_count
-        print(f"  Qdrant collection '{collection}': {points_count} vectors đã ghi (khớp {total_points} chunks)")
+        print(f"  Qdrant '{collection}': {points_count} vectors (khớp {total_points} chunks)")
     except Exception as exc:
-        print(f"  (Lỗi khi ghi Qdrant: {exc})")
+        print(f"  [Qdrant Warning] Không thể kết nối hoặc ghi vào Qdrant ({type(exc).__name__}: {exc}).")
+        print(f"  → Toàn bộ vector đã được lưu an toàn vào {out_path}.npy để phục vụ evaluation pipeline (dùng numpy).")
 
 
 # ---------------------------------------------------------------------------
@@ -237,9 +247,13 @@ def chunk_quy_che(text: str) -> List[Tuple[str, str, str]]:
                 # Đoạn dẫn đầu trước Khoản 1 (ví dụ Điều 10, 11, 22, 27, 28, 37, 39, 41)
                 chunk_id = f"dieu{dieu_num}_intro"
 
-            words = k_part.split()
-            # Nếu Khoản dài > 250 từ và có phân Điểm rõ ràng (a, b, c) -> tách theo Điểm
-            if len(words) > 250 and re.search(r"(?m)^[a-z]\)\s", k_part):
+            full_text = f"{dieu_title}\n{k_part}"
+            words = full_text.split()
+            has_diem = bool(re.search(r"(?m)^[a-z]\)\s", k_part))
+
+            # Nếu Khoản dài > SLIDING_MAX_WORDS và có phân Điểm (a, b, c) → tách theo Điểm
+            # và sliding_window tiếp cho Điểm dài (như dieu8_khoan1_diemb)
+            if len(words) > SLIDING_MAX_WORDS and has_diem:
                 diem_parts = re.split(r"(?m)^(?=[a-z]\)\s)", k_part)
                 diem_intro = diem_parts[0].strip()
                 for d_part in diem_parts[1:]:
@@ -248,11 +262,18 @@ def chunk_quy_che(text: str) -> List[Tuple[str, str, str]]:
                         diem_letter = dm.group(1)
                         sub_id = f"{chunk_id}_diem{diem_letter}"
                         sub_text = f"{dieu_title}\n{diem_intro}\n{d_part.strip()}"
-                        chunks.append((sub_id, dieu_title, sub_text))
                     else:
-                        chunks.append((chunk_id, dieu_title, f"{dieu_title}\n{d_part.strip()}"))
+                        sub_id = chunk_id
+                        sub_text = f"{dieu_title}\n{d_part.strip()}"
+                    # Nếu Điểm vẫn dài hơn SLIDING_MAX_WORDS → trượt cửa sổ
+                    for cid, ctxt in sliding_window(sub_text, sub_id, max_words=SLIDING_MAX_WORDS):
+                        chunks.append((cid, dieu_title, ctxt))
+            elif len(words) > SLIDING_MAX_WORDS:
+                # Khoản dài không có Điểm (như dieu40_khoan2) → sliding window trực tiếp
+                for cid, ctxt in sliding_window(full_text, chunk_id, max_words=SLIDING_MAX_WORDS):
+                    chunks.append((cid, dieu_title, ctxt))
             else:
-                chunks.append((chunk_id, dieu_title, f"{dieu_title}\n{k_part}"))
+                chunks.append((chunk_id, dieu_title, full_text))
 
     return chunks
 

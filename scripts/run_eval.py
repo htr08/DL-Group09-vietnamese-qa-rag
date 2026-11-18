@@ -68,7 +68,11 @@ def load_dense(corpus: str) -> DenseRetriever:
 
 
 def load_doc_titles(corpus: str) -> Dict[str, str]:
-    """Tải tiêu đề của các chunk/tài liệu để phục vụ rerank theo tiêu đề."""
+    """
+    Tải tiêu đề bài viết / tiêu đề Điều của các chunk để phục vụ rerank theo tiêu đề.
+    - domain: lấy từ chunks_meta.json (trường 'title' là tiêu đề Điều).
+    - viquad: lấy từ docid_to_text.json + viquad_train.jsonl, dựng ánh xạ doc_id → title.
+    """
     if corpus == "domain":
         meta_path = INDEX_DIR / "domain" / "chunks_meta.json"
         if meta_path.exists():
@@ -76,8 +80,25 @@ def load_doc_titles(corpus: str) -> Dict[str, str]:
                 data = json.load(f)
             return {item["id"]: item.get("title", "") for item in data}
     elif corpus == "viquad":
-        # Với ViQuAD, tiêu đề có thể lấy từ metadata nếu có
-        return {}
+        mapping_path = INDEX_DIR / "viquad" / "docid_to_text.json"
+        jsonl_path = RAW_DIR / "viquad_train.jsonl"
+        if not mapping_path.exists() or not jsonl_path.exists():
+            return {}
+        with open(mapping_path, encoding="utf-8") as f:
+            docid_to_text = json.load(f)
+        # Dựng ánh xạ text → title từ viquad_train.jsonl
+        text_to_title: Dict[str, str] = {}
+        with open(jsonl_path, encoding="utf-8") as f:
+            for line in f:
+                row = json.loads(line)
+                ctx = normalize_text(row.get("context", ""))
+                title = row.get("title", "")
+                if ctx and title:
+                    text_to_title[ctx] = title
+        return {
+            doc_id: text_to_title.get(normalize_text(text), "")
+            for doc_id, text in docid_to_text.items()
+        }
     return {}
 
 
@@ -223,7 +244,7 @@ def evaluate_retriever(retriever, queries: List[Dict], ks: List[int],
     metrics["MRR@10"] = round(mean_metric(mrrs), 4)
     metrics["Latency (ms)"] = round(sum(latencies) / len(latencies), 1) if latencies else 0.0
     metrics["n_queries"] = len(mrrs)
-    return metrics
+    return metrics, recalls
 
 
 def evaluate_hybrid(bm25_retriever, dense_retriever, queries: List[Dict],
@@ -259,7 +280,7 @@ def evaluate_hybrid(bm25_retriever, dense_retriever, queries: List[Dict],
     metrics["MRR@10"] = round(mean_metric(mrrs), 4)
     metrics["Latency (ms)"] = round(sum(latencies) / len(latencies), 1) if latencies else 0.0
     metrics["n_queries"] = len(mrrs)
-    return metrics
+    return metrics, recalls
 
 
 # ---------------------------------------------------------------------------
@@ -304,8 +325,8 @@ def main():
         help="Các giá trị k cho Recall@k",
     )
     parser.add_argument(
-        "--rrf_k", type=int, default=60,
-        help="Hằng số k trong công thức RRF (thử 15 và 60)",
+        "--rrf_k", type=int, default=None,
+        help="Hằng số k trong công thức RRF. Nếu không chỉ định, thử cả k=15 và k=60 rồi chọn k tốt nhất theo Recall@5.",
     )
     args = parser.parse_args()
 
@@ -329,6 +350,8 @@ def main():
     bm25_ret: Optional[BM25Retriever] = None
     dense_ret: Optional[DenseRetriever] = None
     doc_titles = load_doc_titles(corpus)
+    if doc_titles:
+        print(f"  Tải {len(doc_titles)} tiêu đề chunk để rerank.")
 
     if run_bm25 or run_hybrid:
         print("Tải BM25 index...")
@@ -337,32 +360,75 @@ def main():
         print("Tải Dense index (BGE-M3)...")
         dense_ret = load_dense(corpus)
 
+    # Điểm Recall@5 từng câu cho BM25 và Dense (dùng tính Bootstrap CI)
+    bm25_r5_scores: List[float] = []
+    dense_r5_scores: List[float] = []
+
     if run_bm25 and bm25_ret:
         print("Đánh giá BM25...")
-        m = evaluate_retriever(bm25_ret, queries, ks, "BM25")
+        m, bm25_recalls = evaluate_retriever(bm25_ret, queries, ks, "BM25")
         rows.append({"method": "BM25", **m})
+        bm25_r5_scores = bm25_recalls.get(5, [])
 
     if run_dense and dense_ret:
         print("Đánh giá Dense (BGE-M3)...")
-        m = evaluate_retriever(dense_ret, queries, ks, "Dense")
+        m, dense_recalls = evaluate_retriever(dense_ret, queries, ks, "Dense")
         rows.append({"method": "Dense (BGE-M3)", **m})
+        dense_r5_scores = dense_recalls.get(5, [])
 
     if run_hybrid and bm25_ret and dense_ret:
-        # Thử nghiệm cả k=60 và k=15 theo đúng yêu cầu kế hoạch (§8.2)
-        print("Đánh giá Hybrid RRF (k=60)...")
-        m60 = evaluate_hybrid(bm25_ret, dense_ret, queries, ks, rrf_k=60)
-        rows.append({"method": "Hybrid RRF (k=60)", **m60})
+        # Xác định rrf_k: nếu người dùng chỉ định thì dùng luôn, nếu không thì thử cả 2 và chọn theo dev
+        if args.rrf_k is not None:
+            rrf_ks_to_try = [args.rrf_k]
+        else:
+            rrf_ks_to_try = [60, 15]
 
-        print("Đánh giá Hybrid RRF (k=15)...")
-        m15 = evaluate_hybrid(bm25_ret, dense_ret, queries, ks, rrf_k=15)
-        rows.append({"method": "Hybrid RRF (k=15)", **m15})
+        hybrid_r5_scores: List[float] = []
+        best_rrf_k = rrf_ks_to_try[0]
+        best_r5 = -1.0
 
-        # Hàng Hybrid + Rerank theo tiêu đề (Ablation study)
+        for rrf_k in rrf_ks_to_try:
+            label = f"Hybrid RRF (k={rrf_k})"
+            print(f"Đánh giá {label}...")
+            m, h_recalls = evaluate_hybrid(bm25_ret, dense_ret, queries, ks, rrf_k=rrf_k)
+            rows.append({"method": label, **m})
+            if m.get("R@5", 0) > best_r5:
+                best_r5 = m.get("R@5", 0)
+                best_rrf_k = rrf_k
+                hybrid_r5_scores = h_recalls.get(5, [])
+
+        if len(rrf_ks_to_try) > 1:
+            print(f"  → Chọn rrf_k={best_rrf_k} theo Recall@5={best_r5:.4f} trên {args.split}")
+
+        # Bootstrap CI: Recall@5 Hybrid vs retriever đơn tốt nhất
+        try:
+            import numpy as np
+            from src.metrics import paired_bootstrap_diff_ci
+            if hybrid_r5_scores and (bm25_r5_scores or dense_r5_scores):
+                # So sánh với retriever đơn tốt nhất
+                single_r5 = bm25_r5_scores if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else dense_r5_scores
+                best_single_name = "BM25" if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else "Dense"
+                if single_r5 and len(single_r5) == len(hybrid_r5_scores):
+                    ci = paired_bootstrap_diff_ci(hybrid_r5_scores, single_r5, n_resamples=2000, seed=42)
+                    print(f"\n  Bootstrap CI (Hybrid vs {best_single_name}) Recall@5 diff:")
+                    print(f"    estimate={ci.estimate:+.4f}, 95% CI=[{ci.low:+.4f}, {ci.high:+.4f}]")
+                    if ci.low > 0:
+                        print(f"    → Hybrid vượt trội có ý nghĩa thống kê (CI hoàn toàn > 0)")
+                    elif ci.high < 0:
+                        print(f"    → {best_single_name} vượt trội có ý nghĩa thống kê")
+                    else:
+                        print(f"    → Chênh lệch chưa có ý nghĩa thống kê ở mức 95% (CI chứa 0)")
+        except Exception as e:
+            print(f"  [Bootstrap CI] Bỏ qua: {e}")
+
+        # Rerank theo tiêu đề (ablation) - chạy với rrf_k tốt nhất
         if doc_titles:
-            print("Đánh giá Hybrid RRF (k=60) + Rerank Title...")
-            m_rerank = evaluate_hybrid(bm25_ret, dense_ret, queries, ks, rrf_k=60,
-                                       doc_titles=doc_titles, do_rerank=True)
-            rows.append({"method": "Hybrid + Rerank Title", **m_rerank})
+            print(f"Đánh giá Hybrid RRF (k={best_rrf_k}) + Rerank Title...")
+            m_rerank, _ = evaluate_hybrid(bm25_ret, dense_ret, queries, ks, rrf_k=best_rrf_k,
+                                          doc_titles=doc_titles, do_rerank=True)
+            rows.append({"method": f"Hybrid + Rerank Title (k={best_rrf_k})", **m_rerank})
+        else:
+            print("  [Rerank] Bỏ qua: không có tiêu đề chunk.")
 
     print(f"\n--- Kết quả ({args.split}) ---")
     print_table(rows, ks)

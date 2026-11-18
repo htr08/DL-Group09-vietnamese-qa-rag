@@ -53,15 +53,21 @@ def test_bm25_retriever():
 
 
 def test_rerank_by_title_with_rrf_scale_and_stopwords():
-    """Kiểm tra rerank trên thang điểm RRF (0.01-0.03) và lọc stopwords tiếng Việt."""
-    ranked = [("d1", 0.032), ("d2", 0.030)]
+    """Kiểm tra rerank trên điểm thật từ reciprocal_rank_fusion và lọc stopwords tiếng Việt."""
+    # Điểm thật sinh ra từ RRF: d1 hạng 1 ở cả 2 nguồn, d2 hạng 2 ở cả 2 nguồn
+    bm25_list = ["d1", "d2"]
+    dense_list = ["d1", "d2"]
+    fused = reciprocal_rank_fusion([bm25_list, dense_list], rrf_k=60)
+    # fused = [('d1', 2/61 ≈ 0.032787), ('d2', 2/62 ≈ 0.032258)] -> chênh lệch 0.000529
+
     doc_titles = {
         "d1": "Giới thiệu chung và các quy định",  # chứa stopwords 'và', 'các'
-        "d2": "Quy chế tín chỉ đào tạo"           # chứa từ có nghĩa 'tín chỉ'
+        "d2": "Quy chế tín chỉ đào tạo"           # chứa 2 từ khóa thực 'tín', 'chỉ'
     }
     # Query có từ dừng 'và', 'các' kèm từ khóa 'tín chỉ'
-    # d2 phải được boost vì trùng từ khóa thực 'tín chỉ', không bị 'và/các' đẩy d1
-    reranked = rerank_by_title(ranked, doc_titles, query="và các tín chỉ", boost=0.003)
+    # d1 không được boost vì chỉ trùng stopwords
+    # d2 trùng 2 từ khóa thực nên được boost 2 * 0.0003 = 0.0006 > 0.000529 -> vượt lên hạng 1
+    reranked = rerank_by_title(fused, doc_titles, query="và các tín chỉ", boost=0.0003)
     assert reranked[0][0] == "d2"
 
 
@@ -73,6 +79,39 @@ Chương trình đào tạo được sắp xếp theo các khối kiến thức:
 1. Khối kiến thức chung được tổ chức giảng dạy thống nhất.
 2. Khối kiến thức theo lĩnh vực.
 
+Điều 11. Nguyên tắc xây dựng ngành học mới
+Đơn vị đào tạo xây dựng đề án mở ngành học mới theo nguyên tắc:
+1. Có nhu cầu xã hội cao.
+2. Phù hợp với sứ mệnh đào tạo.
+
+Điều 22. Đối tượng được miễn, tạm hoãn học các học phần giáo dục
+quốc phòng - an ninh, giáo dục thể chất
+1. Đối tượng được miễn.
+2. Đối tượng được tạm hoãn.
+
+Điều 27. Hoạt động nghiên cứu khoa học của sinh viên
+Hoạt động nghiên cứu khoa học được tổ chức dưới các hình thức:
+1. Tham gia câu lạc bộ khoa học.
+2. Báo cáo khoa học tại hội nghị.
+
+Điều 28. Tổ chức và quản lý hoạt động nghiên cứu khoa học của
+sinh viên
+Công tác tổ chức được phân cấp như sau:
+1. Đơn vị đào tạo xây dựng kế hoạch.
+2. Phòng công tác sinh viên triển khai.
+
+Điều 37. Kỷ luật đối với cán bộ coi thi, tổ chức thi, chấm thi
+Người vi phạm sẽ bị xử lý theo các hình thức sau:
+1. Khiển trách.
+2. Cảnh cáo.
+3. Buộc thôi việc.
+
+Điều 39. Đánh giá kết quả học tập
+Kết quả học tập được đánh giá theo các tiêu chí sau:
+1. Khối lượng kiến thức.
+2. Điểm trung bình chung tích lũy.
+3. Hạnh kiểm và ý thức.
+
 Điều 41. Xử lý học vụ
 Sau mỗi học kỳ chính, đơn vị đào tạo thực hiện xử lý học vụ. Kết quả học kỳ phụ tính vào học kỳ trước.
 1. Cảnh báo học vụ
@@ -83,19 +122,41 @@ Sinh viên bị buộc thôi học nếu thuộc các trường hợp quy địn
     chunks = chunk_quy_che(sample_text)
     chunk_ids = [c[0] for c in chunks]
 
-    # Kiểm tra Điều 10
-    assert "dieu10_intro" in chunk_ids
+    # Kiểm tra TẤT CẢ 8 Điều có đoạn dẫn _intro theo đúng danh sách reviewer chỉ ra
+    for dieu_num in [10, 11, 22, 27, 28, 37, 39, 41]:
+        intro_id = f"dieu{dieu_num}_intro"
+        assert intro_id in chunk_ids, f"Thiếu {intro_id} trong danh sách chunk"
+
+    # Điều 41: Khoản phải lấy đúng số từ regex, không bị lệch do đếm tuần tự
+    assert "dieu41_khoan1" in chunk_ids
+    assert "dieu41_khoan2" in chunk_ids
+    d41_k1 = next(c[2] for c in chunks if c[0] == "dieu41_khoan1")
+    assert "1. Cảnh báo học vụ" in d41_k1, "dieu41_khoan1 phải chứa nội dung Cảnh báo học vụ"
+
+    # Điều 10: Khoan 1 và 2 đúng
     assert "dieu10_khoan1" in chunk_ids
     assert "dieu10_khoan2" in chunk_ids
 
-    # Kiểm tra Điều 41 (Lỗi 1 nghiêm trọng được reviewer chỉ ra)
-    assert "dieu41_intro" in chunk_ids
-    assert "dieu41_khoan1" in chunk_ids
-    assert "dieu41_khoan2" in chunk_ids
+    # Không được có ID trùng nhau
+    assert len(chunk_ids) == len(set(chunk_ids)), f"Có ID chunk bị trùng: {[x for x in chunk_ids if chunk_ids.count(x) > 1]}"
 
-    # Nội dung của dieu41_khoan1 phải là '1. Cảnh báo học vụ' chứ không phải đoạn dẫn
-    d41_k1 = next(c[2] for c in chunks if c[0] == "dieu41_khoan1")
-    assert "1. Cảnh báo học vụ" in d41_k1
+
+def test_chunk_quy_che_sliding_window_for_long_clause():
+    """Kiểm tra sliding_window được áp dụng cho Khoản dài không có Điểm."""
+    # Tạo Khoản dài hơn 200 từ, không có a), b), c)
+    long_content = " ".join([f"từ{i}" for i in range(250)])
+    sample_text = f"""
+Điều 13. Thiết kế chương trình đào tạo
+1. Thiết kế chương trình
+{long_content}
+"""
+    chunks = chunk_quy_che(sample_text)
+    chunk_ids = [c[0] for c in chunks]
+    # Khoản dài phải bị chia thành các cửa sổ _w0, _w1, ...
+    sliding_ids = [cid for cid in chunk_ids if cid.startswith("dieu13_khoan1_w")]
+    assert len(sliding_ids) >= 2, f"Khoản dài không có Điểm phải được tách sliding, có: {chunk_ids}"
+    # Không có ID trùng nhau
+    assert len(chunk_ids) == len(set(chunk_ids))
 
 
 def test_dense_retriever_save_load_index(tmp_path):
