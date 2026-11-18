@@ -5,8 +5,6 @@ import random
 import sys
 from pathlib import Path
 
-from datasets import load_dataset
-
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DATASET_NAME = "taidng/UIT-ViQuAD2.0"
 RANDOM_STATE = 42
@@ -121,6 +119,9 @@ def validate_existing_files():
     validate_records(dev, "Dev")
     validate_records(public_test, "Public Test")
 
+    train_titles = {record["title"] for record in train}
+    dev_titles = {record["title"] for record in dev}
+
     validate_no_title_leakage(train, dev)
 
     saved_titles = {
@@ -167,6 +168,8 @@ def main():
         )
 
     print("Loading dataset:", DATASET_NAME)
+
+    from datasets import load_dataset
 
     dataset = load_dataset(
         DATASET_NAME,
@@ -221,8 +224,8 @@ def main():
     report_statistics("Train", train_records)
     report_statistics("Dev", dev_records)
     report_statistics("Public Test", public_test_records)
-
-    print("Train/Dev title overlap:", len(train_titles & dev_title_set))
+    train_title_set = {record["title"] for record in train_records}
+    print("Train/Dev title overlap:", len(train_title_set & dev_title_set))
     print("Saved dataset files successfully.")
 
 
