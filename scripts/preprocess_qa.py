@@ -25,7 +25,7 @@ def parse_args():
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=ROOT / "data" / "processed" / "qa_features_candidate"
+        default=ROOT / "data" / "processed" / "qa_features"
     )
 
     parser.add_argument(
