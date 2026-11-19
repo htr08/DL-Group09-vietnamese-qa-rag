@@ -38,6 +38,18 @@ def test_hybrid_article_level_metrics():
     assert (metrics["R@1_dieu"], metrics["MRR@10_dieu"]) == (1.0, 1.0)
 
 
+def test_evaluate_hybrid_applies_title_rerank_only_when_requested():
+    retriever = FakeRetriever(["d1", "d2"])
+    titles = {"d1": "Giới thiệu chung", "d2": "Quy chế đào tạo tín chỉ đại học"}
+    queries = [{"question": "đào tạo tín chỉ", "relevant_id": "d2"}]
+
+    plain, _ = run_eval.evaluate_hybrid(retriever, retriever, queries, [1, 3], doc_titles=titles)
+    reranked, _ = run_eval.evaluate_hybrid(retriever, retriever, queries, [1, 3], doc_titles=titles, do_rerank=True)
+
+    assert plain["R@1"] == 0.0  # có titles nhưng không yêu cầu rerank
+    assert reranked["R@1"] == 1.0
+
+
 def test_k_larger_than_default_depth_is_not_truncated():
     ids = [f"dieu{i}_khoan1" for i in range(30)]
     queries = [{"question": "q", "relevant_id": "dieu24_khoan1"}]  # nằm ở hạng 25
@@ -73,12 +85,21 @@ def test_main_records_ci_and_rerank_parameters_in_json(monkeypatch, tmp_path):
     assert result["rerank_beta"] == run_eval.DEFAULT_TITLE_BETA
     assert result["rrf_k"] in (15, 60)
     assert result["commit_hash"]
+    rerank_ci = result["bootstrap_ci_rerank"]
+    assert rerank_ci["comparison"].startswith("Hybrid + Rerank Title")
+    assert rerank_ci["n_resamples"] == run_eval.CI_N_RESAMPLES and rerank_ci["seed"] == run_eval.CI_SEED
+
+
+def test_paired_ci_info_rejects_different_number_of_questions():
+    with pytest.raises(ValueError):
+        run_eval.paired_ci_info("a vs b", [1.0, 0.0], [1.0])
 
 
 def test_main_reports_when_ci_is_skipped(monkeypatch, tmp_path, capsys):
     result = _run_main(monkeypatch, tmp_path, ["--split", "viquad_dev", "--method", "hybrid"])
 
     assert result["bootstrap_ci"] is None
+    assert result["bootstrap_ci_rerank"] is not None  # so với hybrid, không cần retriever đơn
     assert "[CI] Bỏ qua" in capsys.readouterr().out
 
 

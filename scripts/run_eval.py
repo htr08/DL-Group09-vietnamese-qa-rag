@@ -30,14 +30,28 @@ GOLD_DIR = ROOT / "data" / "gold"
 
 import os
 from src.metrics import recall_at_k, mrr_at_k, mean_metric, paired_bootstrap_diff_ci
-from src.retrieval import (
-    DEFAULT_TITLE_BETA, BM25Retriever, DenseRetriever, reciprocal_rank_fusion, rerank_by_title,
-)
+from src.retrieval import DEFAULT_TITLE_BETA, BM25Retriever, DenseRetriever, hybrid_retrieve
 from src.tracking import git_commit_hash, init_run
 
 # Tham số bootstrap CI của chênh lệch Recall@5 (ghi vào JSON kết quả).
 CI_N_RESAMPLES = 2000
 CI_SEED = 42
+
+
+def paired_ci_info(comparison: str, scores_a: List[float], scores_b: List[float]) -> Dict[str, Any]:
+    """Bootstrap CI 95% (ghép cặp) của chênh lệch Recall@5 giữa hai hệ thống trên cùng danh sách câu hỏi."""
+    ci = paired_bootstrap_diff_ci(scores_a, scores_b, n_resamples=CI_N_RESAMPLES, seed=CI_SEED)
+    return {
+        "comparison": comparison,
+        "metric": "Recall@5",
+        "estimate": round(ci.estimate, 4),
+        "ci_low": round(ci.low, 4),
+        "ci_high": round(ci.high, 4),
+        "confidence": 0.95,
+        "n_resamples": CI_N_RESAMPLES,
+        "seed": CI_SEED,
+        "is_significant": bool(ci.low > 0 or ci.high < 0),
+    }
 
 
 def normalize_text(text: str) -> str:
@@ -301,18 +315,10 @@ def evaluate_hybrid(bm25_retriever, dense_retriever, queries: List[Dict],
         relevant_id = q["relevant_id"]
 
         t0 = time.time()
-        bm25_results = bm25_retriever.retrieve(question, top_k=top_k_retrieve)
-        dense_results = dense_retriever.retrieve(question, top_k=top_k_retrieve)
-
-        bm25_ids = [did for did, _ in bm25_results]
-        dense_ids = [did for did, _ in dense_results]
-        fused = reciprocal_rank_fusion([bm25_ids, dense_ids], rrf_k=rrf_k)
-
-        if do_rerank and doc_titles:
-            fused = rerank_by_title(fused, doc_titles, question)
-
+        fused = hybrid_retrieve(bm25_retriever, dense_retriever, question, top_k=top_k_retrieve,
+                                rrf_k=rrf_k, doc_titles=doc_titles if do_rerank else None)
         latencies.append((time.time() - t0) * 1000)
-        retrieved_ids = [did for did, _ in fused[:top_k_retrieve]]
+        retrieved_ids = [did for did, _ in fused]
 
         for k in ks:
             recalls[k].append(recall_at_k(retrieved_ids, relevant_id, k))
@@ -434,6 +440,7 @@ def main():
 
     best_rrf_k: Optional[int] = None
     ci_info: Optional[Dict[str, Any]] = None
+    rerank_ci_info: Optional[Dict[str, Any]] = None
 
     if run_hybrid and bm25_ret and dense_ret:
         # Mục 1: Trên tập test, rrf_k phải được chọn từ dev và truyền qua --rrf_k (§8.2)
@@ -472,42 +479,32 @@ def main():
         if hybrid_r5_scores and (bm25_r5_scores or dense_r5_scores):
             single_r5 = bm25_r5_scores if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else dense_r5_scores
             best_single_name = "BM25" if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else "Dense"
-            if len(single_r5) != len(hybrid_r5_scores):
-                raise ValueError(
-                    f"Số lượng điểm không khớp giữa hybrid ({len(hybrid_r5_scores)}) và {best_single_name} ({len(single_r5)})"
-                )
-
-            ci = paired_bootstrap_diff_ci(hybrid_r5_scores, single_r5,
-                                          n_resamples=CI_N_RESAMPLES, seed=CI_SEED)
-            ci_info = {
-                "comparison": f"Hybrid (k={best_rrf_k}) vs {best_single_name}",
-                "metric": "Recall@5",
-                "estimate": round(ci.estimate, 4),
-                "ci_low": round(ci.low, 4),
-                "ci_high": round(ci.high, 4),
-                "confidence": 0.95,
-                "n_resamples": CI_N_RESAMPLES,
-                "seed": CI_SEED,
-                "is_significant": bool(ci.low > 0 or ci.high < 0),
-            }
+            ci_info = paired_ci_info(f"Hybrid (k={best_rrf_k}) vs {best_single_name}",
+                                     hybrid_r5_scores, single_r5)
             print(f"\n  Bootstrap CI (Hybrid vs {best_single_name}) Recall@5 diff:")
-            print(f"    estimate={ci.estimate:+.4f}, 95% CI=[{ci.low:+.4f}, {ci.high:+.4f}]")
-            if ci.low > 0:
-                print(f"    → Hybrid vượt trội có ý nghĩa thống kê (CI hoàn toàn > 0)")
-            elif ci.high < 0:
-                print(f"    → {best_single_name} vượt trội có ý nghĩa thống kê")
-            else:
+            print(f"    estimate={ci_info['estimate']:+.4f}, 95% CI=[{ci_info['ci_low']:+.4f}, {ci_info['ci_high']:+.4f}]")
+            if not ci_info["is_significant"]:
                 print(f"    → Chênh lệch chưa có ý nghĩa thống kê ở mức 95% (CI chứa 0)")
+            elif ci_info["estimate"] > 0:
+                print(f"    → Hybrid vượt trội có ý nghĩa thống kê (CI hoàn toàn > 0)")
+            else:
+                print(f"    → {best_single_name} vượt trội có ý nghĩa thống kê")
         else:
             print("  [CI] Bỏ qua: cần chạy cùng BM25 hoặc Dense để so sánh với hybrid.")
 
         # Rerank theo tiêu đề (ablation) - chạy với rrf_k tốt nhất
         if doc_titles:
             print(f"Đánh giá Hybrid RRF (k={best_rrf_k}) + Rerank Title...")
-            m_rerank, _ = evaluate_hybrid(bm25_ret, dense_ret, queries, ks, rrf_k=best_rrf_k,
-                                          doc_titles=doc_titles, do_rerank=True,
-                                          article_level=article_level)
+            m_rerank, rerank_recalls = evaluate_hybrid(bm25_ret, dense_ret, queries, ks, rrf_k=best_rrf_k,
+                                                       doc_titles=doc_titles, do_rerank=True,
+                                                       article_level=article_level)
             rows.append({"method": f"Hybrid + Rerank Title (k={best_rrf_k})", **m_rerank})
+            if hybrid_r5_scores:
+                rerank_ci_info = paired_ci_info(
+                    f"Hybrid + Rerank Title (k={best_rrf_k}) vs Hybrid (k={best_rrf_k})",
+                    rerank_recalls.get(5, []), hybrid_r5_scores)
+                print(f"  Bootstrap CI (Rerank vs Hybrid) Recall@5 diff: estimate={rerank_ci_info['estimate']:+.4f}, "
+                      f"95% CI=[{rerank_ci_info['ci_low']:+.4f}, {rerank_ci_info['ci_high']:+.4f}]")
         else:
             print("  [Rerank] Bỏ qua: không có tiêu đề chunk.")
 
@@ -526,6 +523,7 @@ def main():
         "rerank_beta": beta_used,
         "ks": ks,
         "bootstrap_ci": ci_info,
+        "bootstrap_ci_rerank": rerank_ci_info,
         "results": rows,
     }
     with open(out_path, "w", encoding="utf-8") as f:
@@ -563,6 +561,10 @@ def main():
                     wb_run.summary["bootstrap_ci/estimate"] = ci_info["estimate"]
                     wb_run.summary["bootstrap_ci/ci_low"] = ci_info["ci_low"]
                     wb_run.summary["bootstrap_ci/ci_high"] = ci_info["ci_high"]
+                if rerank_ci_info:
+                    wb_run.summary["bootstrap_ci_rerank/estimate"] = rerank_ci_info["estimate"]
+                    wb_run.summary["bootstrap_ci_rerank/ci_low"] = rerank_ci_info["ci_low"]
+                    wb_run.summary["bootstrap_ci_rerank/ci_high"] = rerank_ci_info["ci_high"]
                 wb_run.finish()
                 print(f"✓ Đã log W&B run '{run_name}' lên dự án nhom09-vi-qa-rag/vi-qa-rag")
             else:
