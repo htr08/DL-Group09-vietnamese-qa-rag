@@ -116,8 +116,10 @@ def rerank_by_title(
 ) -> List[Tuple[str, float]]:
     """
     Xếp hạng lại theo độ trùng khớp tiêu đề (Ablation component).
-    Boost được thiết kế cùng thang với RRF (RRF score ~0.016-0.033, boost ~0.0003 mỗi từ trùng),
-    đồng thời loại trừ các stopwords tiếng Việt để tránh cộng điểm nhầm.
+    Điểm mới = điểm cũ + boost * số từ trùng giữa câu hỏi và tiêu đề (đã loại stopwords tiếng Việt).
+    Đây là biến thể đơn giản hơn reranker của hệ thống nền, vốn nhân điểm RRF với
+    (1 + beta * heading_score). Boost mặc định 0.0003 xấp xỉ chênh lệch điểm RRF giữa hai
+    hạng liền kề ở rrf_k=60 (1/61 - 1/62 ~ 0.00026) và chưa được tune trên dev.
     """
     if not ranked_results:
         return []
