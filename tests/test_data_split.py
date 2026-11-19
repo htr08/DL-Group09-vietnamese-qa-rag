@@ -1,6 +1,6 @@
 import pytest
 
-from scripts.download_data import validate_no_title_leakage
+from scripts.prepare_viquad_qa import validate_no_title_leakage
 
 
 def test_train_dev_with_different_titles_passes():
