@@ -28,8 +28,10 @@ SPLITS_DIR = ROOT / "data" / "splits"
 RAW_DIR = ROOT / "data" / "raw"
 GOLD_DIR = ROOT / "data" / "gold"
 
-from src.metrics import recall_at_k, mrr_at_k, mean_metric
+import os
+from src.metrics import recall_at_k, mrr_at_k, mean_metric, paired_bootstrap_diff_ci
 from src.retrieval import BM25Retriever, DenseRetriever, reciprocal_rank_fusion, rerank_by_title
+from src.tracking import git_commit_hash, init_run
 
 
 def normalize_text(text: str) -> str:
@@ -168,52 +170,60 @@ def load_gold_queries(split: str = "dev") -> List[Dict[str, Any]]:
     """
     Tải tập câu hỏi gold của miền chính (dev hoặc test).
     Đọc bằng encoding='utf-8-sig' chống BOM.
-    Dựng relevant_id linh hoạt từ source_article + source_clause hoặc chunk_id.
+    Tách riêng câu answerable và báo lỗi rõ nếu câu có đáp án mà thiếu relevant_id.
     """
     path = GOLD_DIR / f"gold_{split}.jsonl"
-    # Nếu file rỗng hoặc chưa có, kiểm tra file câu hỏi của Hiển
     if not path.exists() or path.stat().st_size == 0:
-        hien_path = GOLD_DIR / "hien_33_questions.jsonl"
-        if hien_path.exists() and split == "dev":
-            path = hien_path
-        else:
-            raise FileNotFoundError(f"{path} chưa có dữ liệu.")
+        raise FileNotFoundError(
+            f"Tệp gold '{path.name}' rỗng hoặc chưa tồn tại. Đánh giá miền chính sẽ chạy sau khi cả nhóm hoàn thành gán nhãn chéo và thống nhất nhãn (Tuần 3)."
+        )
 
     queries = []
-    skipped_count = 0
+    unanswerable_count = 0
     with open(path, encoding="utf-8-sig") as f:
         for line_no, line in enumerate(f, start=1):
-            if not line.strip():
+            line = line.strip()
+            if not line:
                 continue
             item = json.loads(line)
-            if not item.get("in_scope", True):
+
+            # Hỗ trợ cả trường 'answerable' (của A) và 'in_scope' (chuẩn của nhóm)
+            is_answerable = item.get("answerable")
+            if is_answerable is None:
+                is_answerable = item.get("in_scope", True)
+
+            if not is_answerable:
+                unanswerable_count += 1
                 continue
 
-            # Dựng relevant_id
+            # Dựng relevant_id từ schema chuẩn (article, clause) hoặc schema của A (source_article, source_clause)
             relevant_id = item.get("relevant_id") or item.get("chunk_id")
-            if not relevant_id and "source_article" in item:
-                # Dựng từ schema của A
-                art_match = re.search(r"\d+", str(item.get("source_article", "")))
-                if art_match:
-                    d_num = art_match.group()
-                    clause_match = re.search(r"\d+", str(item.get("source_clause", "")))
-                    if clause_match:
-                        relevant_id = f"dieu{d_num}_khoan{clause_match.group()}"
-                    else:
-                        relevant_id = f"dieu{d_num}"
+            if not relevant_id:
+                art = item.get("article") or item.get("source_article")
+                clause = item.get("clause") or item.get("source_clause")
+                if art is not None:
+                    art_match = re.search(r"\d+", str(art))
+                    if art_match:
+                        d_num = art_match.group()
+                        clause_match = re.search(r"\d+", str(clause)) if clause else None
+                        if clause_match:
+                            relevant_id = f"dieu{d_num}_khoan{clause_match.group()}"
+                        else:
+                            # Ghi chú quy ước: câu chỉ có Điều được đánh giá lỏng hơn (khớp Điều)
+                            relevant_id = f"dieu{d_num}"
 
             if not relevant_id:
-                print(f"  [Cảnh báo dòng {line_no}] Bỏ qua câu thiếu relevant_id/source_article: {item.get('question')}")
-                skipped_count += 1
-                continue
+                raise ValueError(
+                    f"Dòng {line_no} trong {path.name}: Câu có đáp án (answerable=True) nhưng thiếu relevant_id/article: {item.get('question')}"
+                )
 
             queries.append({
                 "question": normalize_text(item["question"]),
                 "relevant_id": relevant_id,
-                "in_scope": True
+                "answerable": True,
             })
 
-    print(f"  Gold queries ({split}): {len(queries)} câu hợp lệ | {skipped_count} câu bị bỏ qua")
+    print(f"  Gold queries ({split}): {len(queries)} câu hợp lệ | {unanswerable_count} câu ngoài phạm vi (không đáp án)")
     return queries
 
 
@@ -376,12 +386,23 @@ def main():
         rows.append({"method": "Dense (BGE-M3)", **m})
         dense_r5_scores = dense_recalls.get(5, [])
 
+    best_rrf_k: Optional[int] = None
+    ci_info: Optional[Dict[str, Any]] = None
+
     if run_hybrid and bm25_ret and dense_ret:
-        # Xác định rrf_k: nếu người dùng chỉ định thì dùng luôn, nếu không thì thử cả 2 và chọn theo dev
-        if args.rrf_k is not None:
+        # Mục 1: Trên tập test, rrf_k phải được chọn từ dev và truyền qua --rrf_k (§8.2)
+        if "test" in args.split:
+            if args.rrf_k is None:
+                raise ValueError(
+                    f"Khi đánh giá trên tập test ({args.split}), --rrf_k phải được chọn từ dev "
+                    f"và truyền tường minh qua CLI (ví dụ: --rrf_k 15). Không tự chọn lại k trên tập test (§8.2)."
+                )
             rrf_ks_to_try = [args.rrf_k]
         else:
-            rrf_ks_to_try = [60, 15]
+            if args.rrf_k is not None:
+                rrf_ks_to_try = [args.rrf_k]
+            else:
+                rrf_ks_to_try = [60, 15]
 
         hybrid_r5_scores: List[float] = []
         best_rrf_k = rrf_ks_to_try[0]
@@ -400,26 +421,33 @@ def main():
         if len(rrf_ks_to_try) > 1:
             print(f"  → Chọn rrf_k={best_rrf_k} theo Recall@5={best_r5:.4f} trên {args.split}")
 
-        # Bootstrap CI: Recall@5 Hybrid vs retriever đơn tốt nhất
-        try:
-            import numpy as np
-            from src.metrics import paired_bootstrap_diff_ci
-            if hybrid_r5_scores and (bm25_r5_scores or dense_r5_scores):
-                # So sánh với retriever đơn tốt nhất
-                single_r5 = bm25_r5_scores if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else dense_r5_scores
-                best_single_name = "BM25" if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else "Dense"
-                if single_r5 and len(single_r5) == len(hybrid_r5_scores):
-                    ci = paired_bootstrap_diff_ci(hybrid_r5_scores, single_r5, n_resamples=2000, seed=42)
-                    print(f"\n  Bootstrap CI (Hybrid vs {best_single_name}) Recall@5 diff:")
-                    print(f"    estimate={ci.estimate:+.4f}, 95% CI=[{ci.low:+.4f}, {ci.high:+.4f}]")
-                    if ci.low > 0:
-                        print(f"    → Hybrid vượt trội có ý nghĩa thống kê (CI hoàn toàn > 0)")
-                    elif ci.high < 0:
-                        print(f"    → {best_single_name} vượt trội có ý nghĩa thống kê")
-                    else:
-                        print(f"    → Chênh lệch chưa có ý nghĩa thống kê ở mức 95% (CI chứa 0)")
-        except Exception as e:
-            print(f"  [Bootstrap CI] Bỏ qua: {e}")
+        # Mục 2: Bootstrap CI (Hybrid vs retriever đơn tốt nhất) - không nuốt lỗi
+        if hybrid_r5_scores and (bm25_r5_scores or dense_r5_scores):
+            single_r5 = bm25_r5_scores if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else dense_r5_scores
+            best_single_name = "BM25" if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else "Dense"
+            if len(single_r5) != len(hybrid_r5_scores):
+                raise ValueError(
+                    f"Số lượng điểm không khớp giữa hybrid ({len(hybrid_r5_scores)}) và {best_single_name} ({len(single_r5)})"
+                )
+
+            ci = paired_bootstrap_diff_ci(hybrid_r5_scores, single_r5, n_resamples=2000, seed=42)
+            ci_info = {
+                "comparison": f"Hybrid (k={best_rrf_k}) vs {best_single_name}",
+                "metric": "Recall@5",
+                "estimate": round(ci.estimate, 4),
+                "ci_low": round(ci.low, 4),
+                "ci_high": round(ci.high, 4),
+                "confidence": 0.95,
+                "is_significant": bool(ci.low > 0 or ci.high < 0),
+            }
+            print(f"\n  Bootstrap CI (Hybrid vs {best_single_name}) Recall@5 diff:")
+            print(f"    estimate={ci.estimate:+.4f}, 95% CI=[{ci.low:+.4f}, {ci.high:+.4f}]")
+            if ci.low > 0:
+                print(f"    → Hybrid vượt trội có ý nghĩa thống kê (CI hoàn toàn > 0)")
+            elif ci.high < 0:
+                print(f"    → {best_single_name} vượt trội có ý nghĩa thống kê")
+            else:
+                print(f"    → Chênh lệch chưa có ý nghĩa thống kê ở mức 95% (CI chứa 0)")
 
         # Rerank theo tiêu đề (ablation) - chạy với rrf_k tốt nhất
         if doc_titles:
@@ -433,12 +461,58 @@ def main():
     print(f"\n--- Kết quả ({args.split}) ---")
     print_table(rows, ks)
 
+    # Mục 2: Lưu đầy đủ commit hash, rrf_k, boost, bootstrap CI vào JSON
     out_dir = ROOT / "docs" / "results"
     out_dir.mkdir(exist_ok=True)
     out_path = out_dir / f"retrieval_{args.split}.json"
+    output_data = {
+        "split": args.split,
+        "commit_hash": git_commit_hash(),
+        "rrf_k": best_rrf_k,
+        "boost": 0.0003 if (run_hybrid and doc_titles) else 0.0,
+        "ks": ks,
+        "bootstrap_ci": ci_info,
+        "results": rows,
+    }
     with open(out_path, "w", encoding="utf-8") as f:
-        json.dump({"split": args.split, "ks": ks, "results": rows}, f, ensure_ascii=False, indent=2)
+        json.dump(output_data, f, ensure_ascii=False, indent=2)
     print(f"→ Lưu kết quả: {out_path}")
+
+    # Mục 2: Tự động log lên W&B nếu đã đăng nhập và không tắt WANDB_MODE
+    if os.environ.get("WANDB_MODE") != "disabled":
+        try:
+            import wandb
+            # Kiểm tra xem đã login chưa
+            if wandb.api.api_key or os.environ.get("WANDB_API_KEY"):
+                run_k_suffix = f"_k{best_rrf_k}" if best_rrf_k else ""
+                run_name = f"B_retrieval_{args.split}{run_k_suffix}"
+                wb_run = init_run(
+                    name=run_name,
+                    job_type="eval_retrieval",
+                    config={
+                        "split": args.split,
+                        "method": args.method,
+                        "rrf_k": best_rrf_k,
+                        "boost": 0.0003 if doc_titles else 0.0,
+                        "ks": ks,
+                        "commit": git_commit_hash(),
+                    },
+                )
+                for row in rows:
+                    m_prefix = row["method"].replace(" ", "_").replace("(", "").replace(")", "")
+                    for metric_k, metric_v in row.items():
+                        if metric_k != "method":
+                            wb_run.summary[f"{m_prefix}/{metric_k}"] = metric_v
+                if ci_info:
+                    wb_run.summary["bootstrap_ci/estimate"] = ci_info["estimate"]
+                    wb_run.summary["bootstrap_ci/ci_low"] = ci_info["ci_low"]
+                    wb_run.summary["bootstrap_ci/ci_high"] = ci_info["ci_high"]
+                wb_run.finish()
+                print(f"✓ Đã log W&B run '{run_name}' lên dự án nhom09-vi-qa-rag/vi-qa-rag")
+            else:
+                print("  [W&B Note] Chưa đăng nhập tài khoản W&B. Chạy 'wandb login' để tự động sync lên dashboard nhóm.")
+        except Exception as exc:
+            print(f"  [W&B Note] Bỏ qua log cloud do lỗi kết nối: {exc}")
 
 
 if __name__ == "__main__":

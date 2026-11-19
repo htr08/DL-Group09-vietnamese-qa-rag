@@ -53,7 +53,7 @@ def test_bm25_retriever():
 
 
 def test_rerank_by_title_with_rrf_scale_and_stopwords():
-    """Kiểm tra rerank trên điểm thật từ reciprocal_rank_fusion và lọc stopwords tiếng Việt."""
+    """Kiểm tra rerank dùng boost mặc định (0.0003) trên điểm thật từ RRF và lọc stopwords tiếng Việt."""
     # Điểm thật sinh ra từ RRF: d1 hạng 1 ở cả 2 nguồn, d2 hạng 2 ở cả 2 nguồn
     bm25_list = ["d1", "d2"]
     dense_list = ["d1", "d2"]
@@ -61,14 +61,93 @@ def test_rerank_by_title_with_rrf_scale_and_stopwords():
     # fused = [('d1', 2/61 ≈ 0.032787), ('d2', 2/62 ≈ 0.032258)] -> chênh lệch 0.000529
 
     doc_titles = {
-        "d1": "Giới thiệu chung và các quy định",  # chứa stopwords 'và', 'các'
-        "d2": "Quy chế tín chỉ đào tạo"           # chứa 2 từ khóa thực 'tín', 'chỉ'
+        "d1": "Giới thiệu chung và các quy định",        # chứa stopwords 'và', 'các'
+        "d2": "Quy chế đào tạo tín chỉ đại học"         # chứa các từ khóa thực 'đào', 'tạo', 'tín', 'chỉ'
     }
-    # Query có từ dừng 'và', 'các' kèm từ khóa 'tín chỉ'
+    # Query có từ dừng 'và', 'các' kèm từ khóa 'đào tạo tín chỉ'
     # d1 không được boost vì chỉ trùng stopwords
-    # d2 trùng 2 từ khóa thực nên được boost 2 * 0.0003 = 0.0006 > 0.000529 -> vượt lên hạng 1
-    reranked = rerank_by_title(fused, doc_titles, query="và các tín chỉ", boost=0.0003)
+    # d2 trùng 4 từ khóa thực nên được boost 4 * 0.0003 = 0.0012 > 0.000529 -> vượt lên hạng 1
+    # Gọi hàm KHÔNG truyền tham số boost để kiểm tra giá trị mặc định (boost=0.0003)
+    reranked = rerank_by_title(fused, doc_titles, query="và các đào tạo tín chỉ")
     assert reranked[0][0] == "d2"
+
+
+def test_sliding_window_direct():
+    """Kiểm tra gọi trực tiếp sliding_window: đúng kích thước từ, giữ nguyên dấu xuống dòng."""
+    from scripts.build_index import sliding_window
+
+    # Văn bản ngắn <= max_words: giữ nguyên 1 chunk, không thêm suffix _w0
+    short_text = "Dòng 1\nDòng 2\nDòng 3 có vài từ ngắn."
+    res_short = sliding_window(short_text, "dieu1_khoan1", max_words=200)
+    assert len(res_short) == 1
+    assert res_short[0][0] == "dieu1_khoan1"
+    assert "\nDòng 2\n" in res_short[0][1]
+
+    # Văn bản dài > 200 từ: phải tách thành ít nhất 2 cửa sổ _w0, _w1 và giữ \n
+    long_lines = [f"Dòng {i}: " + ("từ " * 25) for i in range(10)]
+    long_text = "\n".join(long_lines)
+    res_long = sliding_window(long_text, "dieu2_khoan1", max_words=200, stride=180)
+    assert len(res_long) >= 2
+    assert res_long[0][0] == "dieu2_khoan1_w0"
+    assert res_long[1][0] == "dieu2_khoan1_w1"
+    assert "\n" in res_long[0][1]
+    assert "\n" in res_long[1][1]
+
+
+def test_chunk_quy_che_points_and_window_headers():
+    """Kiểm tra tách Điểm (_diem{a-z}) và mọi cửa sổ trượt (_w1) đều giữ tiêu đề Điều."""
+    long_diem_b = " ".join([f"noidung{i}" for i in range(250)])
+    sample_text = f"""
+Điều 8. Kinh phí đào tạo
+1. Nguồn kinh phí đào tạo
+a) Kinh phí từ ngân sách nhà nước cấp hàng năm.
+b) Kinh phí từ học phí và các nguồn thu hợp pháp khác:
+{long_diem_b}
+"""
+    chunks = chunk_quy_che(sample_text)
+    chunk_ids = [c[0] for c in chunks]
+
+    # Kiểm tra tách Điểm: có _diema và các cửa sổ của _diemb
+    assert "dieu8_khoan1_diema" in chunk_ids
+    assert "dieu8_khoan1_diemb_w0" in chunk_ids
+    assert "dieu8_khoan1_diemb_w1" in chunk_ids
+
+    # Kiểm tra ngữ cảnh: CẢ HAI cửa sổ _w0 và _w1 đều phải có dòng tiêu đề Điều ở đầu
+    chunk_map = {c[0]: c[2] for c in chunks}
+    for sub_id in ["dieu8_khoan1_diemb_w0", "dieu8_khoan1_diemb_w1"]:
+        lines = [ln.strip() for ln in chunk_map[sub_id].splitlines() if ln.strip()]
+        assert lines[0] == "Điều 8. Kinh phí đào tạo", f"{sub_id} bị mất tiêu đề Điều ở dòng đầu"
+
+
+def test_chunk_quy_che_on_real_pdf():
+    """Kiểm tra chunk_quy_che trên file PDF thật: đủ 8 Điều _intro, không trùng ID, cửa sổ _w1 có tiêu đề."""
+    from pathlib import Path
+    import pytest
+
+    pdf_path = Path(__file__).parents[1] / "data" / "domain" / "dhqghn_quy_che_dao_tao_dai_hoc_2014.pdf"
+    if not pdf_path.exists():
+        pytest.skip(f"Không tìm thấy file PDF tại {pdf_path}")
+
+    import pdfplumber
+    from scripts.build_index import normalize_text
+
+    with pdfplumber.open(pdf_path) as pdf:
+        full_text = "\n".join((p.extract_text() or "") for p in pdf.pages[:-3])
+    chunks = chunk_quy_che(normalize_text(full_text))
+    chunk_ids = [c[0] for c in chunks]
+
+    # 1. Không trùng ID
+    assert len(chunk_ids) == len(set(chunk_ids)), "Có chunk_id bị trùng lặp"
+
+    # 2. Đủ 8 Điều có _intro
+    for d in [10, 11, 22, 27, 28, 37, 39, 41]:
+        assert f"dieu{d}_intro" in chunk_ids, f"Thiếu dieu{d}_intro trong PDF thật"
+
+    # 3. Mọi cửa sổ trượt _w đều có dòng đầu tiên là tiêu đề Điều
+    for cid, title, txt in chunks:
+        if "_w" in cid:
+            lines = [ln.strip() for ln in txt.splitlines() if ln.strip()]
+            assert lines[0].startswith("Điều "), f"{cid} trong PDF thật không có tiêu đề Điều: {lines[0]!r}"
 
 
 def test_chunk_quy_che_intro_and_clause_ids():

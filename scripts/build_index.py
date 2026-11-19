@@ -252,7 +252,7 @@ def chunk_quy_che(text: str) -> List[Tuple[str, str, str]]:
             has_diem = bool(re.search(r"(?m)^[a-z]\)\s", k_part))
 
             # Nếu Khoản dài > SLIDING_MAX_WORDS và có phân Điểm (a, b, c) → tách theo Điểm
-            # và sliding_window tiếp cho Điểm dài (như dieu8_khoan1_diemb)
+            # và sliding_window tiếp cho Điểm dài (như dieu8_khoan1_diemb), đảm bảo MỌI cửa sổ đều có tiêu đề Điều
             if len(words) > SLIDING_MAX_WORDS and has_diem:
                 diem_parts = re.split(r"(?m)^(?=[a-z]\)\s)", k_part)
                 diem_intro = diem_parts[0].strip()
@@ -261,17 +261,19 @@ def chunk_quy_che(text: str) -> List[Tuple[str, str, str]]:
                     if dm:
                         diem_letter = dm.group(1)
                         sub_id = f"{chunk_id}_diem{diem_letter}"
-                        sub_text = f"{dieu_title}\n{diem_intro}\n{d_part.strip()}"
+                        header = f"{dieu_title}\n{diem_intro}" if diem_intro else dieu_title
+                        body = d_part.strip()
                     else:
                         sub_id = chunk_id
-                        sub_text = f"{dieu_title}\n{d_part.strip()}"
-                    # Nếu Điểm vẫn dài hơn SLIDING_MAX_WORDS → trượt cửa sổ
-                    for cid, ctxt in sliding_window(sub_text, sub_id, max_words=SLIDING_MAX_WORDS):
-                        chunks.append((cid, dieu_title, ctxt))
+                        header = dieu_title
+                        body = d_part.strip()
+                    # Trượt cửa sổ trên thân Điểm và ghép header tiêu đề Điều vào MỌI cửa sổ
+                    for cid, ctxt in sliding_window(body, sub_id, max_words=SLIDING_MAX_WORDS):
+                        chunks.append((cid, dieu_title, f"{header}\n{ctxt}"))
             elif len(words) > SLIDING_MAX_WORDS:
-                # Khoản dài không có Điểm (như dieu40_khoan2) → sliding window trực tiếp
-                for cid, ctxt in sliding_window(full_text, chunk_id, max_words=SLIDING_MAX_WORDS):
-                    chunks.append((cid, dieu_title, ctxt))
+                # Khoản dài không có Điểm (như dieu40_khoan2) → trượt cửa sổ trên k_part và ghép tiêu đề Điều vào MỌI cửa sổ
+                for cid, ctxt in sliding_window(k_part, chunk_id, max_words=SLIDING_MAX_WORDS):
+                    chunks.append((cid, dieu_title, f"{dieu_title}\n{ctxt}"))
             else:
                 chunks.append((chunk_id, dieu_title, full_text))
 

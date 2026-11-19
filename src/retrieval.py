@@ -116,7 +116,7 @@ def rerank_by_title(
 ) -> List[Tuple[str, float]]:
     """
     Xếp hạng lại theo độ trùng khớp tiêu đề (Ablation component).
-    Boost được thiết kế cùng thang với RRF (RRF score ~0.016-0.033, boost ~0.003 mỗi từ trùng),
+    Boost được thiết kế cùng thang với RRF (RRF score ~0.016-0.033, boost ~0.0003 mỗi từ trùng),
     đồng thời loại trừ các stopwords tiếng Việt để tránh cộng điểm nhầm.
     """
     if not ranked_results:
