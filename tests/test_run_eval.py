@@ -38,6 +38,50 @@ def test_hybrid_article_level_metrics():
     assert (metrics["R@1_dieu"], metrics["MRR@10_dieu"]) == (1.0, 1.0)
 
 
+def test_k_larger_than_default_depth_is_not_truncated():
+    ids = [f"dieu{i}_khoan1" for i in range(30)]
+    queries = [{"question": "q", "relevant_id": "dieu24_khoan1"}]  # nằm ở hạng 25
+
+    single, _ = run_eval.evaluate_retriever(FakeRetriever(ids), queries, [25], "fake")
+    hybrid, _ = run_eval.evaluate_hybrid(FakeRetriever(ids), FakeRetriever(ids), queries, [25])
+
+    assert single["R@25"] == 1.0
+    assert hybrid["R@25"] == 1.0
+
+
+def _run_main(monkeypatch, tmp_path, argv):
+    """Chạy main() với retriever giả; kết quả JSON ghi vào tmp_path."""
+    ids = ["a_1", "b_1", "c_1"]
+    queries = [{"question": f"q{i}", "relevant_id": rid, "answerable": True} for i, rid in enumerate(ids)]
+    monkeypatch.setenv("WANDB_MODE", "disabled")
+    monkeypatch.setattr(sys, "argv", ["run_eval.py", *argv])
+    (tmp_path / "docs").mkdir()
+    monkeypatch.setattr(run_eval, "ROOT", tmp_path)
+    monkeypatch.setattr(run_eval, "load_viquad_dev_queries", lambda: queries)
+    monkeypatch.setattr(run_eval, "load_doc_titles", lambda corpus: {"a_1": "tiêu đề"})
+    monkeypatch.setattr(run_eval, "load_bm25", lambda corpus: FakeRetriever(ids))
+    monkeypatch.setattr(run_eval, "load_dense", lambda corpus: FakeRetriever(ids[::-1]))
+    run_eval.main()
+    return json.loads((tmp_path / "docs" / "results" / "retrieval_viquad_dev.json").read_text(encoding="utf-8"))
+
+
+def test_main_records_ci_and_rerank_parameters_in_json(monkeypatch, tmp_path):
+    result = _run_main(monkeypatch, tmp_path, ["--split", "viquad_dev", "--method", "all"])
+
+    assert result["bootstrap_ci"]["n_resamples"] == run_eval.CI_N_RESAMPLES
+    assert result["bootstrap_ci"]["seed"] == run_eval.CI_SEED
+    assert result["rerank_beta"] == run_eval.DEFAULT_TITLE_BETA
+    assert result["rrf_k"] in (15, 60)
+    assert result["commit_hash"]
+
+
+def test_main_reports_when_ci_is_skipped(monkeypatch, tmp_path, capsys):
+    result = _run_main(monkeypatch, tmp_path, ["--split", "viquad_dev", "--method", "hybrid"])
+
+    assert result["bootstrap_ci"] is None
+    assert "[CI] Bỏ qua" in capsys.readouterr().out
+
+
 def _write_gold(tmp_path, rows, encoding="utf-8"):
     text = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n"
     (tmp_path / "gold_dev.jsonl").write_text(text, encoding=encoding)

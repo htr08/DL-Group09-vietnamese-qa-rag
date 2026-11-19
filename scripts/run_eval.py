@@ -30,8 +30,14 @@ GOLD_DIR = ROOT / "data" / "gold"
 
 import os
 from src.metrics import recall_at_k, mrr_at_k, mean_metric, paired_bootstrap_diff_ci
-from src.retrieval import BM25Retriever, DenseRetriever, reciprocal_rank_fusion, rerank_by_title
+from src.retrieval import (
+    DEFAULT_TITLE_BETA, BM25Retriever, DenseRetriever, reciprocal_rank_fusion, rerank_by_title,
+)
 from src.tracking import git_commit_hash, init_run
+
+# Tham số bootstrap CI của chênh lệch Recall@5 (ghi vào JSON kết quả).
+CI_N_RESAMPLES = 2000
+CI_SEED = 42
 
 
 def normalize_text(text: str) -> str:
@@ -248,6 +254,7 @@ def _article_metrics(recalls, mrrs):
 def evaluate_retriever(retriever, queries: List[Dict], ks: List[int],
                        method_name: str, top_k_retrieve: int = 20,
                        article_level: bool = False):
+    top_k_retrieve = max(top_k_retrieve, *ks)  # truy hồi đủ sâu cho k lớn nhất, tránh R@k bị cắt âm thầm
     recalls = {k: [] for k in ks}
     mrrs = []
     article_recalls = {k: [] for k in ks}
@@ -282,6 +289,7 @@ def evaluate_hybrid(bm25_retriever, dense_retriever, queries: List[Dict],
                     ks: List[int], rrf_k: int = 60, top_k_retrieve: int = 20,
                     doc_titles: Optional[Dict[str, str]] = None, do_rerank: bool = False,
                     article_level: bool = False):
+    top_k_retrieve = max(top_k_retrieve, *ks)  # truy hồi đủ sâu cho k lớn nhất, tránh R@k bị cắt âm thầm
     recalls = {k: [] for k in ks}
     mrrs = []
     article_recalls = {k: [] for k in ks}
@@ -469,7 +477,8 @@ def main():
                     f"Số lượng điểm không khớp giữa hybrid ({len(hybrid_r5_scores)}) và {best_single_name} ({len(single_r5)})"
                 )
 
-            ci = paired_bootstrap_diff_ci(hybrid_r5_scores, single_r5, n_resamples=2000, seed=42)
+            ci = paired_bootstrap_diff_ci(hybrid_r5_scores, single_r5,
+                                          n_resamples=CI_N_RESAMPLES, seed=CI_SEED)
             ci_info = {
                 "comparison": f"Hybrid (k={best_rrf_k}) vs {best_single_name}",
                 "metric": "Recall@5",
@@ -477,6 +486,8 @@ def main():
                 "ci_low": round(ci.low, 4),
                 "ci_high": round(ci.high, 4),
                 "confidence": 0.95,
+                "n_resamples": CI_N_RESAMPLES,
+                "seed": CI_SEED,
                 "is_significant": bool(ci.low > 0 or ci.high < 0),
             }
             print(f"\n  Bootstrap CI (Hybrid vs {best_single_name}) Recall@5 diff:")
@@ -487,6 +498,8 @@ def main():
                 print(f"    → {best_single_name} vượt trội có ý nghĩa thống kê")
             else:
                 print(f"    → Chênh lệch chưa có ý nghĩa thống kê ở mức 95% (CI chứa 0)")
+        else:
+            print("  [CI] Bỏ qua: cần chạy cùng BM25 hoặc Dense để so sánh với hybrid.")
 
         # Rerank theo tiêu đề (ablation) - chạy với rrf_k tốt nhất
         if doc_titles:
@@ -501,7 +514,8 @@ def main():
     print(f"\n--- Kết quả ({args.split}) ---")
     print_table(rows, ks)
 
-    # Mục 2: Lưu đầy đủ commit hash, rrf_k, boost, bootstrap CI vào JSON
+    # Mục 2: Lưu đầy đủ commit hash, rrf_k, rerank_beta, bootstrap CI vào JSON
+    beta_used = DEFAULT_TITLE_BETA if (run_hybrid and doc_titles) else None
     out_dir = ROOT / "docs" / "results"
     out_dir.mkdir(exist_ok=True)
     out_path = out_dir / f"retrieval_{args.split}.json"
@@ -509,7 +523,7 @@ def main():
         "split": args.split,
         "commit_hash": git_commit_hash(),
         "rrf_k": best_rrf_k,
-        "boost": 0.0003 if (run_hybrid and doc_titles) else 0.0,
+        "rerank_beta": beta_used,
         "ks": ks,
         "bootstrap_ci": ci_info,
         "results": rows,
@@ -525,7 +539,9 @@ def main():
             # Kiểm tra xem đã login chưa
             if wandb.api.api_key or os.environ.get("WANDB_API_KEY"):
                 run_k_suffix = f"_k{best_rrf_k}" if best_rrf_k else ""
-                run_name = f"B_retrieval_{args.split}{run_k_suffix}"
+                # Tên run theo mẫu <role>_<model>_<cấu hình>_seed<k> (project_plan §8.2);
+                # seed là seed của bootstrap CI vì truy hồi không có thành phần ngẫu nhiên khác.
+                run_name = f"B_bge-m3_eval-{args.split}{run_k_suffix}_seed{CI_SEED}"
                 wb_run = init_run(
                     name=run_name,
                     job_type="eval_retrieval",
@@ -533,7 +549,7 @@ def main():
                         "split": args.split,
                         "method": args.method,
                         "rrf_k": best_rrf_k,
-                        "boost": 0.0003 if doc_titles else 0.0,
+                        "rerank_beta": beta_used,
                         "ks": ks,
                         "commit": git_commit_hash(),
                     },
