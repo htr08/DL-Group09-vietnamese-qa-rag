@@ -1,0 +1,11 @@
+{
+  "seed": 42,
+  "dev_ratio": 0.1,
+  "n_total_titles": 138,
+  "n_dev_titles": 13,
+  "n_train_titles": 125,
+  "n_dev_rows": 2768,
+  "n_train_rows": 25686,
+  "context_overlap_count": 0,
+  "note": "Dev tách theo title (bài viết), không theo câu hỏi, để không có đoạn context nào nằm ở cả train lẫn dev."
+}
