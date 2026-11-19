@@ -20,7 +20,11 @@ DEFAULT_PROJECT = "vi-qa-rag"
 
 
 def git_commit_hash() -> str:
-    """Commit hash ngắn của HEAD; 'unknown' nếu không chạy trong repo git (ví dụ Kaggle)."""
+    """Commit hash lấy từ biến môi trường GIT_COMMIT, hoặc ngắn của HEAD; 'unknown' nếu không chạy trong repo git (ví dụ Kaggle)."""
+    commit = os.environ.get("GIT_COMMIT", "").strip()
+    if commit:
+        return commit
+
     try:
         out = subprocess.check_output(
             ["git", "rev-parse", "--short", "HEAD"],

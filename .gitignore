@@ -28,6 +28,10 @@ kaggle.json
 # Raw downloads (ViQuAD etc.) are re-created by scripts/download_data.py.
 data/raw/*
 !data/raw/.gitkeep
+# Processed datasets (re-created by preprocessing scripts).
+data/processed/*
+!data/processed/.gitkeep
+artifacts/phobert_qa/
 # Vector store and search indexes are re-created by scripts/build_index.py.
 qdrant_storage/
 indexes/
