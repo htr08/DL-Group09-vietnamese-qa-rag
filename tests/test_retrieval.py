@@ -124,11 +124,12 @@ def test_chunk_quy_che_on_real_pdf():
     from pathlib import Path
     import pytest
 
+    pdfplumber = pytest.importorskip("pdfplumber", reason="Thư viện pdfplumber không có trong môi trường CI tối thiểu")
+
     pdf_path = Path(__file__).parents[1] / "data" / "domain" / "dhqghn_quy_che_dao_tao_dai_hoc_2014.pdf"
     if not pdf_path.exists():
         pytest.skip(f"Không tìm thấy file PDF tại {pdf_path}")
 
-    import pdfplumber
     from scripts.build_index import normalize_text
 
     with pdfplumber.open(pdf_path) as pdf:
