@@ -1,6 +1,6 @@
 {
   "split": "viquad_dev",
-  "commit_hash": "a6efba0",
+  "commit_hash": "00d854b",
   "rrf_k": 15,
   "rerank_beta": 0.1,
   "ks": [
@@ -21,6 +21,17 @@
     "seed": 42,
     "is_significant": true
   },
+  "bootstrap_ci_rerank": {
+    "comparison": "Hybrid + Rerank Title (k=15) vs Hybrid (k=15)",
+    "metric": "Recall@5",
+    "estimate": 0.0005,
+    "ci_low": -0.0011,
+    "ci_high": 0.0021,
+    "confidence": 0.95,
+    "n_resamples": 2000,
+    "seed": 42,
+    "is_significant": false
+  },
   "results": [
     {
       "method": "BM25",
@@ -30,7 +41,7 @@
       "R@10": 0.8743,
       "R@20": 0.9072,
       "MRR@10": 0.7333,
-      "Latency (ms)": 24.2,
+      "Latency (ms)": 22.3,
       "n_queries": 1886
     },
     {
@@ -41,7 +52,7 @@
       "R@10": 0.9008,
       "R@20": 0.9401,
       "MRR@10": 0.7334,
-      "Latency (ms)": 31.4,
+      "Latency (ms)": 28.5,
       "n_queries": 1886
     },
     {
@@ -52,7 +63,7 @@
       "R@10": 0.9401,
       "R@20": 0.9592,
       "MRR@10": 0.7964,
-      "Latency (ms)": 69.1,
+      "Latency (ms)": 63.3,
       "n_queries": 1886
     },
     {
@@ -63,7 +74,7 @@
       "R@10": 0.9406,
       "R@20": 0.9592,
       "MRR@10": 0.7971,
-      "Latency (ms)": 64.2,
+      "Latency (ms)": 63.7,
       "n_queries": 1886
     },
     {
@@ -74,7 +85,7 @@
       "R@10": 0.9406,
       "R@20": 0.9592,
       "MRR@10": 0.7989,
-      "Latency (ms)": 59.4,
+      "Latency (ms)": 63.7,
       "n_queries": 1886
     }
   ]
