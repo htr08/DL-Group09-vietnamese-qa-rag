@@ -275,17 +275,18 @@ def chunk_quy_che(text: str) -> List[Tuple[str, str, str]]:
 
             full_text = f"{dieu_title}\n{k_part}"
             words = full_text.split()
-            has_diem = bool(re.search(r"(?m)^[a-z]\)\s", k_part))
+            has_diem = bool(re.search(r"(?m)^[a-zđ]\)\s", k_part))
 
             # Nếu Khoản dài > SLIDING_MAX_WORDS và có phân Điểm (a, b, c) → tách theo Điểm
             # và sliding_window tiếp cho Điểm dài (như dieu8_khoan1_diemb), đảm bảo MỌI cửa sổ đều có tiêu đề Điều
             if len(words) > SLIDING_MAX_WORDS and has_diem:
-                diem_parts = re.split(r"(?m)^(?=[a-z]\)\s)", k_part)
+                diem_parts = re.split(r"(?m)^(?=[a-zđ]\)\s)", k_part)
                 diem_intro = diem_parts[0].strip()
                 for d_part in diem_parts[1:]:
-                    dm = re.match(r"^([a-z])\)\s", d_part.strip())
+                    dm = re.match(r"^([a-zđ])\)\s", d_part.strip())
                     if dm:
-                        diem_letter = dm.group(1)
+                        # Điểm đ có ID ASCII `diemdd` để tách khỏi Điểm d (`diemd`)
+                        diem_letter = "dd" if dm.group(1) == "đ" else dm.group(1)
                         sub_id = f"{chunk_id}_diem{diem_letter}"
                         header = f"{dieu_title}\n{diem_intro}" if diem_intro else dieu_title
                         body = d_part.strip()

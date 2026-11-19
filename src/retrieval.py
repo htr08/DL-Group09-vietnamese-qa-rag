@@ -33,7 +33,9 @@ def reciprocal_rank_fusion(
         rrf_k: Hằng số làm mượt (mặc định 60 theo Cormack et al., hệ thống nền từng dùng 15).
         
     Returns:
-        Danh sách (doc_id, rrf_score) được sắp xếp giảm dần theo điểm RRF.
+        Danh sách (doc_id, rrf_score) được sắp xếp giảm dần theo điểm RRF. Khi đồng điểm, thứ tự
+        giữ theo lần xuất hiện đầu tiên trong `ranked_lists` (danh sách đầu vào đứng trước thắng);
+        hệ thống nền xếp theo điểm dense khi đồng điểm.
     """
     scores: Dict[str, float] = {}
     for r_list in ranked_lists:
@@ -147,3 +149,25 @@ def rerank_by_title(
         reranked.append((doc_id, score * (1.0 + beta * sim)))
 
     return sorted(reranked, key=lambda item: item[1], reverse=True)
+
+
+def hybrid_retrieve(
+    bm25_retriever,
+    dense_retriever,
+    query: str,
+    top_k: int = 10,
+    rrf_k: int = 60,
+    doc_titles: Optional[Dict[str, str]] = None,
+    beta: float = DEFAULT_TITLE_BETA,
+) -> List[Tuple[str, float]]:
+    """
+    Truy hồi hybrid: BM25 và dense (mỗi bên top_k) hợp nhất bằng RRF, xếp hạng lại theo tiêu đề
+    nếu có `doc_titles`. Trả về tối đa top_k cặp (doc_id, điểm) giảm dần theo điểm.
+    Dùng chung cho đánh giá (scripts/run_eval.py) và pipeline RAG.
+    """
+    bm25_ids = [doc_id for doc_id, _ in bm25_retriever.retrieve(query, top_k=top_k)]
+    dense_ids = [doc_id for doc_id, _ in dense_retriever.retrieve(query, top_k=top_k)]
+    fused = reciprocal_rank_fusion([bm25_ids, dense_ids], rrf_k=rrf_k)
+    if doc_titles:
+        fused = rerank_by_title(fused, doc_titles, query, beta=beta)
+    return fused[:top_k]

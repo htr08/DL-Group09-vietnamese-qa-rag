@@ -4,9 +4,50 @@ from src.retrieval import (
     reciprocal_rank_fusion,
     BM25Retriever,
     DenseRetriever,
+    hybrid_retrieve,
     rerank_by_title,
 )
 from scripts.build_index import chunk_quy_che
+
+
+class _FakeRetriever:
+    def __init__(self, ids):
+        self.ids = ids
+
+    def retrieve(self, query, top_k=10):
+        return [(doc_id, 1.0 / (i + 1)) for i, doc_id in enumerate(self.ids[:top_k])]
+
+
+def test_hybrid_retrieve_fuses_with_rrf():
+    bm25 = _FakeRetriever(["a", "b", "c"])
+    dense = _FakeRetriever(["b", "c", "a"])
+    result = hybrid_retrieve(bm25, dense, "q", top_k=3, rrf_k=15)
+
+    assert result == reciprocal_rank_fusion([["a", "b", "c"], ["b", "c", "a"]], rrf_k=15)
+    # b: 1/17 + 1/16, a: 1/16 + 1/18, c: 1/18 + 1/17
+    assert [doc_id for doc_id, _ in result] == ["b", "a", "c"]
+
+
+def test_hybrid_retrieve_takes_top_k_from_each_retriever_then_truncates():
+    bm25 = _FakeRetriever(["a", "b", "c", "d"])
+    dense = _FakeRetriever(["d", "c", "b", "a"])
+
+    # Mỗi retriever chỉ đóng góp 2 kết quả đầu: BM25 [a, b], dense [d, c].
+    # a và d cùng điểm 1/61; BM25 đứng trước nên a xếp trước d (xem docstring của RRF).
+    result = hybrid_retrieve(bm25, dense, "q", top_k=2)
+    assert [doc_id for doc_id, _ in result] == ["a", "d"]
+
+
+def test_hybrid_retrieve_reranks_only_when_titles_are_given():
+    bm25 = _FakeRetriever(["d1", "d2"])
+    dense = _FakeRetriever(["d1", "d2"])
+    titles = {"d1": "Giới thiệu chung", "d2": "Quy chế đào tạo tín chỉ đại học"}
+
+    plain = hybrid_retrieve(bm25, dense, "đào tạo tín chỉ", top_k=2, rrf_k=60)
+    reranked = hybrid_retrieve(bm25, dense, "đào tạo tín chỉ", top_k=2, rrf_k=60, doc_titles=titles)
+
+    assert [doc_id for doc_id, _ in plain] == ["d1", "d2"]
+    assert [doc_id for doc_id, _ in reranked] == ["d2", "d1"]
 
 
 def test_reciprocal_rank_fusion():
@@ -270,6 +311,26 @@ def test_chunk_quy_che_sliding_window_for_long_clause():
     assert len(sliding_ids) >= 2, f"Khoản dài không có Điểm phải được tách sliding, có: {chunk_ids}"
     # Không có ID trùng nhau
     assert len(chunk_ids) == len(set(chunk_ids))
+
+
+def test_chunk_quy_che_splits_point_with_stroke_d_from_point_d():
+    """Điểm đ) là Điểm riêng (ID `diemdd`), không gộp vào nội dung Điểm d)."""
+    filler = " ".join(f"từ{i}" for i in range(60))
+    sample_text = f"""
+Điều 13. Thiết kế chương trình đào tạo
+1. Các nội dung gồm:
+a) {filler}
+b) {filler}
+c) {filler}
+d) {filler} cuối điểm d
+đ) {filler} nội dung điểm đ
+e) {filler}
+"""
+    chunks = {cid: text for cid, _, text in chunk_quy_che(sample_text)}
+
+    assert {"dieu13_khoan1_diemd", "dieu13_khoan1_diemdd", "dieu13_khoan1_dieme"} <= set(chunks)
+    assert "nội dung điểm đ" in chunks["dieu13_khoan1_diemdd"]
+    assert "nội dung điểm đ" not in chunks["dieu13_khoan1_diemd"]
 
 
 def test_dense_retriever_save_load_index(tmp_path):
