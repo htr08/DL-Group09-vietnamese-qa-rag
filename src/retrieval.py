@@ -1,4 +1,5 @@
 """Truy hồi: BM25, dense (BGE-M3), RRF, xếp hạng lại theo tiêu đề."""
+import math
 import re
 from typing import List, Dict, Tuple, Optional, Any, Set
 from rank_bm25 import BM25Okapi
@@ -9,6 +10,9 @@ VIETNAMESE_STOPWORDS: Set[str] = {
     "khi", "do", "tại", "theo", "với", "từ", "này", "đó", "ra", "đến",
     "đã", "sẽ", "đang", "bị", "một", "nhiều", "như", "thì", "để", "ở"
 }
+
+# Hệ số beta của reranker hệ thống nền (RERANK_BETA = 0.1 trong cấu hình gốc); chưa tune trên dev.
+DEFAULT_TITLE_BETA = 0.1
 
 
 def simple_tokenize(text: str) -> List[str]:
@@ -108,32 +112,38 @@ class DenseRetriever:
             self.doc_ids = _json.load(f)
 
 
+def _content_tokens(text: str) -> Set[str]:
+    return {w for w in simple_tokenize(text) if w not in VIETNAMESE_STOPWORDS and len(w) > 1}
+
+
 def rerank_by_title(
     ranked_results: List[Tuple[str, float]],
     doc_titles: Dict[str, str],
     query: str,
-    boost: float = 0.0003
+    beta: float = DEFAULT_TITLE_BETA
 ) -> List[Tuple[str, float]]:
     """
-    Xếp hạng lại theo độ trùng khớp tiêu đề (Ablation component).
-    Điểm mới = điểm cũ + boost * số từ trùng giữa câu hỏi và tiêu đề (đã loại stopwords tiếng Việt).
-    Đây là biến thể đơn giản hơn reranker của hệ thống nền, vốn nhân điểm RRF với
-    (1 + beta * heading_score). Boost mặc định 0.0003 xấp xỉ chênh lệch điểm RRF giữa hai
-    hạng liền kề ở rrf_k=60 (1/61 - 1/62 ~ 0.00026) và chưa được tune trên dev.
+    Xếp hạng lại theo độ tương đồng tiêu đề (Ablation component).
+    Điểm mới = điểm cũ * (1 + beta * sim), theo dạng nhân của reranker hệ thống nền nên không phụ
+    thuộc thang điểm RRF và mức tăng tối đa là beta. sim = |Q ∩ T| / sqrt(|Q| * |T|) trên tập từ
+    của câu hỏi Q và tiêu đề T (đã loại stopwords tiếng Việt), như `_heading_token_similarity` của
+    hệ thống nền.
+
+    Khác bản gốc: chỉ có thành phần từ vựng (bản gốc cộng thêm độ tương đồng embedding Gemini
+    của tiêu đề), tách từ bằng regex \\w+ và xếp hạng lại toàn bộ danh sách thay vì top 30.
     """
     if not ranked_results:
         return []
 
-    query_tokens = {w for w in simple_tokenize(query) if w not in VIETNAMESE_STOPWORDS and len(w) > 1}
+    query_tokens = _content_tokens(query)
     if not query_tokens:
         return list(ranked_results)
 
     reranked = []
     for doc_id, score in ranked_results:
-        title = doc_titles.get(doc_id, "")
-        title_tokens = {w for w in simple_tokenize(title) if w not in VIETNAMESE_STOPWORDS and len(w) > 1}
-        overlap = len(query_tokens.intersection(title_tokens))
-        new_score = score + (boost * overlap)
-        reranked.append((doc_id, new_score))
+        title_tokens = _content_tokens(doc_titles.get(doc_id, ""))
+        overlap = len(query_tokens & title_tokens)
+        sim = overlap / math.sqrt(len(query_tokens) * len(title_tokens)) if overlap else 0.0
+        reranked.append((doc_id, score * (1.0 + beta * sim)))
 
     return sorted(reranked, key=lambda item: item[1], reverse=True)

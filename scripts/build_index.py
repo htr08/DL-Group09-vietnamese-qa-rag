@@ -22,6 +22,10 @@ if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
     sys.stderr.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from src.tracking import init_run
+
 RAW_DIR = ROOT / "data" / "raw"
 DOMAIN_DIR = ROOT / "data" / "domain"
 INDEX_DIR = ROOT / "data" / "index"  # gitignore
@@ -148,13 +152,26 @@ def save_dense_index(doc_ids: List[str], corpus_texts: List[str],
     except Exception as exc:
         print(f"  [Qdrant Warning] Không thể kết nối hoặc ghi vào Qdrant ({type(exc).__name__}: {exc}).")
         print(f"  → Toàn bộ vector đã được lưu an toàn vào {out_path}.npy để phục vụ evaluation pipeline (dùng numpy).")
+    return encode_time
+
+
+def log_index_run(corpus: str, n_chunks: int, encode_time: float):
+    """Log số chunk và thời gian encode của một lần dựng index lên W&B (bật bằng --wandb, cần đăng nhập)."""
+    run = init_run(
+        name=f"B_bge-m3_index-{corpus}",
+        job_type="build_index",
+        config={"corpus": corpus, "sliding_max_words": SLIDING_MAX_WORDS, "sliding_stride": SLIDING_STRIDE},
+    )
+    run.summary["n_chunks"] = n_chunks
+    run.summary["encode_time_s"] = round(encode_time, 2)
+    run.finish()
 
 
 # ---------------------------------------------------------------------------
 # Kho ViQuAD
 # ---------------------------------------------------------------------------
 
-def build_viquad_index():
+def build_viquad_index(log_wandb: bool = False):
     """Dựng index cho kho ViQuAD: gộp mọi đoạn văn, loại câu không có đáp án."""
     jsonl_path = RAW_DIR / "viquad_train.jsonl"
     if not jsonl_path.exists():
@@ -178,8 +195,10 @@ def build_viquad_index():
     print(f"  Tổng {len(doc_ids)} đoạn văn duy nhất từ ViQuAD train")
 
     save_bm25_index(doc_ids, corpus_texts, INDEX_DIR / "viquad" / "bm25.pkl")
-    save_dense_index(doc_ids, corpus_texts, "viquad",
-                     INDEX_DIR / "viquad" / "dense")
+    encode_time = save_dense_index(doc_ids, corpus_texts, "viquad",
+                                   INDEX_DIR / "viquad" / "dense")
+    if log_wandb:
+        log_index_run("viquad", len(doc_ids), encode_time)
 
     # Lưu ánh xạ doc_id → text để dùng khi evaluate
     mapping = {did: txt for did, txt in zip(doc_ids, corpus_texts)}
@@ -225,6 +244,13 @@ def chunk_quy_che(text: str) -> List[Tuple[str, str, str]]:
         dieu_title = parts[i].strip()
         dieu_body = parts[i + 1].strip() if i + 1 < len(parts) else ""
         i += 2
+
+        # Tiêu đề Điều xuống dòng (Điều 22, 28): dòng đầu của thân bắt đầu bằng chữ thường
+        # là phần còn lại của tiêu đề, không phải nội dung.
+        first_line, _, rest = dieu_body.partition("\n")
+        if first_line[:1].islower():
+            dieu_title = f"{dieu_title} {first_line.strip()}"
+            dieu_body = rest.strip()
 
         # Lấy số Điều
         dieu_num_match = re.search(r"\d+", dieu_title)
@@ -280,7 +306,7 @@ def chunk_quy_che(text: str) -> List[Tuple[str, str, str]]:
     return chunks
 
 
-def build_domain_index():
+def build_domain_index(log_wandb: bool = False):
     """Dựng index cho kho Quy chế ĐHQGHN (miền chính)."""
     try:
         import pdfplumber
@@ -306,8 +332,10 @@ def build_domain_index():
     corpus_texts = [c[2] for c in chunks]
 
     save_bm25_index(doc_ids, corpus_texts, INDEX_DIR / "domain" / "bm25.pkl")
-    save_dense_index(doc_ids, corpus_texts, "domain_vn",
-                     INDEX_DIR / "domain" / "dense")
+    encode_time = save_dense_index(doc_ids, corpus_texts, "domain_vn",
+                                   INDEX_DIR / "domain" / "dense")
+    if log_wandb:
+        log_index_run("domain", len(doc_ids), encode_time)
 
     # Lưu metadata chunk
     meta_path = INDEX_DIR / "domain" / "chunks_meta.json"
@@ -325,7 +353,7 @@ def build_domain_index():
 # Kho Samsung S24 (miền phụ, lệch ngôn ngữ)
 # ---------------------------------------------------------------------------
 
-def build_samsung_index():
+def build_samsung_index(log_wandb: bool = False):
     """Dựng index cho 2 PDF Samsung Galaxy S24 (tiếng Anh)."""
     try:
         import pdfplumber
@@ -360,8 +388,10 @@ def build_samsung_index():
         return
 
     save_bm25_index(doc_ids, corpus_texts, INDEX_DIR / "samsung" / "bm25.pkl")
-    save_dense_index(doc_ids, corpus_texts, "samsung_en",
-                     INDEX_DIR / "samsung" / "dense")
+    encode_time = save_dense_index(doc_ids, corpus_texts, "samsung_en",
+                                   INDEX_DIR / "samsung" / "dense")
+    if log_wandb:
+        log_index_run("samsung", len(doc_ids), encode_time)
 
 
 # ---------------------------------------------------------------------------
@@ -373,14 +403,16 @@ def main():
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--corpus", choices=["viquad", "domain", "samsung"])
     group.add_argument("--all", action="store_true", help="Dựng tất cả các kho")
+    parser.add_argument("--wandb", action="store_true",
+                        help="Log số chunk và thời gian encode lên W&B (cần đăng nhập W&B)")
     args = parser.parse_args()
 
     if args.all or args.corpus == "viquad":
-        build_viquad_index()
+        build_viquad_index(log_wandb=args.wandb)
     if args.all or args.corpus == "domain":
-        build_domain_index()
+        build_domain_index(log_wandb=args.wandb)
     if args.all or args.corpus == "samsung":
-        build_samsung_index()
+        build_samsung_index(log_wandb=args.wandb)
 
     print("\n✓ Dựng index hoàn tất.")
 

@@ -53,23 +53,43 @@ def test_bm25_retriever():
 
 
 def test_rerank_by_title_with_rrf_scale_and_stopwords():
-    """Kiểm tra rerank dùng boost mặc định (0.0003) trên điểm thật từ RRF và lọc stopwords tiếng Việt."""
+    """Rerank dùng beta mặc định trên điểm thật từ RRF và lọc stopwords tiếng Việt."""
     # Điểm thật sinh ra từ RRF: d1 hạng 1 ở cả 2 nguồn, d2 hạng 2 ở cả 2 nguồn
-    bm25_list = ["d1", "d2"]
-    dense_list = ["d1", "d2"]
-    fused = reciprocal_rank_fusion([bm25_list, dense_list], rrf_k=60)
-    # fused = [('d1', 2/61 ≈ 0.032787), ('d2', 2/62 ≈ 0.032258)] -> chênh lệch 0.000529
+    fused = reciprocal_rank_fusion([["d1", "d2"], ["d1", "d2"]], rrf_k=60)
+    # fused = [('d1', 2/61 ≈ 0.032787), ('d2', 2/62 ≈ 0.032258)]
 
     doc_titles = {
-        "d1": "Giới thiệu chung và các quy định",        # chứa stopwords 'và', 'các'
-        "d2": "Quy chế đào tạo tín chỉ đại học"         # chứa các từ khóa thực 'đào', 'tạo', 'tín', 'chỉ'
+        "d1": "Giới thiệu chung và các quy định",        # chỉ trùng stopwords 'và', 'các' với câu hỏi
+        "d2": "Quy chế đào tạo tín chỉ đại học"         # trùng 'đào', 'tạo', 'tín', 'chỉ'
     }
-    # Query có từ dừng 'và', 'các' kèm từ khóa 'đào tạo tín chỉ'
-    # d1 không được boost vì chỉ trùng stopwords
-    # d2 trùng 4 từ khóa thực nên được boost 4 * 0.0003 = 0.0012 > 0.000529 -> vượt lên hạng 1
-    # Gọi hàm KHÔNG truyền tham số boost để kiểm tra giá trị mặc định (boost=0.0003)
+    # sim(d2) = 4 / sqrt(4 * 8) ≈ 0.707 -> điểm d2 nhân 1 + 0.1 * 0.707 ≈ 1.071 nên vượt d1 (chênh 1.6%)
     reranked = rerank_by_title(fused, doc_titles, query="và các đào tạo tín chỉ")
     assert reranked[0][0] == "d2"
+    assert reranked[1] == ("d1", fused[0][1])  # d1 không có từ trùng nên giữ nguyên điểm
+
+
+def test_rerank_by_title_boost_is_bounded_by_beta():
+    """Mức tăng tối đa là beta (tiêu đề trùng hoàn toàn câu hỏi), không phụ thuộc thang điểm."""
+    for scale in (1.0, 1000.0):
+        reranked = rerank_by_title(
+            [("d1", 0.03 * scale)], {"d1": "đào tạo tín chỉ"}, query="đào tạo tín chỉ", beta=0.1
+        )
+        assert reranked[0][1] == pytest.approx(0.03 * scale * 1.1)
+
+
+def test_rerank_by_title_weak_overlap_does_not_override_rank_gap():
+    """Một từ trùng với tiêu đề dài không đủ để đẩy chunk hạng thấp lên trên chunk hạng cao."""
+    ranked = [("top", 0.0328), ("low", 0.0300)]
+    titles = {"top": "Kinh phí đào tạo", "low": "Quy chế đào tạo tín chỉ đại học"}
+    reranked = rerank_by_title(ranked, titles, query="đào tạo tín chỉ sinh viên")
+    # low trùng 3 từ nhưng sim < 1 nên tăng chưa tới 10%; top cũng trùng 'đào', 'tạo'
+    assert [doc_id for doc_id, _ in reranked] == ["top", "low"]
+
+
+def test_rerank_by_title_empty_inputs():
+    assert rerank_by_title([], {"d1": "x"}, query="đào tạo") == []
+    ranked = [("d1", 0.03)]
+    assert rerank_by_title(ranked, {"d1": "đào tạo"}, query="và các") == ranked  # câu hỏi chỉ có stopwords
 
 
 def test_sliding_window_direct():
@@ -120,7 +140,7 @@ b) Kinh phí từ học phí và các nguồn thu hợp pháp khác:
 
 
 def test_chunk_quy_che_on_real_pdf():
-    """Kiểm tra chunk_quy_che trên file PDF thật: đủ 8 Điều _intro, không trùng ID, cửa sổ _w1 có tiêu đề."""
+    """Kiểm tra chunk_quy_che trên file PDF thật: đủ 7 Điều có _intro, tiêu đề xuống dòng được ghép, không trùng ID, cửa sổ _w1 có tiêu đề."""
     from pathlib import Path
     import pytest
 
@@ -140,11 +160,18 @@ def test_chunk_quy_che_on_real_pdf():
     # 1. Không trùng ID
     assert len(chunk_ids) == len(set(chunk_ids)), "Có chunk_id bị trùng lặp"
 
-    # 2. Đủ 8 Điều có _intro
-    for d in [10, 11, 22, 27, 28, 37, 39, 41]:
+    # 2. Đủ 7 Điều có đoạn dẫn thật trước Khoản 1
+    for d in [10, 11, 27, 28, 37, 39, 41]:
         assert f"dieu{d}_intro" in chunk_ids, f"Thiếu dieu{d}_intro trong PDF thật"
 
-    # 3. Mọi cửa sổ trượt _w đều có dòng đầu tiên là tiêu đề Điều
+    # 3. Tiêu đề Điều 22 và 28 xuống dòng trong PDF: phải được ghép đủ.
+    # Điều 22 chỉ có phần đuôi tiêu đề trước Khoản 1 nên không có đoạn dẫn.
+    titles = {cid.split("_")[0]: title for cid, title, _ in chunks}
+    assert titles["dieu22"].endswith("giáo dục thể chất")
+    assert titles["dieu28"].endswith("của sinh viên")
+    assert "dieu22_intro" not in chunk_ids
+
+    # 4. Mọi cửa sổ trượt _w đều có dòng đầu tiên là tiêu đề Điều
     for cid, title, txt in chunks:
         if "_w" in cid:
             lines = [ln.strip() for ln in txt.splitlines() if ln.strip()]
@@ -202,10 +229,16 @@ Sinh viên bị buộc thôi học nếu thuộc các trường hợp quy địn
     chunks = chunk_quy_che(sample_text)
     chunk_ids = [c[0] for c in chunks]
 
-    # Kiểm tra TẤT CẢ 8 Điều có đoạn dẫn _intro theo đúng danh sách reviewer chỉ ra
-    for dieu_num in [10, 11, 22, 27, 28, 37, 39, 41]:
+    # 7 Điều có đoạn dẫn thật trước Khoản 1
+    for dieu_num in [10, 11, 27, 28, 37, 39, 41]:
         intro_id = f"dieu{dieu_num}_intro"
         assert intro_id in chunk_ids, f"Thiếu {intro_id} trong danh sách chunk"
+
+    # Điều 22: dòng thứ hai của tiêu đề không phải đoạn dẫn; ghép vào tiêu đề, Khoản đánh số đúng
+    assert "dieu22_intro" not in chunk_ids
+    d22_k1 = next(c for c in chunks if c[0] == "dieu22_khoan1")
+    assert d22_k1[1].endswith("giáo dục thể chất")
+    assert d22_k1[2].startswith(d22_k1[1] + "\n1. ")
 
     # Điều 41: Khoản phải lấy đúng số từ regex, không bị lệch do đếm tuần tự
     assert "dieu41_khoan1" in chunk_ids
