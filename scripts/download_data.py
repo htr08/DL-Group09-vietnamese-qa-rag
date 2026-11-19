@@ -74,11 +74,22 @@ def make_dev_split(ds):
             f"Có {len(overlap)} đoạn văn nằm ở cả train lẫn dev — kiểm tra lại cách tách!"
         )
 
-    # Lưu danh sách title dev (đã có file này từ trước, ghi đè cho đồng bộ)
+    # File này đã được commit (cùng danh sách dev dùng cho extractive QA): không ghi đè,
+    # chỉ kiểm tra khớp để hai pipeline luôn dùng cùng một dev split.
     dev_titles_path = SPLITS_DIR / "viquad_dev_titles.txt"
-    with open(dev_titles_path, "w", encoding="utf-8") as f:
-        for title in sorted(dev_titles):
-            f.write(title + "\n")
+    if dev_titles_path.exists():
+        saved_titles = {
+            line for line in dev_titles_path.read_text(encoding="utf-8").splitlines() if line.strip()
+        }
+        if saved_titles != dev_titles:
+            raise RuntimeError(
+                f"Danh sách dev tạo ra ({len(dev_titles)} title) khác {dev_titles_path.name} "
+                f"đã commit ({len(saved_titles)} title). Kiểm tra seed và tỉ lệ tách."
+            )
+    else:
+        with open(dev_titles_path, "w", encoding="utf-8") as f:
+            for title in sorted(dev_titles):
+                f.write(title + "\n")
 
     # Lưu metadata split để kiểm tra lại sau
     meta = {
