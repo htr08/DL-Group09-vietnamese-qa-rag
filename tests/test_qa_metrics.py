@@ -1,7 +1,7 @@
 import unicodedata
 import pytest
 
-from src.metrics import (
+from src.qa_metrics import (
     normalize_answer,
     exact_match_score,
     token_f1_score,
