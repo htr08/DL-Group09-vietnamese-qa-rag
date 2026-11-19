@@ -231,10 +231,27 @@ def load_gold_queries(split: str = "dev") -> List[Dict[str, Any]]:
 # Chạy retrieval và tính chỉ số (kèm đo độ trễ)
 # ---------------------------------------------------------------------------
 
+def _add_article_scores(retrieved_ids, relevant_id, ks, recalls, mrrs):
+    """Thêm điểm một câu hỏi ở mức Điều (chỉ dùng cho kho Quy chế, ID dạng dieuN_...)."""
+    for k in ks:
+        recalls[k].append(recall_at_k(retrieved_ids, relevant_id, k, match_level="article"))
+    mrrs.append(mrr_at_k(retrieved_ids, relevant_id, k=10, match_level="article"))
+
+
+def _article_metrics(recalls, mrrs):
+    """Chỉ số mức Điều, thêm hậu tố _dieu để tách khỏi chỉ số mức Khoản."""
+    metrics = {f"R@{k}_dieu": round(mean_metric(v), 4) for k, v in recalls.items()}
+    metrics["MRR@10_dieu"] = round(mean_metric(mrrs), 4)
+    return metrics
+
+
 def evaluate_retriever(retriever, queries: List[Dict], ks: List[int],
-                       method_name: str, top_k_retrieve: int = 20):
+                       method_name: str, top_k_retrieve: int = 20,
+                       article_level: bool = False):
     recalls = {k: [] for k in ks}
     mrrs = []
+    article_recalls = {k: [] for k in ks}
+    article_mrrs = []
     latencies = []
 
     for q in queries:
@@ -249,19 +266,26 @@ def evaluate_retriever(retriever, queries: List[Dict], ks: List[int],
         for k in ks:
             recalls[k].append(recall_at_k(retrieved_ids, relevant_id, k))
         mrrs.append(mrr_at_k(retrieved_ids, relevant_id, k=10))
+        if article_level:
+            _add_article_scores(retrieved_ids, relevant_id, ks, article_recalls, article_mrrs)
 
     metrics = {f"R@{k}": round(mean_metric(recalls[k]), 4) for k in ks}
     metrics["MRR@10"] = round(mean_metric(mrrs), 4)
     metrics["Latency (ms)"] = round(sum(latencies) / len(latencies), 1) if latencies else 0.0
     metrics["n_queries"] = len(mrrs)
+    if article_level:
+        metrics.update(_article_metrics(article_recalls, article_mrrs))
     return metrics, recalls
 
 
 def evaluate_hybrid(bm25_retriever, dense_retriever, queries: List[Dict],
                     ks: List[int], rrf_k: int = 60, top_k_retrieve: int = 20,
-                    doc_titles: Optional[Dict[str, str]] = None, do_rerank: bool = False):
+                    doc_titles: Optional[Dict[str, str]] = None, do_rerank: bool = False,
+                    article_level: bool = False):
     recalls = {k: [] for k in ks}
     mrrs = []
+    article_recalls = {k: [] for k in ks}
+    article_mrrs = []
     latencies = []
 
     for q in queries:
@@ -285,11 +309,15 @@ def evaluate_hybrid(bm25_retriever, dense_retriever, queries: List[Dict],
         for k in ks:
             recalls[k].append(recall_at_k(retrieved_ids, relevant_id, k))
         mrrs.append(mrr_at_k(retrieved_ids, relevant_id, k=10))
+        if article_level:
+            _add_article_scores(retrieved_ids, relevant_id, ks, article_recalls, article_mrrs)
 
     metrics = {f"R@{k}": round(mean_metric(recalls[k]), 4) for k in ks}
     metrics["MRR@10"] = round(mean_metric(mrrs), 4)
     metrics["Latency (ms)"] = round(sum(latencies) / len(latencies), 1) if latencies else 0.0
     metrics["n_queries"] = len(mrrs)
+    if article_level:
+        metrics.update(_article_metrics(article_recalls, article_mrrs))
     return metrics, recalls
 
 
@@ -299,6 +327,10 @@ def evaluate_hybrid(bm25_retriever, dense_retriever, queries: List[Dict],
 
 def print_table(rows: List[Dict], ks: List[int]):
     headers = ["Method"] + [f"R@{k}" for k in ks] + ["MRR@10", "Latency (ms)", "N"]
+    article_headers = [f"R@{k}_dieu" for k in ks] + ["MRR@10_dieu"]
+    has_article = any("MRR@10_dieu" in row for row in rows)
+    if has_article:
+        headers += article_headers
     col_w = max(len(h) for h in headers) + 2
 
     sep = "+" + "+".join("-" * col_w for _ in headers) + "+"
@@ -308,6 +340,8 @@ def print_table(rows: List[Dict], ks: List[int]):
     for row in rows:
         vals = [row["method"]] + [str(row.get(f"R@{k}", "")) for k in ks]
         vals += [str(row.get("MRR@10", "")), str(row.get("Latency (ms)", "")), str(row.get("n_queries", ""))]
+        if has_article:
+            vals += [str(row.get(h, "")) for h in article_headers]
         print("|" + "|".join(v.center(col_w) for v in vals) + "|")
     print(sep)
 
@@ -352,6 +386,10 @@ def main():
         corpus = "domain"
         queries = load_gold_queries("test")
 
+    # Chỉ số mức Điều chỉ có nghĩa với ID dạng dieuN_...; ID của kho ViQuAD (viquad_NNNNN)
+    # không có cấu trúc Điều nên mức Điều sẽ khớp mọi đoạn.
+    article_level = corpus == "domain"
+
     rows = []
     run_bm25 = args.method in ("bm25", "all")
     run_dense = args.method in ("dense", "all")
@@ -376,13 +414,13 @@ def main():
 
     if run_bm25 and bm25_ret:
         print("Đánh giá BM25...")
-        m, bm25_recalls = evaluate_retriever(bm25_ret, queries, ks, "BM25")
+        m, bm25_recalls = evaluate_retriever(bm25_ret, queries, ks, "BM25", article_level=article_level)
         rows.append({"method": "BM25", **m})
         bm25_r5_scores = bm25_recalls.get(5, [])
 
     if run_dense and dense_ret:
         print("Đánh giá Dense (BGE-M3)...")
-        m, dense_recalls = evaluate_retriever(dense_ret, queries, ks, "Dense")
+        m, dense_recalls = evaluate_retriever(dense_ret, queries, ks, "Dense", article_level=article_level)
         rows.append({"method": "Dense (BGE-M3)", **m})
         dense_r5_scores = dense_recalls.get(5, [])
 
@@ -411,7 +449,8 @@ def main():
         for rrf_k in rrf_ks_to_try:
             label = f"Hybrid RRF (k={rrf_k})"
             print(f"Đánh giá {label}...")
-            m, h_recalls = evaluate_hybrid(bm25_ret, dense_ret, queries, ks, rrf_k=rrf_k)
+            m, h_recalls = evaluate_hybrid(bm25_ret, dense_ret, queries, ks, rrf_k=rrf_k,
+                                           article_level=article_level)
             rows.append({"method": label, **m})
             if m.get("R@5", 0) > best_r5:
                 best_r5 = m.get("R@5", 0)
@@ -453,7 +492,8 @@ def main():
         if doc_titles:
             print(f"Đánh giá Hybrid RRF (k={best_rrf_k}) + Rerank Title...")
             m_rerank, _ = evaluate_hybrid(bm25_ret, dense_ret, queries, ks, rrf_k=best_rrf_k,
-                                          doc_titles=doc_titles, do_rerank=True)
+                                          doc_titles=doc_titles, do_rerank=True,
+                                          article_level=article_level)
             rows.append({"method": f"Hybrid + Rerank Title (k={best_rrf_k})", **m_rerank})
         else:
             print("  [Rerank] Bỏ qua: không có tiêu đề chunk.")
