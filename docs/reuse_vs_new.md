@@ -2,7 +2,7 @@
 
 Ghi nhận phần dùng lại từ hệ thống nền (AI Marketing Assistant, dự án trước đó, dùng làm điểm xuất phát theo Proposal) và phần làm mới trong dự án này. File này là nguồn cho bảng "tự cài đặt so với dùng sẵn" trong báo cáo và cho phần khai báo khi kiểm tra trùng lặp mã.
 
-- Mã gốc của hệ thống nền nằm ở repo https://github.com/htr08/2526II-KNHTTTNT-Project-AIT3004-4-10 và không được chép vào repository này, để công cụ kiểm tra trùng lặp (MOSS/JPlag) không khớp mã gốc với repo của nhóm. Bản sao tạm trước đây (thư mục `legacy/`, nhập ở commit `ec633c1`, đã gỡ) vẫn xem được qua lịch sử git, ví dụ `git show ec633c1:legacy/rag/retrieval/fusion.py`. Cột "Nguồn" bên dưới ghi đường dẫn tương đối theo bản sao đó. Commit cố định của repo gốc dùng để dẫn link: `54e912bb6793d034e77ce99494fa7f6d0b5c6bd7`.
+- Mã gốc của hệ thống nền nằm ở repo https://github.com/htr08/2526II-KNHTTTNT-Project-AIT3004-4-10 và không được chép vào repository này, để công cụ kiểm tra trùng lặp (MOSS/JPlag) không khớp mã gốc với repo của nhóm. Bản sao tạm trước đây (thư mục `legacy/`, nhập ở commit `ec633c1`, đã gỡ) vẫn xem được qua lịch sử git, ví dụ `git show ec633c1:legacy/rag/retrieval/fusion.py`. Cột "Nguồn" bên dưới ghi đường dẫn tương đối theo bản sao đó. Commit cố định của repo gốc dùng để dẫn link: `718631f371be011bb7d96f1bd27214f368dfa12e` (ngày 2026-05-27, merge pull request #8). Cả 52 file trong `legacy/` ở commit `ec633c1` có mã băm blob trùng với các file tương ứng ở commit này (kiểm tra ngày 2026-11-19).
 - Một thành phần chỉ được coi là "đã dùng lại" khi mã tương ứng đã nằm trong `src/` hoặc `scripts/`. Mỗi lần chuyển mã sang, cập nhật cột *Trạng thái* và ghi tên Pull Request.
 - Việc dùng công cụ AI được ghi riêng ở `docs/ai_usage.md`.
 
