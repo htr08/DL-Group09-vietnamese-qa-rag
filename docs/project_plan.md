@@ -165,13 +165,8 @@ Tuần 1 là tuần Proposal. Hạng mục trong danh sách dưới đây chưa 
 | Project Charter (mục 1.3) | C | Chỉnh một lần sau baseline Tuần 2 |
 | Cài môi trường: VnCoreNLP (cần Java), transformers, Qdrant; thử Qwen2.5-7B 4-bit trên Kaggle/Colab | A, B, C | Phát hiện sớm lỗi cài đặt và giới hạn VRAM |
 | Khóa quy ước tách dữ liệu: dev = 10% bài viết (title) của train; split validation của Hugging Face = test công khai; không dùng split test (không nhãn). Chạy lại thống kê trên file nhóm tải và ghi số đếm thực tế vào README | A | Tránh rò rỉ dữ liệu; có unit test kiểm tra không đoạn nào nằm ở cả train và dev |
-| Hỏi giảng viên: dùng lại hệ thống nền có được không; trang tham khảo có tính vào 2 trang không | C | Ghi lại câu trả lời vào repo |
 | Đọc 2–3 bài báo chính cho phần của mình (theo bảng tiến độ của đề); ghi tóm tắt ngắn vào docs/reading_notes.md | A, B, C | Gợi ý: A đọc ViQuAD 2.0, PhoBERT, SQuAD 2.0; B đọc BGE-M3, DPR, RRF; C đọc RAG (Lewis et al.) và khảo sát về ảo giác. Related Work chỉ trích dẫn tài liệu nhóm đã đọc |
-<<<<<<< Updated upstream
-| Thay legacy/ bằng link tới repo gốc ở một commit cố định (README, docs/reuse_vs_new.md) | C | Tránh để công cụ kiểm tra trùng lặp (MOSS/JPlag) khớp 52 file mã gốc với repo của nhóm |
-=======
-| Gỡ legacy/ và dẫn link tới repo gốc (README, docs/reuse_vs_new.md); ghi hash commit cố định của repo gốc | C | Đã gỡ legacy/ (nhánh rag/remove-legacy); còn thiếu hash commit. Mục đích: tránh để công cụ kiểm tra trùng lặp (MOSS/JPlag) khớp 52 file mã gốc với repo của nhóm |
->>>>>>> Stashed changes
+| Gỡ legacy/ và dẫn link tới repo gốc (README, docs/reuse_vs_new.md); ghi hash commit cố định của repo gốc | C | Hash commit cố định ghi ở docs/reuse_vs_new.md. Tránh để công cụ kiểm tra trùng lặp (MOSS/JPlag) khớp 52 file mã gốc với repo của nhóm |
 
 ### 4.2. Tuần 2: Dữ liệu, baseline và tập đánh giá
 
