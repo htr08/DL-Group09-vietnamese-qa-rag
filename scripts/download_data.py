@@ -1,237 +1,122 @@
-
-import argparse
 import json
 import random
 import sys
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
-DATASET_NAME = "taidng/UIT-ViQuAD2.0"
-RANDOM_STATE = 42
-DEV_RATIO = 0.1
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
+    sys.stderr.reconfigure(encoding="utf-8")
 
-RAW_DIR = ROOT_DIR / "data" / "raw" / "viquad"
-SPLIT_DIR = ROOT_DIR / "data" / "splits"
+ROOT = Path(__file__).resolve().parents[1]
+RAW_DIR = ROOT / "data" / "raw"
+SPLITS_DIR = ROOT / "data" / "splits"
 
-FILES = {
-    "train": RAW_DIR / "train.jsonl",
-    "dev": RAW_DIR / "dev.jsonl",
-    "public_test": RAW_DIR / "public_test.jsonl",
-}
+VIQUAD_HF_NAME = "taidng/UIT-ViQuAD2.0"
+DEV_RATIO = 0.10
+SEED = 42
 
-TITLE_FILE = SPLIT_DIR / "viquad_dev_titles.txt"
 
-REQUIRED_FIELDS = {
-    "id",
-    "uit_id",
-    "title",
-    "context",
-    "question",
-    "answers",
-    "is_impossible",
-    "plausible_answers",
-}
+def download_viquad():
+    """Tải ViQuAD 2.0 từ Hugging Face datasets và lưu vào data/raw/."""
+    try:
+        from datasets import load_dataset
+    except ImportError:
+        raise SystemExit("Cài datasets trước: pip install datasets")
 
-def validate_no_title_leakage(train_records, dev_records):
-    train_titles = {record["title"] for record in train_records}
-    dev_titles = {record["title"] for record in dev_records}
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
 
-    overlap = train_titles & dev_titles
+    print(f"Tải {VIQUAD_HF_NAME} từ Hugging Face...")
+    ds = load_dataset(VIQUAD_HF_NAME)
 
+    # Lưu train và validation (= test công khai, có nhãn)
+    for split_name in ("train", "validation"):
+        out_path = RAW_DIR / f"viquad_{split_name}.jsonl"
+        rows = ds[split_name]
+        with open(out_path, "w", encoding="utf-8") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+        print(f"  → {out_path} ({len(rows)} dòng)")
+
+    # Không lưu split 'test': không nhãn và có đoạn trùng với train
+    print("  (Bỏ qua split 'test': không nhãn, có đoạn trùng với train)")
+    return ds
+
+
+def make_dev_split(ds):
+    """
+    Tách 10% số bài viết (theo title) của train làm dev nội bộ.
+    Seed cố định; lưu danh sách title và metadata vào data/splits/.
+    Kiểm tra không có context nào nằm ở cả train lẫn dev.
+    """
+    SPLITS_DIR.mkdir(parents=True, exist_ok=True)
+
+    train_rows = list(ds["train"])
+
+    # Lấy danh sách title không trùng, sắp xếp để reproducible
+    all_titles = sorted(set(row["title"] for row in train_rows))
+    n_dev = max(1, int(len(all_titles) * DEV_RATIO))
+
+    rng = random.Random(SEED)
+    dev_titles = set(rng.sample(all_titles, n_dev))
+    train_titles = set(all_titles) - dev_titles
+
+    # Kiểm tra không có đoạn context nào nằm ở cả train lẫn dev
+    dev_contexts = set(
+        row["context"] for row in train_rows if row["title"] in dev_titles
+    )
+    train_contexts = set(
+        row["context"] for row in train_rows if row["title"] in train_titles
+    )
+    overlap = dev_contexts & train_contexts
     if overlap:
-        raise ValueError(
-            f"Train and Dev have overlapping titles: {sorted(overlap)[:5]}"
+        raise RuntimeError(
+            f"Có {len(overlap)} đoạn văn nằm ở cả train lẫn dev — kiểm tra lại cách tách!"
         )
 
-def validate_records(records, split_name):
-    if not records:
-        raise ValueError(f"{split_name} is empty.")
-
-    for index, record in enumerate(records):
-        missing = REQUIRED_FIELDS - set(record.keys())
-
-        if missing:
-            raise ValueError(
-                f"{split_name}, record {index}: missing fields {missing}"
+    # File này đã được commit (cùng danh sách dev dùng cho extractive QA): không ghi đè,
+    # chỉ kiểm tra khớp để hai pipeline luôn dùng cùng một dev split.
+    dev_titles_path = SPLITS_DIR / "viquad_dev_titles.txt"
+    if dev_titles_path.exists():
+        saved_titles = {
+            line for line in dev_titles_path.read_text(encoding="utf-8").splitlines() if line.strip()
+        }
+        if saved_titles != dev_titles:
+            raise RuntimeError(
+                f"Danh sách dev tạo ra ({len(dev_titles)} title) khác {dev_titles_path.name} "
+                f"đã commit ({len(saved_titles)} title). Kiểm tra seed và tỉ lệ tách."
             )
+    else:
+        with open(dev_titles_path, "w", encoding="utf-8") as f:
+            for title in sorted(dev_titles):
+                f.write(title + "\n")
 
-        if not isinstance(record["title"], str) or not record["title"].strip():
-            raise ValueError(
-                f"{split_name}, record {index}: invalid title."
-            )
-
-        if not isinstance(record["context"], str):
-            raise ValueError(
-                f"{split_name}, record {index}: invalid context."
-            )
-
-        if not isinstance(record["question"], str):
-            raise ValueError(
-                f"{split_name}, record {index}: invalid question."
-            )
-
-        answers = record["answers"]
-
-        if answers is not None:
-            if len(answers["text"]) != len(answers["answer_start"]):
-                raise ValueError(
-                    f"{split_name}, record {index}: answer fields mismatch."
-                )
-
-
-def write_jsonl(records, output_path):
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    temp_path = output_path.with_suffix(".jsonl.tmp")
-
-    with temp_path.open("w", encoding="utf-8") as file:
-        for record in records:
-            file.write(json.dumps(record, ensure_ascii=False) + "\n")
-
-    temp_path.replace(output_path)
-
-
-def read_jsonl(input_path):
-    with input_path.open(encoding="utf-8") as file:
-        return [json.loads(line) for line in file if line.strip()]
-
-
-def report_statistics(name, records):
-    titles = {record["title"] for record in records}
-
-    print(
-        f"{name}: {len(records):,} mẫu | "
-        f"{len(titles):,} bài viết"
-    )
-
-
-def validate_existing_files():
-    for path in list(FILES.values()) + [TITLE_FILE]:
-        if not path.exists():
-            raise FileNotFoundError(
-                f"Missing file: {path}. Use --overwrite to recreate the dataset."
-            )
-
-    train = read_jsonl(FILES["train"])
-    dev = read_jsonl(FILES["dev"])
-    public_test = read_jsonl(FILES["public_test"])
-
-    validate_records(train, "Train")
-    validate_records(dev, "Dev")
-    validate_records(public_test, "Public Test")
-
-    train_titles = {record["title"] for record in train}
-    dev_titles = {record["title"] for record in dev}
-
-    validate_no_title_leakage(train, dev)
-
-    saved_titles = {
-        line.strip()
-        for line in TITLE_FILE.read_text(encoding="utf-8").splitlines()
-        if line.strip()
+    # Lưu metadata split để kiểm tra lại sau
+    meta = {
+        "seed": SEED,
+        "dev_ratio": DEV_RATIO,
+        "n_total_titles": len(all_titles),
+        "n_dev_titles": len(dev_titles),
+        "n_train_titles": len(train_titles),
+        "n_dev_rows": sum(1 for r in train_rows if r["title"] in dev_titles),
+        "n_train_rows": sum(1 for r in train_rows if r["title"] in train_titles),
+        "context_overlap_count": len(overlap),
+        "note": (
+            "Dev tách theo title (bài viết), không theo câu hỏi, "
+            "để không có đoạn context nào nằm ở cả train lẫn dev."
+        ),
     }
+    with open(SPLITS_DIR / "viquad_split_meta.json", "w", encoding="utf-8") as f:
+        json.dump(meta, f, ensure_ascii=False, indent=2)
 
-    if saved_titles != dev_titles:
-        raise ValueError("Saved Dev titles do not match the Dev dataset.")
-
-    report_statistics("Train", train)
-    report_statistics("Dev", dev)
-    report_statistics("Public Test", public_test)
-
-    print("Train/Dev title overlap:", len(train_titles & dev_titles))
-    print("Existing dataset files passed validation.")
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--overwrite",
-        action="store_true",
-        help="Recreate existing raw dataset files.",
-    )
-    args = parser.parse_args()
-
-    existing_files = [
-        path
-        for path in list(FILES.values()) + [TITLE_FILE]
-        if path.exists()
-    ]
-
-    if existing_files and not args.overwrite:
-        if len(existing_files) == len(FILES) + 1:
-            print("Dataset files already exist. Validating without overwriting.")
-            validate_existing_files()
-            return
-
-        raise FileExistsError(
-            "Some dataset files already exist. "
-            "Use --overwrite only if you intend to recreate them."
-        )
-
-    print("Loading dataset:", DATASET_NAME)
-
-    from datasets import load_dataset
-
-    dataset = load_dataset(
-        DATASET_NAME,
-        split=["train", "validation"],
-    )
-
-    original_train = dataset[0]
-    public_test = dataset[1]
-
-    titles = sorted(set(original_train["title"]))
-
-    rng = random.Random(RANDOM_STATE)
-    dev_titles = set(
-        rng.sample(titles, round(len(titles) * DEV_RATIO))
-    )
-
-    train_records = [
-        record
-        for record in original_train
-        if record["title"] not in dev_titles
-    ]
-
-    dev_records = [
-        record
-        for record in original_train
-        if record["title"] in dev_titles
-    ]
-
-    public_test_records = list(public_test)
-
-    validate_records(train_records, "Train")
-    validate_records(dev_records, "Dev")
-    validate_records(public_test_records, "Public Test")
-
-    validate_no_title_leakage(train_records, dev_records)
-
-    if len(train_records) + len(dev_records) != len(original_train):
-        raise ValueError("Train/Dev sample count mismatch.")
-
-    SPLIT_DIR.mkdir(parents=True, exist_ok=True)
-
-    write_jsonl(train_records, FILES["train"])
-    write_jsonl(dev_records, FILES["dev"])
-    write_jsonl(public_test_records, FILES["public_test"])
-
-    TITLE_FILE.write_text(
-        "\n".join(sorted(dev_titles)) + "\n",
-        encoding="utf-8",
-    )
-
-    report_statistics("Original Train", list(original_train))
-    report_statistics("Train", train_records)
-    report_statistics("Dev", dev_records)
-    report_statistics("Public Test", public_test_records)
-    train_title_set = {record["title"] for record in train_records}
-    print("Train/Dev title overlap:", len(train_title_set & dev_title_set))
-    print("Saved dataset files successfully.")
+    print(f"\nDev split : {meta['n_dev_titles']} titles / {meta['n_dev_rows']} dòng")
+    print(f"Train split: {meta['n_train_titles']} titles / {meta['n_train_rows']} dòng")
+    print(f"→ {dev_titles_path}")
+    print(f"→ {SPLITS_DIR / 'viquad_split_meta.json'}")
+    return dev_titles
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as error:
-        print(f"ERROR: {error}", file=sys.stderr)
-        raise
+    ds = download_viquad()
+    make_dev_split(ds)
+    print("\nHoàn tất. Chạy pytest để kiểm tra không có đoạn trùng train/dev.")
