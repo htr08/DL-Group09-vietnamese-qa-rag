@@ -22,8 +22,11 @@ SYSTEM_PROMPT = (
     f"'{REFUSAL_TEXT}'"
 )
 
-# Hiragana, Katakana, chữ Hán (gồm mở rộng A) và Hangul.
-_CJK_RE = re.compile(r"[぀-ヿ㐀-䶿一-鿿가-힯]")
+# Dấu câu CJK (U+3000-303F), Hiragana, Katakana, chữ Hán (gồm mở rộng A), Hangul và các dạng toàn chiều rộng
+# (U+FF00-FFEF); hai nhóm đầu thường đi kèm khi Qwen chuyển sang tiếng Trung, như dấu ， và 。.
+_CJK_RE = re.compile(r"[\u3000-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uff00-\uffef]")
+
+_CITATION_RE = re.compile(r"\[\d+\]")
 
 # Tham số lấy mẫu cho các lần sinh lại: greedy cho cùng kết quả nên lần sinh lại phải lấy mẫu.
 _RETRY_SAMPLING = {"do_sample": True, "temperature": 0.7, "top_p": 0.9}
@@ -43,8 +46,13 @@ def has_cjk(text: str) -> bool:
 
 
 def is_refusal(text: str) -> bool:
-    normalized = unicodedata.normalize("NFC", text).lower()
-    return "không tìm thấy thông tin" in normalized
+    """Câu trả lời chỉ gồm câu từ chối cố định (có thể kèm số nguồn và dấu câu cuối).
+
+    Câu vừa từ chối một phần vừa nêu thông tin khác, ví dụ "Không tìm thấy thông tin về X, nhưng
+    theo [1] ...", không tính là từ chối; câu như vậy được để cho bước chấm tay.
+    """
+    normalized = unicodedata.normalize("NFC", _CITATION_RE.sub("", text)).lower().strip(" .\n")
+    return normalized == unicodedata.normalize("NFC", REFUSAL_TEXT).lower().rstrip(".")
 
 
 def generate_answer(

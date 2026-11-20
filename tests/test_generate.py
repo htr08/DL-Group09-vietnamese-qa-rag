@@ -20,6 +20,8 @@ def test_has_cjk_detects_han_kana_hangul_but_not_vietnamese():
     assert has_cjk("Sinh viên 学生 phải đóng học phí")
     assert has_cjk("ありがとう")
     assert has_cjk("안녕")
+    # Dấu câu toàn chiều rộng cũng được tính, vì thường xuất hiện khi Qwen chuyển sang tiếng Trung.
+    assert has_cjk("Sinh viên phải đóng học phí，theo quy định。")
     assert not has_cjk("Sinh viên được rút bớt học phần trong 2 tuần.")
 
 
@@ -30,6 +32,14 @@ def test_is_refusal_ignores_case_and_unicode_form():
     import unicodedata
     assert is_refusal(unicodedata.normalize("NFD", REFUSAL_TEXT))
     assert not is_refusal("Sinh viên được rút bớt học phần trong 2 tuần [1].")
+
+
+def test_is_refusal_requires_the_fixed_sentence_only():
+    # Số nguồn và dấu câu cuối không làm đổi kết quả.
+    assert is_refusal(REFUSAL_TEXT + " [1]")
+    # Câu vừa từ chối một phần vừa nêu thông tin không tính là từ chối.
+    assert not is_refusal("Không tìm thấy thông tin về mức phạt, nhưng theo [1] sinh viên bị trừ 25% điểm.")
+    assert not is_refusal("Sinh viên bị trừ 25% điểm [1]. Không tìm thấy thông tin trong tài liệu.")
 
 
 def _scripted(outputs):
