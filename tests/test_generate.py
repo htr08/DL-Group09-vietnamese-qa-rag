@@ -90,6 +90,18 @@ def test_generate_answer_returns_refusal_without_calling_model_when_no_contexts(
     assert result["refusal"] is True and result["attempts"] == 0 and result["cjk"] is False
 
 
+def test_generate_answer_refuses_when_all_contexts_are_blank():
+    fn, calls = _scripted([])
+    result = generate_answer(fn, "câu hỏi", ["", "  \n"])
+    assert calls == [] and result["answer"] == REFUSAL_TEXT and result["attempts"] == 0
+
+
+def test_generate_answer_still_calls_model_when_some_context_is_blank():
+    fn, calls = _scripted(["Trả lời [2]."])
+    result = generate_answer(fn, "câu hỏi", ["", "đoạn có nội dung"])
+    assert len(calls) == 1 and result["answer"] == "Trả lời [2]."  # giữ nguyên số thứ tự nguồn
+
+
 def test_find_invalid_citations_flags_numbers_outside_context_range():
     assert find_invalid_citations("Theo [1] và [2].", 2) == []
     assert find_invalid_citations("Theo [3], [1], [3] và [0].", 2) == [0, 3]

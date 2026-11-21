@@ -72,10 +72,10 @@ def generate_answer(
     `generate_fn(messages, sampling_kwargs)` trả về văn bản; xem `make_generate_fn`.
     Nếu hết số lần sinh lại mà vẫn lẫn CJK, trả về lần sinh cuối với `cjk=True`
     để chỉ số "lẫn CJK" của báo cáo đếm được trường hợp này.
-    Nếu không có đoạn ngữ cảnh nào thì trả về ngay câu từ chối cố định, không gọi mô hình
-    (`attempts=0`), vì không có thông tin để trả lời.
+    Nếu không có đoạn ngữ cảnh nào (rỗng hoặc chỉ gồm khoảng trắng) thì trả về ngay câu từ chối
+    cố định, không gọi mô hình (`attempts=0`), vì không có thông tin để trả lời.
     """
-    if not contexts:
+    if not any(text.strip() for text in contexts):
         return {"answer": REFUSAL_TEXT, "attempts": 0, "cjk": False, "refusal": True, "seconds": 0.0}
     messages = build_messages(question, contexts)
     start = time.perf_counter()
