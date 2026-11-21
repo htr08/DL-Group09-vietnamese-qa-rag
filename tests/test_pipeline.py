@@ -38,3 +38,11 @@ def test_answer_question_passes_numbered_contexts_and_returns_sources():
     assert result["answer"] == "Trả lời [1]."
     assert result["sources"] == ["a", "b"]  # nguồn [i+1] ứng với sources[i]
     assert result["retrieval_seconds"] >= 0 and not result["cjk"]
+
+
+def test_answer_question_reports_invalid_citations():
+    def fake_generate(messages, sampling):
+        return "Theo [1] và [4]."
+
+    result = answer_question(fake_generate, BM25, DENSE, CHUNKS, "câu hỏi", top_k=2)
+    assert result["invalid_citations"] == [4]  # chỉ có hai đoạn nên [4] không hợp lệ
