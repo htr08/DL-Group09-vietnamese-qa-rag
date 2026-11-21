@@ -55,6 +55,12 @@ def is_refusal(text: str) -> bool:
     return normalized == unicodedata.normalize("NFC", REFUSAL_TEXT).lower().rstrip(".")
 
 
+def find_invalid_citations(answer: str, num_contexts: int) -> list[int]:
+    """Các số nguồn [n] trong câu trả lời nằm ngoài khoảng 1..`num_contexts` (không trùng, tăng dần)."""
+    cited = {int(m[1:-1]) for m in _CITATION_RE.findall(answer)}
+    return sorted(n for n in cited if not 1 <= n <= num_contexts)
+
+
 def generate_answer(
     generate_fn: Callable[[list[dict], dict], str],
     question: str,
@@ -66,7 +72,11 @@ def generate_answer(
     `generate_fn(messages, sampling_kwargs)` trả về văn bản; xem `make_generate_fn`.
     Nếu hết số lần sinh lại mà vẫn lẫn CJK, trả về lần sinh cuối với `cjk=True`
     để chỉ số "lẫn CJK" của báo cáo đếm được trường hợp này.
+    Nếu không có đoạn ngữ cảnh nào thì trả về ngay câu từ chối cố định, không gọi mô hình
+    (`attempts=0`), vì không có thông tin để trả lời.
     """
+    if not contexts:
+        return {"answer": REFUSAL_TEXT, "attempts": 0, "cjk": False, "refusal": True, "seconds": 0.0}
     messages = build_messages(question, contexts)
     start = time.perf_counter()
     answer = generate_fn(messages, {})

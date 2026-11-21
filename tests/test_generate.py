@@ -1,5 +1,5 @@
 """Unit test cho phần không cần GPU của src/generate.py: prompt, CJK, từ chối, sinh lại."""
-from src.generate import REFUSAL_TEXT, SYSTEM_PROMPT, build_messages, generate_answer, has_cjk, is_refusal
+from src.generate import REFUSAL_TEXT, SYSTEM_PROMPT, build_messages, find_invalid_citations, generate_answer, has_cjk, is_refusal
 
 
 def test_build_messages_numbers_contexts_from_one():
@@ -80,3 +80,18 @@ def test_generate_answer_flags_cjk_when_retries_exhausted():
 def test_generate_answer_marks_refusal():
     fn, _ = _scripted([REFUSAL_TEXT])
     assert generate_answer(fn, "câu hỏi", ["đoạn"])["refusal"] is True
+
+
+def test_generate_answer_returns_refusal_without_calling_model_when_no_contexts():
+    fn, calls = _scripted([])
+    result = generate_answer(fn, "câu hỏi", [])
+    assert calls == []  # không gọi mô hình
+    assert result["answer"] == REFUSAL_TEXT
+    assert result["refusal"] is True and result["attempts"] == 0 and result["cjk"] is False
+
+
+def test_find_invalid_citations_flags_numbers_outside_context_range():
+    assert find_invalid_citations("Theo [1] và [2].", 2) == []
+    assert find_invalid_citations("Theo [3], [1], [3] và [0].", 2) == [0, 3]
+    assert find_invalid_citations(REFUSAL_TEXT, 0) == []
+    assert find_invalid_citations("Theo [1].", 0) == [1]
