@@ -1,4 +1,4 @@
-﻿
+
 import argparse
 import json
 import math
@@ -18,7 +18,7 @@ try:
     from .tracking import init_run
 except ImportError:
     from tracking import init_run
-from src.qa_metrics import exact_match_score, f1_score
+from src.metrics import exact_match_score, f1_score
 
 
 class QADataset(Dataset):
