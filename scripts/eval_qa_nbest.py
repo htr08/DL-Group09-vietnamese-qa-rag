@@ -15,8 +15,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import torch
-from transformers import AutoModel, AutoTokenizer
 from src.qa_nbest import decode_window, scores_at_threshold, best_dev_threshold
 from src.qa_metrics import exact_match_score, f1_score
 
@@ -37,6 +35,7 @@ def load_jsonl(path):
 
 
 def model_batch(model, head, feats, pad_id, device):
+    import torch
     max_len = max(len(r["input_ids"]) for r in feats)
     inp = torch.full((len(feats), max_len), pad_id, dtype=torch.long)
     attn = torch.zeros((len(feats), max_len), dtype=torch.long)
@@ -90,6 +89,8 @@ def main():
         if not path.is_file():
             raise FileNotFoundError(path)
     a.output_dir.mkdir(parents=True, exist_ok=True)
+    import torch
+    from transformers import AutoModel, AutoTokenizer
     device = torch.device("cuda" if a.device == "auto" and torch.cuda.is_available()
                           else "cpu" if a.device == "auto" else a.device)
     if device.type == "cuda" and not torch.cuda.is_available():
