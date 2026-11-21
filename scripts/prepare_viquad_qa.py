@@ -225,7 +225,7 @@ def main():
     report_statistics("Dev", dev_records)
     report_statistics("Public Test", public_test_records)
     train_title_set = {record["title"] for record in train_records}
-    print("Train/Dev title overlap:", len(train_title_set & dev_title_set))
+    print("Train/Dev title overlap:", len(train_title_set & dev_titles))
     print("Saved dataset files successfully.")
 
 

@@ -1,0 +1,31 @@
+{
+  "split": "dev",
+  "purpose": "Gold-leakage feature attribution, NOT model F1 evaluation",
+  "source_legacy": "origin/main:src/preprocessing_qa.py (local Git ref)",
+  "source_clean": "C:\\Users\\DELL\\Downloads\\DL-Group09-vietnamese-qa-rag\\DL-Group09-vietnamese-qa-rag\\data\\processed\\qa_features_dev_clean\\dev.jsonl",
+  "model": "vinai/phobert-base (use_fast=False)",
+  "smoke_only": false,
+  "statistics": {
+    "examples": 2768,
+    "answerable_examples": 1886,
+    "legacy_succeeded": 2768,
+    "token_changed_examples": 29,
+    "overlap_changed_examples": 0,
+    "actual_feature_changed_examples": 29,
+    "affected_union_examples": 29,
+    "impossible_examples": 882
+  },
+  "legacy_failure_reasons": {},
+  "definitions": {
+    "token_changed_examples": "refine_tokens_for_answer(old) làm thay đổi danh sách VnCoreNLP context tokens",
+    "overlap_changed_examples": "gold làm thay đổi start/end các window khi GIỮ NGUYÊN refined tokens",
+    "actual_feature_changed_examples": "toàn bộ input_ids/window cũ khác Dev mode=eval mới",
+    "affected_union_examples": "hợp của ba dấu hiệu trên; legacy lỗi được đếm riêng"
+  },
+  "notes": [
+    "Mỗi ID được đếm tối đa một lần trong từng chỉ số.",
+    "Đây là số câu có representation khác nhau, KHÔNG phải phần trăm EM/F1 được cải thiện.",
+    "So sánh với Dev features lưu sẵn, dừng nếu cách tạo mới không tái lập đúng.",
+    "Legacy failures được thống kê riêng; không khẳng định chúng không bị leakage."
+  ]
+}

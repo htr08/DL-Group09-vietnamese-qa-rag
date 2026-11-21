@@ -137,7 +137,7 @@ def read_jsonl(path):
 
 
 def score(rows, answers_by_id, threshold):
-    from src.metrics import exact_match_score, f1_score
+    from src.qa_metrics import exact_match_score, f1_score
     em = f1 = 0.0
     per_class = {'answerable': {'n': 0, 'em': 0.0, 'f1': 0.0},
                  'impossible': {'n': 0, 'em': 0.0, 'f1': 0.0}}
