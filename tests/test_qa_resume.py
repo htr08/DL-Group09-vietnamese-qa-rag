@@ -4,7 +4,11 @@ import random
 
 import numpy as np
 import pytest
-import torch
+
+torch = pytest.importorskip(
+    "torch",
+    reason="CI tối giản không cài PyTorch",
+)
 
 from src.qa_resume import save_training_state, load_training_state
 
