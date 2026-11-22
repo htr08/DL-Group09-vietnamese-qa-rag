@@ -7,6 +7,25 @@ from __future__ import annotations
 
 import math
 
+# mode=train dùng gold để chỉnh token và sliding window nên không được chấm Dev/Test.
+GOLD_INDEPENDENT_MODES = frozenset({"eval", "predict"})
+
+
+def require_gold_independent_features(features, source="features"):
+    """Từ chối feature không có `preprocessing_mode` thuộc eval/predict.
+
+    Feature tạo trước khi trường này tồn tại cũng bị từ chối vì không chứng minh
+    được chúng độc lập với gold; cần tạo lại bằng preprocess_qa.py (mode=eval).
+    """
+    for index, feature in enumerate(features):
+        mode = feature.get("preprocessing_mode")
+        if mode not in GOLD_INDEPENDENT_MODES:
+            raise ValueError(
+                f"{source}: feature #{index} (id={feature.get('id')}) có "
+                f"preprocessing_mode={mode!r}; chỉ chấp nhận "
+                f"{sorted(GOLD_INDEPENDENT_MODES)}. Tạo lại Dev/Test bằng mode=eval."
+            )
+
 
 def decode_window(input_ids, start_logits, end_logits, tokenizer,
                   n_best_size=20, max_answer_length=30, sep_token_id=2,

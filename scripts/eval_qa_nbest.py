@@ -15,7 +15,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.qa_nbest import decode_window, scores_at_threshold, best_dev_threshold
+from src.qa_nbest import (
+    decode_window, scores_at_threshold, best_dev_threshold,
+    require_gold_independent_features,
+)
 from src.qa_metrics import exact_match_score, f1_score
 
 
@@ -110,6 +113,7 @@ def main():
             raise ValueError("Dev title split does not match saved 13-title split")
 
     # Feature dùng để chấm phải tạo bằng mode=eval/predict, tuyệt đối không dùng train.
+    require_gold_independent_features(features, str(a.features))
     for feat in features:
         if "word_spans" not in feat or "subword_spans" not in feat:
             raise ValueError("Feature thiếu offset. Hãy preprocess lại Dev sạch; không dùng dữ liệu cũ.")

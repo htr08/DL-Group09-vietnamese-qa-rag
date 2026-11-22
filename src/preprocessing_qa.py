@@ -310,6 +310,7 @@ def preprocess_example(row, question_tokens, context_tokens, tokenizer, *, mode=
         feature["id"] = row["id"]
         feature["is_impossible"] = is_impossible
         feature["label_status"] = label_status
+        feature["preprocessing_mode"] = mode
         _attach_word_offsets(
             feature, context_word_spans, context_subword_spans, len(question_ids)
         )

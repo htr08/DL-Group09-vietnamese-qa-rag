@@ -108,3 +108,30 @@ def test_bad_mode_is_rejected():
     with pytest.raises(ValueError, match="Invalid mode"):
         preprocess_example(make_row(), QUESTION_TOKENS, CONTEXT_TOKENS,
                            TOKENIZER, mode="foo")
+
+
+def test_features_record_preprocessing_mode():
+    for mode in ("train", "eval", "predict"):
+        fs = preprocess_example(make_row(), QUESTION_TOKENS, CONTEXT_TOKENS,
+                                TOKENIZER, mode=mode)
+        assert {f["preprocessing_mode"] for f in fs} == {mode}
+
+
+def test_evaluator_rejects_gold_conditioned_features():
+    from src.qa_nbest import require_gold_independent_features
+
+    train_fs = preprocess_example(make_row(), QUESTION_TOKENS, CONTEXT_TOKENS,
+                                  TOKENIZER, mode="train")
+    with pytest.raises(ValueError, match="preprocessing_mode='train'"):
+        require_gold_independent_features(train_fs)
+
+    legacy = [{k: v for k, v in f.items() if k != "preprocessing_mode"}
+              for f in preprocess_example(make_row(), QUESTION_TOKENS,
+                                          CONTEXT_TOKENS, TOKENIZER, mode="eval")]
+    with pytest.raises(ValueError, match="preprocessing_mode=None"):
+        require_gold_independent_features(legacy)
+
+    for mode in ("eval", "predict"):
+        ok = preprocess_example(make_row(), QUESTION_TOKENS, CONTEXT_TOKENS,
+                                TOKENIZER, mode=mode)
+        require_gold_independent_features(ok)

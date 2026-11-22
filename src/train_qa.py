@@ -19,7 +19,7 @@ try:
 except ImportError:
     from tracking import init_run
 from src.qa_metrics import exact_match_score, f1_score
-from src.qa_nbest import decode_window
+from src.qa_nbest import decode_window, require_gold_independent_features
 from src.qa_resume import save_training_state, load_training_state
 # QA-REVIEW-STAGE2: unified offset decoder + ignored-label loss
 
@@ -286,6 +286,7 @@ def train(args):
         pin_memory=use_amp,
     )
 
+    require_gold_independent_features(dev_dataset.features, str(args.dev_file))
     feature_ids = {item["id"] for item in dev_dataset.features}
     gold_ids = {item["id"] for item in gold_data}
 
