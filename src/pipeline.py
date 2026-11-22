@@ -8,7 +8,7 @@ from __future__ import annotations
 import time
 from typing import Callable, Dict, List, Mapping, Optional
 
-from src.generate import generate_answer
+from src.generate import find_invalid_citations, generate_answer
 from src.retrieval import hybrid_retrieve
 
 
@@ -42,7 +42,8 @@ def answer_question(
     """RAG v0: truy hồi rồi sinh câu trả lời.
 
     Kết quả gồm các khóa của `generate_answer` cùng `sources` (mã đoạn; phần tử thứ i ứng với
-    nguồn [i+1] trong câu trả lời) và `retrieval_seconds`.
+    nguồn [i+1] trong câu trả lời), `invalid_citations` (số nguồn [n] không có trong danh sách
+    đoạn truy hồi) và `retrieval_seconds`.
     """
     start = time.perf_counter()
     contexts = retrieve_contexts(
@@ -52,5 +53,6 @@ def answer_question(
     retrieval_seconds = round(time.perf_counter() - start, 3)
     result = generate_answer(generate_fn, question, [c["text"] for c in contexts], max_retries=max_retries)
     result["sources"] = [c["id"] for c in contexts]
+    result["invalid_citations"] = find_invalid_citations(result["answer"], len(contexts))
     result["retrieval_seconds"] = retrieval_seconds
     return result
