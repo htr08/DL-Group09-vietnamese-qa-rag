@@ -1,3 +1,8 @@
+# Vietnamese QA: RAG mã nguồn mở và đọc hiểu trích xuất
+
+Đồ án môn Học sâu, Nhóm 9, Đề tài 10. Hệ thống thay các thành phần dùng API thương mại của một hệ thống RAG trước đó (Gemini embedding và Gemini 2.5 Flash) bằng BGE-M3 và Qwen2.5-7B-Instruct, đồng thời bổ sung mô-đun đọc hiểu trích xuất (PhoBERT, so sánh với XLM-R) được đánh giá trên UIT-ViQuAD 2.0 và trên tập 100 câu hỏi miền ứng dụng do nhóm tự gán nhãn.
+
+Mã của hệ thống nền (AI Marketing Assistant) không được sao chép vào repository này; liên kết tới repository gốc nằm trong `docs/reuse_vs_new.md`, tài liệu này cũng là nguồn cho bảng "tự cài đặt so với dùng sẵn".
 
 ## 1. Cấu trúc thư mục
 
@@ -5,7 +10,7 @@
 |---|---|
 | `src/` | Mã nguồn tiền xử lý QA, huấn luyện, truy hồi, sinh câu trả lời, metrics và pipeline |
 | `scripts/` | Các script tải dữ liệu, xây dựng index và đánh giá |
-| `tests/` | Unit tests; CI chạy khi tạo/cập nhật Pull Request |
+| `tests/` | Unit tests; CI chạy khi tạo/cập nhật Pull Request và khi push lên `main` |
 | `notebooks/` | EDA, phân tích và Kaggle smoke test (`00_kaggle_qwen_smoke_test.ipynb`) |
 | `data/raw/` | Dữ liệu tải về; được loại khỏi Git |
 | `data/domain/` | Tài liệu miền ứng dụng: Quy chế đào tạo ĐHQGHN 2014 (miền chính) và Samsung Galaxy S24 (nghiên cứu truy hồi liên ngôn ngữ) |
@@ -14,7 +19,7 @@
 | `kaggle/smoke_test_dataset/` | Bộ dữ liệu nhỏ cho Kaggle smoke test |
 | `app/` | Ứng dụng demo |
 | `docs/` | Kế hoạch, Charter, khai báo dùng AI và tài liệu phân biệt phần tái sử dụng/phần tự cài đặt |
-| `report/` | Báo cáo LaTeX theo mẫu ACL: `proposal/`, `milestone/`, `final/` |
+| `report/` | Báo cáo LaTeX theo mẫu ACL; hiện có `proposal/`, các thư mục `milestone/` và `final/` theo kế hoạch chưa được tạo |
 
 ## 2. Cài đặt môi trường
 
@@ -29,6 +34,39 @@ pip install -r requirements.txt
 
 `torch` không được cố định phiên bản trong `requirements.txt`; cần cài bản PyTorch phù hợp với hệ điều hành, CPU/GPU và CUDA của máy (xem chú thích đầu file yêu cầu thư viện).
 
+### 2.1. Theo dõi thí nghiệm (Weights & Biases)
+
+Mọi lần chạy tạo số liệu cho báo cáo (huấn luyện, đánh giá, dựng index) được ghi vào project W&B dùng chung: team `nhom09-vi-qa-rag`, project `vi-qa-rag`. Tên run theo dạng `<vai trò>_<mô hình>_<cấu hình>_seed<k>`.
+
+```bash
+pip install wandb==0.31.0
+wandb login            # dùng khóa cá nhân từ https://wandb.ai/authorize; không commit khóa
+```
+
+Trên Kaggle, khóa được lưu thành secret `WANDB_API_KEY` (Add-ons, Secrets) và đặt vào biến môi trường trong notebook:
+
+```python
+import os
+from kaggle_secrets import UserSecretsClient
+os.environ["WANDB_API_KEY"] = UserSecretsClient().get_secret("WANDB_API_KEY")
+```
+
+`src/tracking.py` cung cấp `init_run`, giữ entity, project và commit hash thống nhất giữa các lần chạy:
+
+```python
+from src.tracking import init_run
+run = init_run("A_phobert_lr3e-5_seed42", job_type="train", config={"lr": 3e-5})
+```
+
+`WANDB_MODE=disabled` tắt ghi log (CI, kiểm tra nhanh trên máy cục bộ).
+
+### 2.2. Kiểm thử
+
+```bash
+pip install -r requirements-ci.txt
+pytest
+```
+
 ## 3. Tiến độ của A — Extractive QA 
 
 ### 3.1. Công việc đã thực hiện và còn lại
@@ -38,12 +76,14 @@ pip install -r requirements.txt
 | 1 | Chia ViQuAD theo tiêu đề bài viết (title), chống trùng Train/Dev | **Hoàn thành:** seed `42`, 13 title Dev, 125 title Train, 0 context trùng; xem `data/splits/viquad_split_meta.json` |
 | 1 | Kiểm tra môi trường tách từ và tokenizer | Smoke test VnCoreNLP + PhoBERT đạt 10/10 mẫu; xem `docs/qa_week2_A_eda_reproduced.md` |
 | 2 | Tải ViQuAD, EDA, EM/F1, sliding window, offsets, lớp QA head | **Đã triển khai và có tests**; xem `notebooks/01_eda_viquad_A.ipynb` và `docs/qa_week2_A_evidence.md` |
-| 2 | Huấn luyện PhoBERT ban đầu; viết câu hỏi và gán nhãn miền ứng dụng | **Đã huấn luyện**; A viết 33 câu và có bản gán nhãn độc lập 33 câu của B
-| 2 | B1 sơ bộ (BM25 + PhoBERT); chưa phải kết quả chính thức chấm theo Gold miền ứng dụng đã được thống nhất |
-| 3 | Tuning PhoBERT với LR `2e-5`, `3e-5`, `5e-5`; n-best và no-answer threshold; kết quả ở mục 4 |
-| 3 | Chốt B1, phân tích lỗi và viết phần QA cho Milestone | B1 Dev và mẫu lỗi **còn mang tính sơ bộ**; nội dung Milestone QA mới có bản nháp
+| 2 | Huấn luyện PhoBERT ban đầu | **Đã huấn luyện**; số liệu lấy từ bộ evidence ngoài repository (mục 4.2) |
+| 2 | Viết câu hỏi và gán nhãn miền ứng dụng | A viết 33 câu và gán nhãn 33 câu của B; các tệp nháp nằm trong `data/gold/drafts/`, chưa được commit |
+| 2 | B1 sơ bộ (BM25 + PhoBERT) | Chưa phải kết quả chính thức: chưa chấm theo Gold miền ứng dụng đã được thống nhất; repository chưa có mã hay kết quả B1 |
+| 3 | Tuning PhoBERT với LR `2e-5`, `3e-5`, `5e-5`; n-best và no-answer threshold | **Đã thực hiện**; kết quả ở mục 4.2 |
+| 3 | Chốt B1, phân tích lỗi và viết phần QA cho Milestone | **Chưa hoàn thành:** B1 Dev và mẫu lỗi còn mang tính sơ bộ; repository chưa có bản nháp Milestone |
 
-Việc thống nhất nhãn qua hai lượt gán nhãn và chốt tập miền ứng dụng **30 Dev / 70 Test
+Việc thống nhất nhãn qua hai lượt gán nhãn và chốt tập miền ứng dụng **30 Dev / 70 Test** chưa hoàn thành: `data/gold/gold_dev.jsonl` và `data/gold/gold_test.jsonl` vẫn là tệp rỗng.
+
 ## 4. Dữ liệu và kết quả PhoBERT
 
 ### 4.1. Chia dữ liệu UIT-ViQuAD 2.0
@@ -63,7 +103,7 @@ Các số liệu sau lấy từ dữ liệu đã xử lý và báo cáo EDA:
 
 **Luồng tiền xử lý:** VnCoreNLP tách từ → PhoBERT tokenizer → sliding window (`max_len=256`, `doc_stride=128`) → lưu ánh xạ về vị trí ký tự trong context gốc.
 
-- Chế độ `mode=train` tính nhãn huấn luyện. Khi đánh giá Dev dùng `mode=eval`, không điều chỉnh token hoặc ranh giới window theo Gold answer.
+- Chế độ `mode=train` tính nhãn huấn luyện. Khi đánh giá Dev dùng `mode=eval`, không điều chỉnh token hoặc ranh giới window theo Gold answer. Mỗi feature lưu `preprocessing_mode`; `scripts/eval_qa_nbest.py` và vòng lặp Dev của `src/train_qa.py` từ chối feature có giá trị khác `eval`/`predict`, kể cả feature tạo trước khi trường này tồn tại.
 
 ### 4.2. Kết quả huấn luyện PhoBERT — Dev 
 
@@ -79,16 +119,16 @@ Cấu hình tốt nhất theo F1 là `5e-5` (epoch 3).
 
 Nguồn đối chiếu là bộ evidence ngoài repository `phobert_3lr_clean_dev_EVIDENCE.zip` (không commit dữ liệu lớn hoặc checkpoint). Bản tóm tắt nhỏ nằm tại `docs/results/qa_week3_A_training_summary.md`.
 
-## 5. Hướng dẫn chạy lại pipeline QA
+## 5. Quy trình chạy lại pipeline QA
 
-Cần Python 3.12, Transformers, `datasets`, Java và tài nguyên VnCoreNLP đặt trong `data/raw/vncorenlp/`. `requirements-ci.txt` chỉ phục vụ unit tests với các thư viện tối thiểu
+Cần Python 3.12, Transformers, `datasets`, Java và tài nguyên VnCoreNLP đặt trong `data/raw/vncorenlp/`. `requirements-ci.txt` chỉ phục vụ unit tests với các thư viện tối thiểu.
 
 
 ```bash
 # Tải ViQuAD, tách Train/Dev/Public Test theo title và ghi vào data/raw/viquad/.
-# Script ném FileExistsError khi chỉ một phần tệp đã tồn tại (bản clone mới chỉ có
-# data/splits/viquad_dev_titles.txt); trường hợp này dùng --overwrite. Chạy lại với
-# --overwrite cho danh sách title Dev trùng tệp đã commit (git diff data/splits rỗng).
+# Khi chỉ một phần tệp đã tồn tại (bản clone mới chỉ có data/splits/viquad_dev_titles.txt),
+# script ném FileExistsError và cần --overwrite. Với --overwrite, danh sách title Dev
+# trùng tệp đã commit (git diff data/splits rỗng).
 # scripts/download_data.py ghi data/raw/viquad_*.jsonl cho phần truy hồi
 # (build_index.py, run_eval.py); luồng QA dùng prepare_viquad_qa.py.
 python scripts/prepare_viquad_qa.py

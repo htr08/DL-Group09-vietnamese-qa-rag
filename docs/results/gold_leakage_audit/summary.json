@@ -2,7 +2,7 @@
   "split": "dev",
   "purpose": "Gold-leakage feature attribution, NOT model F1 evaluation",
   "source_legacy": "origin/main:src/preprocessing_qa.py (local Git ref)",
-  "source_clean": "C:\\Users\\DELL\\Downloads\\DL-Group09-vietnamese-qa-rag\\DL-Group09-vietnamese-qa-rag\\data\\processed\\qa_features_dev_clean\\dev.jsonl",
+  "source_clean": "data/processed/qa_features_dev_clean/dev.jsonl",
   "model": "vinai/phobert-base (use_fast=False)",
   "smoke_only": false,
   "statistics": {
