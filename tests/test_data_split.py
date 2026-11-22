@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 import pytest
 
+from scripts.prepare_viquad_qa import validate_no_title_leakage
+
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data/raw/viquad"
 SPLIT_FILE = ROOT / "data/splits/viquad_dev_titles.txt"
@@ -49,9 +51,7 @@ def test_dev_titles_match_split_file():
     assert actual_titles == expected_titles
 
 
-# Additional isolated unit tests from main.
-from scripts.prepare_viquad_qa import validate_no_title_leakage
-
+# Kiểm tra cô lập bằng dữ liệu giả, không cần tải ViQuAD.
 def test_train_dev_with_different_titles_passes():
     train = [
         {"title": "Bài viết A"},

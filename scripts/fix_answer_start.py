@@ -1,10 +1,19 @@
+"""Sửa `answer_start` lệch trong ViQuAD thô, ghi ra data/processed/viquad.
 
+Với mỗi đáp án mà `context[start:start+len(text)] != text`, chọn vị trí xuất hiện
+của `text` trong context gần `start` cũ nhất. Chỉ `answer_start` thay đổi; không
+thêm hoặc bớt bản ghi. Xử lý cả train, dev và public_test; dữ liệu thô
+data/raw/viquad không bị ghi đè. Tiền xử lý public_test (preprocess_qa.py) chỉ
+chạy khi chọn `--splits public_test`. Đường dẫn tính theo thư mục gốc repository,
+không phụ thuộc thư mục làm việc.
+"""
 import json
 import re
 from pathlib import Path
 
-source_dir = Path("data/raw/viquad")
-output_dir = Path("data/processed/viquad")
+ROOT = Path(__file__).resolve().parents[1]
+source_dir = ROOT / "data" / "raw" / "viquad"
+output_dir = ROOT / "data" / "processed" / "viquad"
 output_dir.mkdir(parents=True, exist_ok=True)
 
 for filename in ["train.jsonl", "dev.jsonl", "public_test.jsonl"]:

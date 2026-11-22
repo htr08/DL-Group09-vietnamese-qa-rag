@@ -85,9 +85,16 @@ Cần Python 3.12, Transformers, `datasets`, Java và tài nguyên VnCoreNLP đ�
 
 
 ```bash
-# Tải/chuẩn bị dữ liệu ViQuAD; giữ lại title-based split đã có.
-# Không dùng --overwrite nếu không chủ động tạo lại dữ liệu.
+# Tải ViQuAD, tách Train/Dev/Public Test theo title và ghi vào data/raw/viquad/.
+# Script ném FileExistsError khi chỉ một phần tệp đã tồn tại (bản clone mới chỉ có
+# data/splits/viquad_dev_titles.txt); trường hợp này dùng --overwrite. Chạy lại với
+# --overwrite cho danh sách title Dev trùng tệp đã commit (git diff data/splits rỗng).
+# scripts/download_data.py ghi data/raw/viquad_*.jsonl cho phần truy hồi
+# (build_index.py, run_eval.py); luồng QA dùng prepare_viquad_qa.py.
 python scripts/prepare_viquad_qa.py
+
+# Sửa answer_start lệch: data/raw/viquad -> data/processed/viquad; data/raw không bị ghi đè.
+python scripts/fix_answer_start.py
 
 # Tạo QA features cho Train và Dev nội bộ bằng VnCoreNLP.
 # Không tiền xử lý Public Test trong Tuần 1–3.

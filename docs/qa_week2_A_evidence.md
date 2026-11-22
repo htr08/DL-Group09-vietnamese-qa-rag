@@ -85,25 +85,24 @@ Sau khi sửa preprocessing, nhóm thực hiện kiểm tra lại các tập ViQ
 | Tổng số câu hỏi | 25.686 | 2.768 |
 | Answerable | 17.352 | 1.886 |
 | Impossible | 8.334 | 882 |
-| QA features được tạo | 29.333 | 3.155 |
-| Câu bị skip | 0 | 0 |
 
-**Kết quả đối chiếu Raw và Processed:**
+Các số trong bảng khớp `docs/qa_week2_A_eda_reproduced.md`. Số QA features (29.333 cho Train, 3.155 cho Dev) khớp `train_features` và `dev_features` trong config các run fine-tune PhoBERT trên W&B (project `nhom09-vi-qa-rag/vi-qa-rag`, commit `b202d3dc`).
 
-- Tập ID của Raw và Processed giống nhau trong từng split.
-- Không có thay đổi `title` hoặc `context` của các ID tương ứng.
-- Không phát hiện ID chuyển chéo giữa Train và Dev.
-- Không có context xuất hiện đồng thời trong Train và Dev.
+**Tái tạo Dev ngày 22/11/2026** trên Kaggle bằng `preprocess_qa.py` (VnCoreNLP 1.2, `transformers==4.57.6`): 2.768 câu được xử lý, 0 câu bị skip, 3.155 features, trong đó 1.857 `aligned`, 882 `impossible` và 29 `unalignable`. SHA-256 của `dev.jsonl`, tính sau khi chuẩn hóa dấu xuống dòng sang CRLF (tệp sinh trên Windows), trùng giá trị ghi trong `docs/results/qa_week3_A_training_summary.md`. Số features Train (29.333) chưa được tái tạo; lần chạy trên 2.000 câu Train đầu tiên có 0 câu bị skip.
+
+**Đối chiếu Raw và Processed** (tái tạo ngày 22/11/2026 bằng `prepare_viquad_qa.py --overwrite` rồi `fix_answer_start.py`, so sánh từng bản ghi):
+- ID, `title` và `context` giống nhau giữa Raw và Processed ở cả ba split.
+- Không có context nào nằm ở cả Train lẫn Dev, khớp `data/splits/viquad_split_meta.json` (`context_overlap_count = 0`).
+- Danh sách title Dev tạo lại trùng `data/splits/viquad_dev_titles.txt` đã commit.
+- Số span sai offset ở Raw là 146 (Train), 8 (Dev) và 22 (Public Test); sau `fix_answer_start.py` còn 0 ở cả ba split.
+
+Đoạn mã so sánh không nằm trong repository.
 
 **Giải trình số liệu lịch sử:**
 
-Báo cáo cũ ghi nhận `matching_spans` của Train là 17.309 và Dev là 1.929, khác với số lượng answerable hiện tại là 17.352 và 1.886.
+Báo cáo ngày 19/11 (phần "Answer offsets (PROCESSED)" phía trên) ghi `matching_spans` của Train là 17.309 và Dev là 1.929. Báo cáo tái tạo ngày 21/11 (`docs/qa_week2_A_eda_reproduced.md`) ghi 17.352 và 1.886, bằng số câu answerable, cùng tên chỉ số.
 
-`matching_spans` là chỉ số kiểm tra ánh xạ đáp án, không đồng nhất về định nghĩa với `answerable_examples`.
-
-Dữ liệu hiện tại không cho thấy sự chuyển đổi 43 câu giữa hai split. Chưa tái tạo được nguyên nhân tạo ra số liệu lịch sử; vì vậy, giữ các giá trị cũ để truy vết nhưng sử dụng thống kê mới cho các thí nghiệm tiếp theo.
-
-**Lưu ý:** Dev preprocessing hiện tại có 29 câu answerable không align được nhãn vị trí, nhưng các câu này vẫn được giữ để đánh giá EM/F1.
+Tổng hai split bằng nhau (17.309 + 1.929 = 17.352 + 1.886 = 19.238); Train thấp hơn 43 và Dev cao hơn 43 so với số hiện tại. Nguyên nhân chưa xác định vì dữ liệu của lần chạy cũ không còn trong repository. Số mới được dùng cho các thí nghiệm tiếp theo.
 
 ## Gold Leakage Audit — 21/11/2026
 
@@ -121,17 +120,19 @@ Dữ liệu hiện tại không cho thấy sự chuyển đổi 43 câu giữa h
 |---|---:|
 | Tổng câu Dev | 2.768 |
 | Gold làm thay đổi context tokens | 29 |
-| Gold làm thay đổi sliding windows | 0 |
+| Gold làm thay đổi overlap của sliding window | 0 |
 | Input features cũ khác Dev sạch | 29 |
 | Tổng số câu bị ảnh hưởng | 29 |
 | Pipeline cũ không xử lý được | 0 |
 
-**Kết luận:** Pipeline cũ có Gold Leakage, ảnh hưởng đến 29/2.768 câu Dev (1,05%). Tác động được phát hiện ở bước tinh chỉnh token theo Gold answer, không phát hiện thay đổi vị trí cửa sổ trong bộ dữ liệu này.
+**Kết luận:** Pipeline cũ có Gold Leakage, ảnh hưởng đến 29/2.768 câu Dev (1,05%). Tác động được phát hiện ở bước tinh chỉnh token theo Gold answer, không phát hiện thay đổi tham số overlap của cửa sổ trong bộ dữ liệu này.
 
 Pipeline mới tách `mode=train` và `mode=eval`, không sử dụng Gold answer để thay đổi đầu vào Dev.
 
 Kết quả audit chỉ phản ánh số câu có representation khác nhau, chưa đo trực tiếp thay đổi EM/F1.
 
-**Evidence:** `outputs/gold_leakage_audit/summary.json` và `affected_examples.csv`.
+**Đo lại ngày 22/11/2026** (Kaggle; so sánh `mode=eval` với `mode=train` của mã hiện tại trên 1.886 câu Dev có đáp án): 29 câu đổi token và đổi `input_ids`, trùng đúng 29 câu `unalignable` của Dev sạch; ranh giới cửa sổ (`context_start`, `context_end`) khác nhau ở 25/29 câu. Phép đo này đếm ranh giới cửa sổ, còn audit đếm tham số overlap (cột `overlap_changed`, bằng 0 ở cả 29 dòng); hai chỉ số có định nghĩa khác nhau. Chế độ `train` của mã hiện tại chỉ ước lượng hành vi cũ, không phải lần chạy trên mã cũ.
 
-Gold Leakage Audit: Pipeline cũ làm thay đổi token của 29/2.768 câu Dev (1,05%). Cả 29 ID đều trùng với các câu unalignable trong Dev sạch. Không phát hiện thay đổi sliding windows do Gold. Chi tiết xem docs/results/gold_leakage_audit/.
+**Evidence:** `docs/results/gold_leakage_audit/summary.json` và `affected_examples.csv`.
+
+Gold Leakage Audit: Pipeline cũ làm thay đổi token của 29/2.768 câu Dev (1,05%). Không phát hiện thay đổi overlap của sliding window do Gold. Phép đo lại ngày 22/11/2026 cho 29 câu đổi đầu vào, trùng 29/29 với các câu `unalignable` trong Dev sạch; danh sách ID của audit gốc chưa được đối chiếu trực tiếp vì `affected_examples.csv` không có cột `label_status`.

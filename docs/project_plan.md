@@ -333,7 +333,8 @@ DL-Group09-vietnamese-qa-rag/
 │   ├── train_qa.py           # fine-tune PhoBERT/XLM-R
 │   ├── retrieval.py          # BM25, dense, RRF, xếp hạng lại
 │   ├── generate.py           # prompt, Qwen, kiểm tra CJK
-│   ├── metrics.py            # EM/F1, Recall@k, MRR, bootstrap
+│   ├── metrics.py            # Recall@k, MRR, bootstrap
+│   ├── qa_metrics.py         # EM/F1
 │   └── pipeline.py
 ├── tests/
 ├── app/app.py                # demo
