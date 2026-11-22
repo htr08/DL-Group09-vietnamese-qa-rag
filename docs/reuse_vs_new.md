@@ -37,7 +37,8 @@ Bảng dưới phản ánh tình trạng ngày 2026-11-08: chưa có thành ph�
 |---|---|---|
 | Tiền xử lý QA: tách từ VnCoreNLP, tokenize, sliding window, ánh xạ offset | `src/preprocessing_qa.py` | A |
 | Huấn luyện PhoBERT và XLM-R cho extractive QA | `src/train_qa.py` | A |
-| Chỉ số: EM/F1, Recall@k, MRR@10, bootstrap CI | `src/metrics.py` | A, B, C (bootstrap do C) |
+| Chỉ số: EM/F1 | `src/qa_metrics.py` | A |
+| Chỉ số: Recall@k, MRR@10, bootstrap CI | `src/metrics.py` | B, C (bootstrap do C) |
 | Truy hồi dense với BGE-M3 | `src/retrieval.py` | B |
 | Sinh câu trả lời bằng Qwen2.5-7B 4-bit: prompt, ràng buộc ngữ cảnh, từ chối, kiểm tra CJK | `src/generate.py` | C |
 | Chế độ trích xuất (PhoBERT đọc các đoạn truy hồi) | `src/pipeline.py` | C |

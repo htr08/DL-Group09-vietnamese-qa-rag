@@ -1,4 +1,4 @@
-﻿
+
 import argparse
 import json
 import math
@@ -19,6 +19,9 @@ try:
 except ImportError:
     from tracking import init_run
 from src.qa_metrics import exact_match_score, f1_score
+from src.qa_nbest import decode_window, require_gold_independent_features
+from src.qa_resume import save_training_state, load_training_state
+# QA-REVIEW-STAGE2: unified offset decoder + ignored-label loss
 
 
 class QADataset(Dataset):
@@ -67,37 +70,30 @@ class ExtractiveQAModel(nn.Module):
 
 
 def collate_fn(batch, pad_token_id):
+    """Gộp batch; giữ offset metadata cho decoder chính xác."""
     max_length = max(len(item["input_ids"]) for item in batch)
-
-    input_ids = []
-    attention_mask = []
-    start_positions = []
-    end_positions = []
-    ids = []
-    impossible = []
-
+    input_ids, attention_mask = [], []
+    start_positions, end_positions = [], []
+    ids, impossible = [], []
+    word_spans, subword_spans = [], []
     for item in batch:
         ids_list = item["input_ids"]
         padding_length = max_length - len(ids_list)
-
-        input_ids.append(
-            ids_list + [pad_token_id] * padding_length
-        )
-        attention_mask.append(
-            [1] * len(ids_list) + [0] * padding_length
-        )
+        input_ids.append(ids_list + [pad_token_id] * padding_length)
+        attention_mask.append([1] * len(ids_list) + [0] * padding_length)
         start_positions.append(item["start_positions"])
         end_positions.append(item["end_positions"])
         ids.append(item["id"])
         impossible.append(item["is_impossible"])
-
+        word_spans.append(item.get("word_spans"))
+        subword_spans.append(item.get("subword_spans"))
     return {
         "input_ids": torch.tensor(input_ids, dtype=torch.long),
         "attention_mask": torch.tensor(attention_mask, dtype=torch.long),
         "start_positions": torch.tensor(start_positions, dtype=torch.long),
         "end_positions": torch.tensor(end_positions, dtype=torch.long),
-        "ids": ids,
-        "is_impossible": impossible,
+        "ids": ids, "is_impossible": impossible,
+        "word_spans": word_spans, "subword_spans": subword_spans,
     }
 
 
@@ -111,203 +107,129 @@ def set_seed(seed):
 
 
 def compute_loss(start_logits, end_logits, start_positions, end_positions):
-    start_loss = nn.functional.cross_entropy(
-        start_logits,
-        start_positions,
+    """Trung bình loss trên các feature có nhãn; -100 được bỏ qua.
+
+    Nếu toàn bộ batch không có nhãn hợp lệ, trả zero-gradient loss;
+    evaluator không cộng batch ấy vào Dev loss nhưng vẫn chấm EM/F1.
+    """
+    valid = (start_positions != -100) & (end_positions != -100)
+    start = nn.functional.cross_entropy(
+        start_logits, start_positions, ignore_index=-100, reduction="none"
     )
-    end_loss = nn.functional.cross_entropy(
-        end_logits,
-        end_positions,
+    end = nn.functional.cross_entropy(
+        end_logits, end_positions, ignore_index=-100, reduction="none"
     )
+    if not bool(valid.any()):
+        return (start_logits.sum() + end_logits.sum()) * 0.0
+    return ((start + end) * 0.5)[valid].mean()
 
-    return (start_loss + end_loss) / 2
 
+def decode_feature(input_ids, attention_mask, start_logits, end_logits,
+                   tokenizer, max_answer_length):
+    """Legacy wrapper; cả training và standalone đều dùng decode_window.
 
-def decode_feature(
-    input_ids,
-    attention_mask,
-    start_logits,
-    end_logits,
-    tokenizer,
-    max_answer_length,
-):
+    Không dùng hàm này để báo cáo điểm Dev mới: thiếu metadata offset.
+    """
     valid_length = int(attention_mask.sum().item())
-
-    input_ids = input_ids[:valid_length].tolist()
-    start_logits = start_logits.float()
-    end_logits = end_logits.float()
-
-    context_start = None
-
-    for i in range(len(input_ids) - 1):
-        if input_ids[i] == 2 and input_ids[i + 1] == 2:
-            context_start = i + 2
-            break
-
-    if context_start is None:
-        raise ValueError("Cannot locate context separator")
-
-    context_end = valid_length - 1
-
-    null_score = (
-        start_logits[0].item() + end_logits[0].item()
+    ids = input_ids[:valid_length].detach().cpu().tolist()
+    start = start_logits[:valid_length].float().detach().cpu().tolist()
+    end = end_logits[:valid_length].float().detach().cpu().tolist()
+    candidates, null_score = decode_window(
+        ids, start, end, tokenizer, n_best_size=max(20, valid_length),
+        max_answer_length=max_answer_length,
+        sep_token_id=tokenizer.sep_token_id,
     )
-
-    best_score = float("-inf")
-    best_start = 0
-    best_end = 0
-
-    for start in range(context_start, context_end):
-        max_end = min(
-            context_end,
-            start + max_answer_length,
-        )
-
-        for end in range(start, max_end):
-            score = (
-                start_logits[start].item()
-                + end_logits[end].item()
-            )
-
-            if score > best_score:
-                best_score = score
-                best_start = start
-                best_end = end
-
-    if best_score == float("-inf"):
-        return "", null_score, best_score
-
-    answer = tokenizer.decode(
-        input_ids[best_start:best_end + 1],
-        skip_special_tokens=True,
-        clean_up_tokenization_spaces=True,
-    ).strip()
-
-    return answer, null_score, best_score
+    best = candidates[0] if candidates else None
+    return (best["text"] if best else "", null_score,
+            best["score"] if best else float("-inf"))
 
 
-def evaluate(
-    model,
-    loader,
-    device,
-    tokenizer,
-    gold_data,
-    max_answer_length,
-    null_threshold,
-    use_amp,
-):
+def evaluate(model, loader, device, tokenizer, gold_data,
+             max_answer_length, null_threshold, use_amp):
+    """Chấm EM/F1 toàn bộ Dev bằng cùng decoder offset với standalone.
+
+    Gold chỉ dùng để lấy *context gốc* và references, không làm thay đổi
+    input_ids/cửa sổ. Dev loss bỏ qua label -100; EM/F1 vẫn chấm mọi câu.
+    """
     model.eval()
-
     total_loss = 0.0
-    total_samples = 0
-
-    predictions = defaultdict(
-        lambda: {
-            "best_answer": "",
-            "best_score": float("-inf"),
-            "null_score": float("inf"),
-        }
-    )
-
+    total_labeled = 0
+    predictions = defaultdict(lambda: {
+        "best_answer": "", "best_score": float("-inf"),
+        "null_score": float("inf"),
+    })
+    gold_by_id = {str(r["id"]): r for r in gold_data}
+    if len(gold_by_id) != len(gold_data):
+        raise ValueError("Duplicate gold IDs")
     with torch.no_grad():
         for batch in loader:
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             start_positions = batch["start_positions"].to(device)
             end_positions = batch["end_positions"].to(device)
-
-            with torch.autocast(
-                device_type=device.type,
-                dtype=torch.float16,
-                enabled=use_amp,
-            ):
-                start_logits, end_logits = model(
-                    input_ids,
-                    attention_mask,
+            with torch.autocast(device_type=device.type,
+                                dtype=torch.float16, enabled=use_amp):
+                start_logits, end_logits = model(input_ids, attention_mask)
+                loss = compute_loss(start_logits, end_logits,
+                                    start_positions, end_positions)
+            valid = (start_positions != -100) & (end_positions != -100)
+            valid_count = int(valid.sum().item())
+            if valid_count:
+                total_loss += float(loss.item()) * valid_count
+                total_labeled += valid_count
+            # Mỗi batch chỉ chuyển GPU -> CPU một lần, tránh .item() trong vòng đôi.
+            starts = start_logits.float().cpu().tolist()
+            ends = end_logits.float().cpu().tolist()
+            ids_cpu = input_ids.cpu().tolist()
+            lengths = attention_mask.sum(dim=1).cpu().tolist()
+            for i, qid in enumerate(batch["ids"]):
+                question_id = str(qid)
+                if question_id not in gold_by_id:
+                    raise ValueError(f"Missing gold for {question_id}")
+                word_spans = batch["word_spans"][i]
+                subword_spans = batch["subword_spans"][i]
+                if word_spans is None or subword_spans is None:
+                    raise ValueError(
+                        "Dev feature missing offsets: preprocess again in eval mode"
+                    )
+                length = int(lengths[i])
+                candidates, null_score = decode_window(
+                    ids_cpu[i][:length], starts[i][:length], ends[i][:length],
+                    tokenizer, n_best_size=20, max_answer_length=max_answer_length,
+                    sep_token_id=tokenizer.sep_token_id,
+                    word_spans=word_spans, subword_spans=subword_spans,
+                    context=gold_by_id[question_id]["context"],
                 )
+                record = predictions[question_id]
+                record["null_score"] = min(record["null_score"], null_score)
+                if candidates and candidates[0]["score"] > record["best_score"]:
+                    record["best_score"] = candidates[0]["score"]
+                    record["best_answer"] = candidates[0]["text"]
 
-                loss = compute_loss(
-                    start_logits,
-                    end_logits,
-                    start_positions,
-                    end_positions,
-                )
-
-            batch_size = input_ids.size(0)
-            total_loss += loss.item() * batch_size
-            total_samples += batch_size
-
-            for i, question_id in enumerate(batch["ids"]):
-                answer, null_score, answer_score = decode_feature(
-                    input_ids[i],
-                    attention_mask[i],
-                    start_logits[i],
-                    end_logits[i],
-                    tokenizer,
-                    max_answer_length,
-                )
-
-                item = predictions[question_id]
-
-                item["null_score"] = min(
-                    item["null_score"],
-                    null_score,
-                )
-
-                if answer_score > item["best_score"]:
-                    item["best_score"] = answer_score
-                    item["best_answer"] = answer
-
-    scores = {
+    score_groups = {
         "all": {"em": [], "f1": []},
         "answerable": {"em": [], "f1": []},
         "impossible": {"em": [], "f1": []},
     }
-
     for row in gold_data:
-        question_id = row["id"]
-        item = predictions.get(question_id)
-
+        qid = str(row["id"])
+        item = predictions.get(qid)
         if item is None:
-            raise ValueError(
-                f"Missing prediction for question {question_id}"
-            )
-
+            raise ValueError(f"Missing prediction for question {qid}")
         score_diff = item["null_score"] - item["best_score"]
-
-        prediction = (
-            ""
-            if score_diff > null_threshold
-            else item["best_answer"]
-        )
-
-        if row["is_impossible"]:
-            references = [""]
-            category = "impossible"
-        else:
-            references = row["answers"]["text"]
-            category = "answerable"
-
-        em = float(exact_match_score(prediction, references))
-        f1 = f1_score(prediction, references)
-
-        scores["all"]["em"].append(em)
-        scores["all"]["f1"].append(f1)
-        scores[category]["em"].append(em)
-        scores[category]["f1"].append(f1)
-
-    result = {
-        "dev_loss": total_loss / total_samples,
-    }
-
-    for category, values in scores.items():
-        for metric, scores_list in values.items():
-            result[f"{category}_{metric}"] = (
-                float(np.mean(scores_list))
-                if scores_list
-                else 0.0
-            )
-
+        prediction = "" if score_diff > null_threshold else item["best_answer"]
+        refs = [""] if row["is_impossible"] else row["answers"]["text"]
+        cat = "impossible" if row["is_impossible"] else "answerable"
+        em = float(exact_match_score(prediction, refs))
+        f1 = float(f1_score(prediction, refs))
+        score_groups["all"]["em"].append(em)
+        score_groups["all"]["f1"].append(f1)
+        score_groups[cat]["em"].append(em)
+        score_groups[cat]["f1"].append(f1)
+    result = {"dev_loss": total_loss / total_labeled if total_labeled else None}
+    for cat, group in score_groups.items():
+        for metric, values in group.items():
+            result[f"{cat}_{metric}"] = float(np.mean(values)) if values else 0.0
     return result
 
 
@@ -364,6 +286,7 @@ def train(args):
         pin_memory=use_amp,
     )
 
+    require_gold_independent_features(dev_dataset.features, str(args.dev_file))
     feature_ids = {item["id"] for item in dev_dataset.features}
     gold_ids = {item["id"] for item in gold_data}
 
@@ -410,11 +333,64 @@ def train(args):
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    model_tag = (
+        args.model_name.replace("\\", "/").rstrip("/").split("/")[-1]
+        .replace("-", "_")
+    )
     run_name = (
-        f"A_phobert_qa_lr{args.lr_label}_"
+        f"A_{model_tag}_qa_lr{args.lr_label}_"
         f"bs{args.batch_size}_ga{args.gradient_accumulation_steps}_"
         f"seed{args.seed}"
     )
+
+    # Đọc thông số thực tế từ report, thay vì hard-code vào W&B.
+    # Report cũ (từ lần train đã hoàn thành) có thể chưa có metadata.
+    def _read_feature_report_config(feature_file, split):
+        import json
+
+        report_path = Path(feature_file).resolve().with_name(f"{split}_report.json")
+        if not report_path.is_file():
+            return None
+        payload = json.loads(report_path.read_text(encoding="utf-8"))
+        config = payload.get("preprocessing_config")
+        if config is None:
+            return None
+        if not isinstance(config, dict):
+            raise ValueError(f"Invalid preprocessing_config: {report_path}")
+        result = {
+            "max_length": config.get("max_length"),
+            "doc_stride": config.get("doc_stride"),
+        }
+        max_length, stride = result.values()
+        if (type(max_length) is not int or type(stride) is not int
+                or max_length <= 0 or stride <= 0):
+            raise ValueError(f"Invalid preprocessing parameters: {report_path}")
+        return result
+
+    train_pre_cfg = _read_feature_report_config(args.train_file, "train")
+    dev_pre_cfg = _read_feature_report_config(args.dev_file, "dev")
+    if train_pre_cfg is not None and dev_pre_cfg is not None:
+        if train_pre_cfg != dev_pre_cfg:
+            raise ValueError("Train/Dev preprocessing config mismatch")
+        preprocessing_meta = dict(train_pre_cfg)
+        preprocessing_meta["source"] = "train_and_dev_feature_reports"
+    elif train_pre_cfg is not None or dev_pre_cfg is not None:
+        raise ValueError(
+            "Only one Train/Dev report has preprocessing_config; "
+            "regenerate both reports consistently before training"
+        )
+    else:
+        # Tương thích report lịch sử: dùng constants, đánh dấu CHƯA XÁC MINH
+        # theo report; không sửa hoặc viết đè các report cũ.
+        from src.preprocessing_qa import MAX_LEN, DOC_STRIDE
+        preprocessing_meta = {
+            "max_length": MAX_LEN,
+            "doc_stride": DOC_STRIDE,
+            "source": "legacy_constants_unverified_by_feature_reports",
+        }
+        print("WARNING: Train/Dev reports have no preprocessing_config. "
+              "W&B parameters use current source constants, not verified "
+              "historical report values.")
 
     run = init_run(
         name=run_name,
@@ -433,12 +409,16 @@ def train(args):
             ),
             "weight_decay": args.weight_decay,
             "warmup_ratio": args.warmup_ratio,
-            "max_length": 256,
-            "doc_stride": 128,
+            "max_length": preprocessing_meta["max_length"],
+            "doc_stride": preprocessing_meta["doc_stride"],
+            "preprocessing_config_source": preprocessing_meta["source"],
             "seed": args.seed,
             "optimizer": "AdamW",
             "mixed_precision": use_amp,
-            "gpu": torch.cuda.get_device_name(0) if use_amp else "CPU",
+            "gpu": (
+                torch.cuda.get_device_name(device)
+                if device.type == "cuda" else "CPU"
+            ),
             "train_features": len(train_dataset),
             "dev_features": len(dev_dataset),
             "dev_questions": len(gold_data),
@@ -455,8 +435,45 @@ def train(args):
     global_step = 0
     total_start = time.perf_counter()
 
+    # Resume chỉ tại ranh giới epoch. Cấu hình phải trùng lần chạy gốc.
+    resume_config = {
+        "model_name": args.model_name,
+        "epochs": int(args.epochs),
+        "batch_size": int(args.batch_size),
+        "gradient_accumulation_steps": int(args.gradient_accumulation_steps),
+        "learning_rate": float(args.learning_rate),
+        "weight_decay": float(args.weight_decay),
+        "warmup_ratio": float(args.warmup_ratio),
+        "null_threshold": float(args.null_threshold),
+        "train_features": len(train_dataset),
+        "dev_features": len(dev_dataset),
+    }
+    start_epoch = 0
+    resume_path = getattr(args, "resume_checkpoint", None)
+    if resume_path:
+        state = load_training_state(
+            resume_path, model=model, optimizer=optimizer,
+            scheduler=scheduler, scaler=scaler,
+            expected_config=resume_config,
+        )
+        start_epoch = state["completed_epoch"]
+        if start_epoch >= args.epochs:
+            raise ValueError("Checkpoint đã hoàn tất số epochs cấu hình")
+        if not (output_dir / "best_model" / "qa_head.pt").is_file():
+            raise FileNotFoundError(
+                "Resume cần best_model trong --output_dir để giữ best checkpoint "
+                "của các epoch trước; hãy dùng lại đúng output_dir"
+            )
+        best_dev_f1 = state["best_dev_f1"]
+        best_dev_loss = state["best_dev_loss"]
+        epochs_without_improvement = state["epochs_without_improvement"]
+        global_step = state["global_step"]
+        history = state["history"]
+        print(f"Resumed epoch {start_epoch}/{args.epochs} from {resume_path}")
+
+
     try:
-        for epoch in range(args.epochs):
+        for epoch in range(start_epoch, args.epochs):
             epoch_start = time.perf_counter()
             model.train()
             optimizer.zero_grad(set_to_none=True)
@@ -492,7 +509,7 @@ def train(args):
                 total_train_samples += batch_size
 
                 scaler.scale(
-                    loss / args.gradient_accumulation_steps
+                    loss / min(args.gradient_accumulation_steps, len(train_loader) - (step // args.gradient_accumulation_steps) * args.gradient_accumulation_steps)
                 ).backward()
 
                 should_update = (
@@ -606,6 +623,18 @@ def train(args):
 
             run.log(epoch_result)
 
+            # Ghi checkpoint đầy đủ mỗi epoch (atomic), ngoài best_model.
+            save_training_state(
+                output_dir / "last_checkpoint.pt",
+                model=model, optimizer=optimizer, scheduler=scheduler,
+                scaler=scaler, completed_epoch=epoch + 1,
+                best_dev_f1=best_dev_f1, best_dev_loss=best_dev_loss,
+                epochs_without_improvement=epochs_without_improvement,
+                global_step=global_step, history=history,
+                config=resume_config,
+            )
+
+
             print(f"\nEpoch {epoch + 1}/{args.epochs}")
             print(f"Train loss: {train_loss:.4f}")
             print(f"Dev loss: {dev_metrics['dev_loss']:.4f}")
@@ -685,6 +714,8 @@ def parse_args():
     parser.add_argument("--patience", type=int, default=2)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--num_workers", type=int, default=0)
+    parser.add_argument("--resume_checkpoint", type=str, default=None,
+                        help="Tiếp tục training từ last_checkpoint.pt cùng output_dir")
 
     return parser.parse_args()
 
