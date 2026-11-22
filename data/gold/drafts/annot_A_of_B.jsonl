@@ -1,0 +1,33 @@
+{"id": "B01", "in_scope": true, "article": 2, "clause": 1, "answer": "hai cấp", "alt_answers": [], "note": ""}
+{"id": "B02", "in_scope": true, "article": 4, "clause": 3, "answer": "ít nhất 2 tiết chuẩn bị cá nhân", "alt_answers": [], "note": ""}
+{"id": "B03", "in_scope": true, "article": 4, "clause": 3, "answer": "2 - 3 tiết thực hành, thí nghiệm", "alt_answers": [], "note": ""}
+{"id": "B04", "in_scope": true, "article": 3, "clause": 5, "answer": "Kiểm định chất lượng giáo dục", "alt_answers": [], "note": ""}
+{"id": "B05", "in_scope": true, "article": 8, "clause": 2, "answer": "Thủ trưởng đơn vị đào tạo", "alt_answers": [], "note": ""}
+{"id": "B06", "in_scope": true, "article": 5, "clause": 2, "answer": "từ 5 đến 10 tín chỉ", "alt_answers": [], "note": ""}
+{"id": "B07", "in_scope": true, "article": 6, "clause": 2, "answer": "Chương trình đào tạo liên kết quốc tế do đối tác nước ngoài cấp bằng", "alt_answers": [], "note": ""}
+{"id": "B08", "in_scope": true, "article": 15, "clause": null, "answer": "15 tuần học", "alt_answers": [], "note": "Điều 15 không chia khoản."}
+{"id": "B09", "in_scope": true, "article": 16, "clause": 2, "answer": "Dưới 35 tín chỉ", "alt_answers": [], "note": "Đáp án nằm trong bảng xếp năm đào tạo; cần đảm bảo parser giữ hàng/cột."}
+{"id": "B10", "in_scope": true, "article": 11, "clause": 3, "answer": "Giám đốc Đại học Quốc gia Hà Nội", "alt_answers": [], "note": ""}
+{"id": "B11", "in_scope": true, "article": 21, "clause": 1, "answer": "không quá 18 tín chỉ", "alt_answers": [], "note": ""}
+{"id": "B12", "in_scope": true, "article": 9, "clause": 1, "answer": "trước ngày 30 tháng 6 hàng năm", "alt_answers": [], "note": ""}
+{"id": "B13", "in_scope": true, "article": 20, "clause": 3, "answer": "Chậm nhất là 1 tháng trước khi bắt đầu mỗi học kỳ", "alt_answers": [], "note": ""}
+{"id": "B14", "in_scope": true, "article": 21, "clause": 2, "answer": "2 tuần kể từ đầu học kỳ chính", "alt_answers": [], "note": ""}
+{"id": "B15", "in_scope": true, "article": 14, "clause": 2, "answer": "đề cương học phần", "alt_answers": [], "note": ""}
+{"id": "B16", "in_scope": true, "article": 17, "clause": 7, "answer": "Chậm nhất là một tháng sau khi kết thúc năm học", "alt_answers": [], "note": ""}
+{"id": "B17", "in_scope": true, "article": 24, "clause": 4, "answer": "hai bằng", "alt_answers": [], "note": ""}
+{"id": "B18", "in_scope": true, "article": 26, "clause": 2, "answer": "từ 2,50 trở lên", "alt_answers": [], "note": ""}
+{"id": "B19", "in_scope": true, "article": 23, "clause": 3, "answer": "bảng điểm kèm theo bằng tốt nghiệp đại học thứ nhất", "alt_answers": [], "note": ""}
+{"id": "B20", "in_scope": true, "article": 39, "clause": 4, "answer": "bao gồm cả các học phần được đánh giá loại đạt và không đạt", "alt_answers": [], "note": ""}
+{"id": "B21", "in_scope": true, "article": 35, "clause": 4, "answer": "Chậm nhất một ngày sau khi kết thúc giảng dạy học phần", "alt_answers": [], "note": ""}
+{"id": "B22", "in_scope": true, "article": 36, "clause": 1, "answer": "ít nhất 3 thành viên", "alt_answers": [], "note": ""}
+{"id": "B23", "in_scope": true, "article": 38, "clause": 1, "answer": "thang điểm 10 (từ 0 đến 10)", "alt_answers": [], "note": ""}
+{"id": "B24", "in_scope": true, "article": 40, "clause": 2, "answer": "Điểm trung bình chung học kỳ", "alt_answers": [], "note": ""}
+{"id": "B25", "in_scope": true, "article": 37, "clause": 2, "answer": "Cảnh cáo", "alt_answers": [], "note": ""}
+{"id": "B26", "in_scope": true, "article": 44, "clause": 4, "answer": "một lần", "alt_answers": [], "note": ""}
+{"id": "B27", "in_scope": true, "article": 30, "clause": 2, "answer": "ở trong và ngoài nước", "alt_answers": [], "note": ""}
+{"id": "B28", "in_scope": true, "article": 41, "clause": 1, "answer": "quá 24 tín chỉ", "alt_answers": [], "note": ""}
+{"id": "B29", "in_scope": true, "article": 41, "clause": 2, "answer": "Chậm nhất là 1 tháng sau khi sinh viên có quyết định buộc thôi học", "alt_answers": [], "note": ""}
+{"id": "B30", "in_scope": true, "article": 42, "clause": 1, "answer": "khối lượng học tập sinh viên được đăng ký trong học kỳ kế tiếp", "alt_answers": [], "note": ""}
+{"id": "B31", "in_scope": false, "article": null, "clause": null, "answer": null, "alt_answers": [], "note": "Ngoài phạm vi: Quy chế không nêu tiêu chuẩn xét ở ký túc xá hoặc sinh viên nội trú."}
+{"id": "B32", "in_scope": false, "article": null, "clause": null, "answer": null, "alt_answers": [], "note": "Ngoài phạm vi: Quy chế 2014 không nêu ứng dụng điện thoại để điểm danh."}
+{"id": "B33", "in_scope": false, "article": null, "clause": null, "answer": null, "alt_answers": [], "note": "Ngoài phạm vi: Quy chế không quy định thời hạn gia hạn visa/thị thực du học."}
