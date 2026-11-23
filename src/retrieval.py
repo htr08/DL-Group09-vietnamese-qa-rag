@@ -34,8 +34,8 @@ def reciprocal_rank_fusion(
         
     Returns:
         Danh sách (doc_id, rrf_score) được sắp xếp giảm dần theo điểm RRF. Khi đồng điểm, thứ tự
-        giữ theo lần xuất hiện đầu tiên trong `ranked_lists` (danh sách đầu vào đứng trước thắng);
-        hệ thống nền xếp theo điểm dense khi đồng điểm.
+        ưu tiên theo thứ tự xuất hiện đầu tiên trong `ranked_lists`. Trong `hybrid_retrieve`, nhánh
+        Dense được xếp trước ([dense_ids, bm25_ids]) để tie-break theo thứ hạng Dense giống hệ thống nền.
     """
     scores: Dict[str, float] = {}
     for r_list in ranked_lists:
@@ -167,7 +167,7 @@ def hybrid_retrieve(
     """
     bm25_ids = [doc_id for doc_id, _ in bm25_retriever.retrieve(query, top_k=top_k)]
     dense_ids = [doc_id for doc_id, _ in dense_retriever.retrieve(query, top_k=top_k)]
-    fused = reciprocal_rank_fusion([bm25_ids, dense_ids], rrf_k=rrf_k)
+    fused = reciprocal_rank_fusion([dense_ids, bm25_ids], rrf_k=rrf_k)
     if doc_titles:
         fused = rerank_by_title(fused, doc_titles, query, beta=beta)
     return fused[:top_k]
