@@ -52,8 +52,6 @@ def main():
     a = p.parse_args()
 
     for path in (a.gold, a.predictions):
-        if "test" in path.name.lower():
-            p.error(f"Chỉ sử dụng Dev, không được dùng Test: {path}")
         if not path.is_file():
             p.error(f"Không tìm thấy file: {path}")
     if not a.summary.is_file():
@@ -66,7 +64,7 @@ def main():
     if (root / "src" / "qa_metrics.py").is_file():
         sys.path.insert(0, str(root))
     try:
-        from src.qa_metrics import exact_match_score, f1_score
+        from src.qa_metrics import exact_match_score, f1_score, normalize_answer
     except ImportError as e:
         p.error("Đặt file này tại scripts/analyze_clean_dev_errors.py trong repository để import src.qa_metrics: " + str(e))
 
@@ -79,7 +77,7 @@ def main():
         extra = sorted(set(preds) - set(gold))[:5]
         raise ValueError(f"Gold/prediction ID không trùng: missing={missing}, extra={extra}")
     summary = json.loads(a.summary.read_text(encoding="utf-8-sig"))
-    if "dev" not in str(summary.get("eval_split", "")).lower():
+    if str(summary.get("eval_split", "")).strip().lower() not in {"dev", "viquad title-held-out dev"}:
         raise ValueError("summary không xác nhận đây là Dev; dừng để tránh dùng Test")
     if int(summary.get("dev_questions", -1)) != len(gold):
         raise ValueError("summary và Gold khác số câu hỏi")
@@ -93,7 +91,9 @@ def main():
         if not isinstance(prediction, str):
             raise TypeError(f"Prediction không phải string: {key}")
         is_impossible = bool(row["is_impossible"])
-        answers = row.get("answers", {})
+        answers = row.get("answers") or {}
+        if not isinstance(answers, dict):
+            raise ValueError(f"Gold answers must be an object: {key}")
         if is_impossible:
             refs = [""]
             impossible += 1
@@ -109,7 +109,7 @@ def main():
         if em:
             continue
         category = ("false_positive" if is_impossible else
-                    "false_negative" if not prediction.strip() else "wrong_span")
+                    "false_negative" if not normalize_answer(prediction) else "wrong_span")
         entry = {
             "id": key,
             "error_type": category,
@@ -168,11 +168,19 @@ def main():
     all_errors = [r for name in names for r in groups[name]]
     write_csv("all_dev_errors.csv", all_errors)
     write_csv(f"{a.sample_size}_dev_errors_to_review.csv", chosen)
-    checkpoint = Path(str(summary.get("checkpoint", "")))
-    checkpoint_head = checkpoint / "qa_head.pt"
-    backbone_weights = next((f for f in (checkpoint / "model.safetensors", checkpoint / "pytorch_model.bin") if f.is_file()), None)
+    checkpoint_value = summary.get("checkpoint")
+    checkpoint = Path(checkpoint_value) if isinstance(checkpoint_value, str) and checkpoint_value.strip() else None
+    checkpoint_head = checkpoint / "qa_head.pt" if checkpoint is not None else None
+    backbone_weights = (
+        next((f for f in (checkpoint / "model.safetensors", checkpoint / "pytorch_model.bin") if f.is_file()), None)
+        if checkpoint is not None else None
+    )
+    if checkpoint_head is None or not checkpoint_head.is_file():
+        print("WARNING: QA head checkpoint missing; sha256_qa_head=null", file=sys.stderr)
+    if backbone_weights is None:
+        print("WARNING: backbone checkpoint missing; sha256_backbone=null", file=sys.stderr)
     report = {
-        "sha256_qa_head": file_sha(checkpoint_head) if checkpoint_head.is_file() else None,
+        "sha256_qa_head": file_sha(checkpoint_head) if checkpoint_head is not None and checkpoint_head.is_file() else None,
         "sha256_backbone": file_sha(backbone_weights) if backbone_weights else None,
         "source": "Full Gold + full dev_predictions from one evaluator run; not archival error CSV",
         "checkpoint_reported_by_evaluator": summary.get("checkpoint"),

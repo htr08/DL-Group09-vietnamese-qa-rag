@@ -17,6 +17,7 @@ import argparse
 import hashlib
 import json
 import sys
+import unicodedata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -104,7 +105,7 @@ def score_one(question: str, q_id: str, bm25, chunks: dict, vn, tokenizer,
               n_best_size: int, max_answer_length: int) -> dict:
     import torch
 
-    retrieved = bm25.retrieve(question, top_k=top_k)
+    retrieved = bm25.retrieve(unicodedata.normalize("NFC", question), top_k=top_k)
     if len(retrieved) != top_k:
         raise ValueError(f"{q_id}: retrieved {len(retrieved)} instead of {top_k}")
     q_tokens = segment(vn, question)
@@ -338,6 +339,8 @@ def main():
         "caveats": [
             "Top-k retrieval logits are not calibrated across documents; baseline only.",
             "Domain Dev contains 3 out-of-scope questions, threshold tuning is high-variance.",
+            "Threshold depends on top_k and the exact chunk corpus.",
+            "Dev-tuned EM/F1 are in-sample on the same 30 questions.",
             "Never tune on domain Test. Do not compare this directly with ViQuAD Dev EM/F1.",
         ]
     }

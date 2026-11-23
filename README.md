@@ -77,12 +77,12 @@ pytest
 | 1 | Kiểm tra môi trường tách từ và tokenizer | Smoke test VnCoreNLP + PhoBERT đạt 10/10 mẫu; xem `docs/qa_week2_A_eda_reproduced.md` |
 | 2 | Tải ViQuAD, EDA, EM/F1, sliding window, offsets, lớp QA head | **Đã triển khai và có tests**; xem `notebooks/01_eda_viquad_A.ipynb` và `docs/qa_week2_A_evidence.md` |
 | 2 | Huấn luyện PhoBERT ban đầu | **Đã huấn luyện**; số liệu lấy từ bộ evidence ngoài repository (mục 4.2) |
-| 2 | Viết câu hỏi và gán nhãn miền ứng dụng | A viết 33 câu và gán nhãn 33 câu của B; các tệp nháp nằm trong `data/gold/drafts/`, chưa được commit |
-| 2 | B1 sơ bộ (BM25 + PhoBERT) | Chưa phải kết quả chính thức: chưa chấm theo Gold miền ứng dụng đã được thống nhất; repository chưa có mã hay kết quả B1 |
+| 2 | Viết câu hỏi và gán nhãn miền ứng dụng | A viết 33 câu và gán nhãn 33 câu của B; các tệp nháp và bản đối soát đã được bổ sung từ `main` trong `data/gold/drafts/`. |
+| 2 | B1 sơ bộ (BM25 + PhoBERT) | Đã có `scripts/run_b1_domain_dev.py`; kết quả Dev 30 câu, BM25 Top-3, corpus 213 chunks: EM 66,67%; F1 84,89%. |
 | 3 | Tuning PhoBERT với LR `2e-5`, `3e-5`, `5e-5`; n-best và no-answer threshold | **Đã thực hiện**; kết quả ở mục 4.2 |
-| 3 | Chốt B1, phân tích lỗi và viết phần QA cho Milestone | **Chưa hoàn thành:** B1 Dev và mẫu lỗi còn mang tính sơ bộ; repository chưa có bản nháp Milestone |
+| 3 | Chốt B1, phân tích lỗi và viết phần QA cho Milestone | Đã chạy B1 trên Domain Dev; có script phân tích lỗi. Milestone chung của nhóm chưa được xác minh trong repository. |
 
-Việc thống nhất nhãn qua hai lượt gán nhãn và chốt tập miền ứng dụng **30 Dev / 70 Test** chưa hoàn thành: `data/gold/gold_dev.jsonl` và `data/gold/gold_test.jsonl` vẫn là tệp rỗng.
+Bộ Gold gồm 30 câu Dev và 70 câu Test đã có dữ liệu trên main. Việc đối chiếu mức độ đồng thuận gán nhãn và biên bản chốt nhãn cần được xác minh riêng.
 
 ## 4. Dữ liệu và kết quả PhoBERT
 
