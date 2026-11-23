@@ -124,6 +124,8 @@ def validate_authors(labels_by_author: Mapping[str, Sequence[Label]]) -> list[st
     """Trả về danh sách lỗi (rỗng nếu hợp lệ). Kiểm tra mọi mục không cần mở PDF."""
     errors: list[str] = []
     all_labels: list[tuple[str, Label]] = []
+    errors += [f"thiếu nhãn của tác giả {a} (cần đủ {', '.join(sorted(AUTHOR_QUOTA))})"
+               for a in sorted(set(AUTHOR_QUOTA) - set(labels_by_author))]
     for author, labels in labels_by_author.items():
         quota = AUTHOR_QUOTA.get(author)
         if quota is None:
@@ -173,6 +175,105 @@ def validate_authors(labels_by_author: Mapping[str, Sequence[Label]]) -> list[st
 # --------------------------------------------------------------------------
 # Chia dev/test (mục 6) và sinh gold cuối (mục 5.3)
 # --------------------------------------------------------------------------
+
+
+def check_annotation_coverage(
+    authors: Mapping[str, Sequence[Label]], annotations: Mapping[str, Sequence[Label]]
+) -> list[str]:
+    """Lỗi nếu nhãn của người gán nhãn thiếu tệp, thiếu id, thừa id hoặc trùng id so với tác giả."""
+    errors: list[str] = []
+    for author, labels in authors.items():
+        ann = annotations.get(author)
+        if ann is None:
+            errors.append(f"thiếu nhãn của người gán nhãn cho tác giả {author}")
+            continue
+        want = [x["id"] for x in labels]
+        got = [x["id"] for x in ann]
+        missing, extra = sorted(set(want) - set(got)), sorted(set(got) - set(want))
+        dup = sorted(i for i, n in Counter(got).items() if n > 1)
+        for text, ids in (("thiếu id", missing), ("id thừa", extra), ("id trùng", dup)):
+            if ids:
+                errors.append(f"nhãn gán cho tác giả {author}: {text} {', '.join(ids[:5])}"
+                              f"{'...' if len(ids) > 5 else ''} ({len(ids)})")
+    return errors
+
+
+RESOLUTION_VALUES = {"author_label", "annotator_label", "merged", "rewritten"}
+
+
+def validate_resolutions(
+    authors: Mapping[str, Sequence[Label]], final_labels: Mapping[str, Label]
+) -> list[str]:
+    """Lỗi nếu nhãn sau họp trỏ tới id không có hoặc ghi `resolution` không hợp lệ."""
+    known = {x["id"] for labels in authors.values() for x in labels}
+    errors = [f"resolution: id không có trong nhãn tác giả: {i}" for i in sorted(set(final_labels) - known)]
+    for i, r in final_labels.items():
+        if r.get("resolution") not in RESOLUTION_VALUES:
+            errors.append(f"resolution {i}: giá trị '{r.get('resolution')}' không hợp lệ "
+                          f"(một trong {', '.join(sorted(RESOLUTION_VALUES))})")
+    return errors
+
+
+def _is_int(v: Any) -> bool:
+    return isinstance(v, int) and not isinstance(v, bool)
+
+
+def validate_gold(rows: Sequence[Mapping[str, Any]]) -> list[str]:
+    """Kiểm tra gold cuối sau khi áp dụng resolutions: nhất quán trường và đúng quota (mục 6)."""
+    errors: list[str] = []
+    errors += [f"id trùng trong gold: {i}" for i, n in Counter(r["id"] for r in rows).items() if n > 1]
+    for r in rows:
+        i = r["id"]
+        if r["split"] not in ("dev", "test"):
+            errors.append(f"{i}: split '{r['split']}' không hợp lệ")
+        if not isinstance(r["question"], str) or not r["question"].strip():
+            errors.append(f"{i}: câu hỏi rỗng hoặc không phải chuỗi")
+        elif _FORBIDDEN.search(r["question"]):
+            errors.append(f"{i}: câu hỏi nêu số Điều/Khoản hoặc dùng cụm bị cấm")
+        if not isinstance(r["in_scope"], bool):
+            errors.append(f"{i}: in_scope phải là true/false ({r['in_scope']!r})")
+            continue
+        if not isinstance(r["answers"], list) or not all(isinstance(a, str) and a.strip() for a in r["answers"]):
+            errors.append(f"{i}: answers phải là danh sách chuỗi không rỗng")
+            continue
+        if r["in_scope"]:
+            if not _is_int(r["article"]):
+                errors.append(f"{i}: trong phạm vi nhưng article không phải số nguyên ({r['article']!r})")
+            if r["clause"] is not None and not _is_int(r["clause"]):
+                errors.append(f"{i}: clause không phải số nguyên hoặc null ({r['clause']!r})")
+            if not r["answers"]:
+                errors.append(f"{i}: trong phạm vi nhưng không có đáp án")
+            if r["question_type"] not in IN_SCOPE_TYPES:
+                errors.append(f"{i}: question_type '{r['question_type']}' không hợp lệ cho câu trong phạm vi")
+        else:
+            if r["article"] is not None or r["clause"] is not None or r["answers"]:
+                errors.append(f"{i}: ngoài phạm vi nhưng có article/clause/answers")
+            if r["question_type"] not in OOS_TYPES:
+                errors.append(f"{i}: question_type '{r['question_type']}' không hợp lệ cho câu ngoài phạm vi")
+    for author, q in AUTHOR_QUOTA.items():
+        mine = [r for r in rows if r["author"] == author]
+        got = {"total": len(mine), "in": sum(r["in_scope"] is True for r in mine),
+               "dev_in": sum(r["in_scope"] is True and r["split"] == "dev" for r in mine),
+               "dev_out": sum(r["in_scope"] is False and r["split"] == "dev" for r in mine)}
+        for key, n in got.items():
+            if n != q[key]:
+                errors.append(f"{author}: {key} = {n}, quota {q[key]}")
+    return errors
+
+
+def load_split(path: str | Path) -> tuple[int, set[str], dict[str, Any]]:
+    """Đọc chia dev/test đã khóa (gold_split.json): (seed, dev_ids, toàn bộ nội dung tệp).
+
+    Ném ValueError nếu tệp không đọc được hoặc thiếu/sai `seed`, `dev_ids`.
+    """
+    try:
+        meta = json.loads(Path(path).read_text(encoding="utf-8"))
+        ids = meta["dev_ids"]
+        if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids) or len(set(ids)) != len(ids):
+            raise ValueError("dev_ids phải là danh sách id (chuỗi) không trùng")
+        return meta["seed"], set(ids), meta
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as e:
+        raise ValueError(f"{Path(path).name} không hợp lệ: {e!r}") from e
 
 
 def _draw(ids: Sequence[str], n_dev: int, seed: int) -> set[str]:

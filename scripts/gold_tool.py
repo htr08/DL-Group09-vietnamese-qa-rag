@@ -7,7 +7,8 @@ Sử dụng (từ thư mục gốc repo):
 
 `build` mặc định chỉ in thống kê (dry run); thêm --write để ghi data/gold/gold_dev.jsonl,
 data/gold/gold_test.jsonl và data/splits/gold_split.json. Việc chia dev/test chỉ được
-ghi MỘT LẦN (hướng dẫn gán nhãn, mục 6): lệnh từ chối ghi đè nếu gold_split.json đã có.
+ghi MỘT LẦN (hướng dẫn gán nhãn, mục 6): nếu gold_split.json đã có, `build` dùng đúng danh
+sách dev trong tệp đó (không bốc lại) và từ chối --write.
 """
 from __future__ import annotations
 
@@ -23,8 +24,9 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8")
 
 from src.gold import (  # noqa: E402
-    agreement_summary, build_gold, choose_split_seed, compare_labels,
-    read_jsonl, validate_authors, write_jsonl,
+    agreement_summary, build_gold, check_annotation_coverage, choose_split_seed,
+    clause_leakage, compare_labels, load_split, read_jsonl, validate_authors, validate_gold,
+    validate_resolutions, write_jsonl,
 )
 from src.metrics import bootstrap_ci  # noqa: E402
 
@@ -35,7 +37,8 @@ SPLIT_FILE = ROOT / "data" / "splits" / "gold_split.json"
 ANNOTATOR_OF = {"B": "A", "C": "B", "A": "C"}
 
 
-def load_drafts(drafts: Path = DRAFTS):
+def load_drafts(drafts: Path | None = None):
+    drafts = drafts or DRAFTS
     authors, annotations = {}, {}
     for a, ann in ANNOTATOR_OF.items():  # a = tác giả, ann = người gán nhãn
         p = drafts / f"author_{a}.jsonl"
@@ -53,7 +56,7 @@ def load_drafts(drafts: Path = DRAFTS):
 
 def cmd_validate(_args) -> int:
     authors, _ = load_drafts()
-    errors = validate_authors(authors)
+    errors = validate_authors(authors)  # gồm lỗi thiếu tác giả A/B/C
     for e in errors:
         print("LỖI:", e)
     print(f"{len(errors)} lỗi trên {sum(len(v) for v in authors.values())} câu")
@@ -66,6 +69,15 @@ def _pct(x):
 
 def cmd_agreement(args) -> int:
     authors, annotations = load_drafts()
+    coverage = check_annotation_coverage(authors, annotations)
+    if set(authors) != set(ANNOTATOR_OF):
+        coverage.insert(0, "thiếu nhãn tác giả: " + ", ".join(sorted(set(ANNOTATOR_OF) - set(authors))))
+    for e in coverage:
+        print("THIẾU:", e, file=sys.stderr)
+    if coverage and not args.allow_partial:
+        print("Dữ liệu đồng thuận chưa đầy đủ; không tính (dùng --allow-partial để xem kết quả một phần).",
+              file=sys.stderr)
+        return 1
     report, pooled = {}, []
     for a, labels in authors.items():
         if a not in annotations:
@@ -83,7 +95,13 @@ def cmd_agreement(args) -> int:
         report[f"{ANNOTATOR_OF[a]}_of_{a}"] = summary
         pooled += pairs
     report["pooled"] = agreement_summary(pooled)
+    report["complete"] = not coverage
+    report["coverage_errors"] = coverage
+    if coverage:
+        print("\nCẢNH BÁO: kết quả MỘT PHẦN, không dùng làm kết quả đồng thuận đầy đủ.")
     for name, s in report.items():
+        if name in ("complete", "coverage_errors"):
+            continue
         print(f"\n== {name}: n={s['n_total']}, cả hai cùng trong phạm vi={s['n_both_in_scope']}")
         print(f"  (a) cùng Khoản {_pct(s['same_clause'])} | cùng Điều {_pct(s['same_article'])}")
         print(f"  (b) đáp án EM {_pct(s['answer_em'])} | F1 {_pct(s['answer_f1'])} (có alt_answers)")
@@ -97,31 +115,63 @@ def cmd_agreement(args) -> int:
 
 
 
+def _fail(errors, message) -> int:
+    print("\n".join(errors))
+    print(message)
+    return 1
+
+
 def cmd_build(args) -> int:
     authors, annotations = load_drafts()
-    if set(authors) != {"A", "B", "C"}:
+    if set(authors) != set(ANNOTATOR_OF):
         print("Thiếu nhãn tác giả; không thể sinh gold.", file=sys.stderr)
         return 1
-    errors = validate_authors(authors)
+    errors = validate_authors(authors) + check_annotation_coverage(authors, annotations)
     if errors and not args.force:
-        print("\n".join(errors), "\nDừng vì nhãn chưa hợp lệ (dùng --force để bỏ qua).", sep="\n")
-        return 1
+        return _fail(errors, "Dừng vì nhãn chưa hợp lệ (dùng --force để bỏ qua).")
     final = {}
     if args.resolutions:
-        final = {r["id"]: r for r in read_jsonl(args.resolutions)}
-    seed, dev_ids, leak = choose_split_seed(authors)
+        try:
+            res_rows = read_jsonl(args.resolutions)
+        except (OSError, ValueError) as e:
+            return _fail([f"không đọc được {args.resolutions}: {e!r}"], "Dừng vì resolutions không hợp lệ.")
+        ids = [r.get("id") for r in res_rows]
+        errors = [f"resolution thiếu id ở dòng {n}" for n, i in enumerate(ids, 1) if not i]
+        errors += [f"resolution id trùng: {i}" for i in sorted({i for i in ids if i and ids.count(i) > 1})]
+        final = {r["id"]: r for r in res_rows if r.get("id")}
+        errors += validate_resolutions(authors, final)  # không bỏ qua được bằng --force
+        if errors:
+            return _fail(errors, "Dừng vì resolutions không hợp lệ.")
+    locked = SPLIT_FILE.exists()
+    if locked:  # chia dev/test đã khóa: dùng lại, không bốc lại
+        try:
+            seed, dev_ids, _ = load_split(SPLIT_FILE)
+        except ValueError as e:
+            return _fail([str(e)], "Dừng vì gold_split.json không hợp lệ.")
+        ghosts = dev_ids - {x["id"] for labels in authors.values() for x in labels}
+        if ghosts:
+            return _fail([f"gold_split.json có id không tồn tại: {', '.join(sorted(ghosts))}"],
+                         "Dừng vì gold_split.json không khớp nhãn tác giả.")
+    else:
+        seed, dev_ids, _ = choose_split_seed(authors)
     rows = build_gold(authors, annotations, final, dev_ids)
+    leak = clause_leakage(rows, dev_ids)  # tính lại trên gold cuối (sau resolutions)
+    errors = validate_gold(rows)  # không bỏ qua được bằng --force
+    if errors:
+        return _fail(errors, "Dừng vì gold cuối không hợp lệ.")
     dev = [r for r in rows if r["split"] == "dev"]
     test = [r for r in rows if r["split"] == "test"]
-    print(f"seed={seed}, dev={len(dev)} ({sum(r['in_scope'] for r in dev)} trong phạm vi), "
+    print(f"{'split đã khóa' if locked else 'split mới'}: seed={seed}, dev={len(dev)} "
+          f"({sum(r['in_scope'] for r in dev)} trong phạm vi), "
           f"test={len(test)} ({sum(r['in_scope'] for r in test)} trong phạm vi), "
           f"Khoản có câu ở cả dev lẫn test: {leak}")
     if not args.write:
         print("Dry run: chưa ghi gì (thêm --write).")
         return 0
-    if SPLIT_FILE.exists():
-        print(f"{SPLIT_FILE.name} đã tồn tại: chia dev/test chỉ làm một lần.", file=sys.stderr)
+    if locked:
+        print(f"{SPLIT_FILE.name} đã tồn tại: chia dev/test chỉ làm một lần, không ghi đè.", file=sys.stderr)
         return 1
+    GOLD.mkdir(parents=True, exist_ok=True)
     write_jsonl(GOLD / "gold_dev.jsonl", dev)
     write_jsonl(GOLD / "gold_test.jsonl", test)
     SPLIT_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -139,6 +189,8 @@ def main(argv=None) -> int:
     sub.add_parser("validate").set_defaults(fn=cmd_validate)
     a = sub.add_parser("agreement")
     a.add_argument("--json")
+    a.add_argument("--allow-partial", action="store_true",
+                   help="vẫn tính khi thiếu tệp hoặc id; kết quả được đánh dấu complete=false")
     a.set_defaults(fn=cmd_agreement)
     b = sub.add_parser("build")
     b.add_argument("--resolutions")
