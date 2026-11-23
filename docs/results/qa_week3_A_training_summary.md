@@ -1,36 +1,35 @@
-# Week 3 — A: PhoBERT on clean internal ViQuAD Dev
+# Tuần 3 — A: PhoBERT trên tập ViQuAD Dev nội bộ đã làm sạch
 
-**Scope and source.** Summary of historical experiment outputs provided in `phobert_3lr_clean_dev_EVIDENCE.zip` (15 files, including each run's history, training summary, run manifest and n-best summary). The source archive is external to the repository; no model weights or training dataset are included in this document.
+**Nguồn:** `phobert_3lr_clean_dev_EVIDENCE.zip` (15 file: manifest, history, training summary, n-best summary). Đây là **kết quả thí nghiệm lịch sử**; ZIP không có trọng số mô hình, predictions từng câu hay dữ liệu train.
 
-- Dataset: internal title-held-out Dev, **2,768 questions**, 13 titles, 3,155 features; 1,886 answerable / 882 impossible; zero examples skipped during clean preprocessing, 29 unalignable labels kept for evaluation.
-- Base model: `vinai/phobert-base`; 3 epochs; `seed=12`; 3 learning rates: `2e-5`, `3e-5`, `5e-5`.
-- Data integrity: no overlapping Train/Dev titles or contexts. `mode=eval` for Dev; no Gold-dependent input/window refinement.
-- SHA-256 of clean Dev feature file reported in the provided manifest: `b27046196cd92f0ede419737b155f7f36a6bb1f2c54c563b3bafa31c82d8d3c3`.
-- Source fingerprint from reported training manifests: `3e04aedb82c69908f19b1cdcda6499ab51ac497b656ba7826ef90b0b6bd82deb`.
+## 1. Cấu hình và tính toàn vẹn dữ liệu
 
-## Results — Dev n-best with Dev-tuned no-answer threshold
+- Mô hình: `vinai/phobert-base`; 3 epoch; `seed=12`.
+- Thử **ba learning rates**: `2e-5`, `3e-5`, `5e-5`.
+- Dev nội bộ tách theo title: **2.768 câu / 13 titles / 3.155 features**.
+- Dev: **1.886 answerable**, **882 impossible**; **0 skipped**, **29 unalignable** vẫn được giữ để đánh giá.
+- Không trùng title/context giữa Train và Dev. Dev tạo bằng `mode=eval`, không điều chỉnh input/windows dựa trên Gold.
 
-| LR | Best epoch | Train-loop Dev F1 (%) | Tuned Dev EM (%) | Tuned Dev F1 (%) | Null threshold |
+## 2. Kết quả Dev sau n-best và tối ưu ngưỡng không có đáp án
+
+| Learning rate | Best epoch | Train-loop Dev F1 (%) | Dev EM (%) | Dev F1 (%) | Null threshold |
 |---|---:|---:|---:|---:|---:|
-| `2e-5` | 3 | 65.59 | 52.42 | 66.39 | -1.483816 |
-| `3e-5` | 3 | 67.35 | 53.76 | 67.93 | -0.657978 |
-| `5e-5` | 3 | 69.53 | **55.78** | **69.94** | -1.489326 |
+| `2e-5` | 3 | 65,59 | 52,42 | 66,39 | -1,483816 |
+| `3e-5` | 3 | 67,35 | 53,76 | 67,93 | -0,657978 |
+| **`5e-5`** | **3** | **69,53** | **55,78** | **69,94** | **-1,489326** |
 
-**Best on overall Dev F1:** LR `5e-5`, epoch 3. This is a **selection on Dev**, not Public Test. The training-loop F1 at its fixed threshold and postprocessing F1 after threshold tuning must not be conflated.
+**Cấu hình được chọn:** LR `5e-5`, epoch 3 theo **Dev F1 tổng thể**. Đây là lựa chọn trên Dev, **không phải** Public Test.
 
-| LR | Answerable Dev F1 (%) | No-answer Dev EM/F1 (%) |
+| Learning rate | Answerable F1 (%) | Impossible EM/F1 (%) |
 |---|---:|---:|
-| `2e-5` | 67.16 | 64.74 |
-| `3e-5` | **70.33** | 62.81 |
-| `5e-5` | 68.08 | **73.92** |
+| `2e-5` | 67,16 | 64,74 |
+| `3e-5` | **70,33** | 62,81 |
+| `5e-5` | 68,08 | **73,92** |
 
-## Reproducibility and limitations
+**Giải thích:** F1 từ training loop (đánh giá ở ngưỡng mặc định) và F1 sau hậu xử lý + tối ưu threshold là **hai chỉ số khác nhau**, không được gộp.
 
-- Original training base commit in the provided manifests: `b202d3dc9fb4bcdd02131d213d4b1b8d26f1dde8`. Current CI/reviewer fixes modify code after the recorded runs, so exact historical reproduction requires pinning the original code and dependencies and validating input/checkpoint hashes.
-- The evidence ZIP contains metrics and manifests, **not the trained weights**. This Markdown summary alone does not demonstrate successful checkpoint reload or rerun of inference.
-- Bootstrap 95% confidence intervals on full ViQuAD Dev have **not** been verified in the evidence ZIP; no such intervals are invented here.
-- Historical Gold Leakage audit: old Dev preprocessing changed features for 29/2,768 examples, documented in `docs/results/gold_leakage_audit/`; this is not a measured difference in F1.
-- Domain B1 (BM25 + PhoBERT) on the group's 30-question domain Dev remains **provisional until two-round annotation reconciliation**. No domain-Test score is reported here.
-- **Public Test not evaluated/tuned** for these results. The plan reserves the single final Test run for Week 5.
+## 3. Hậu xử lý và kiểm soát leakage
 
-See `docs/qa_week2_A_evidence.md`, `docs/qa_week2_A_eda_reproduced.md` and `data/splits/viquad_split_meta.json` for the dataset checks.
+- Decoder n-best lấy candidate hợp lệ qua các sliding windows, giới hạn chiều dài đáp án và ánh xạ về văn bản gốc.
+- Ngưỡng no-answer được tối ưu **trên Dev**, không dùng Test.
+- Audit pipeline Dev cũ cho thấy có **29/2.768 câu** mà input features thay đổi do Gold-dependent token refinement; đây là **số mẫu bị ảnh hưởng**, **không phải** mức cải thiện F1. Xem `docs/results/gold_leakage_audit/`.
