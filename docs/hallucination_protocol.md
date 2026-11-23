@@ -7,7 +7,7 @@ Tài liệu quy định cách chấm tay câu trả lời của các cấu hình
 | Đối tượng chấm | Câu trả lời của mọi cấu hình trên 70 câu test (63 trong phạm vi, 7 ngoài phạm vi); trên 30 câu dev khi thử giao thức |
 | Cấu hình được chấm | B1, B2 (và B2-cùng-chunk nếu có), RAG cơ bản, RAG cuối, chế độ trích xuất (bảng 3 của kế hoạch) |
 | Người chấm | Ba thành viên; mỗi người chấm chính khoảng 1/3 số câu hỏi, ở mọi cấu hình |
-| Chấm lại | Khoảng 30% câu trả lời của mỗi người chấm chính do người kế chấm lại: A chấm lại phần của B, B của C, C của A |
+| Chấm lại | Khoảng 30% số câu hỏi của mỗi người chấm chính, với đủ câu trả lời của mọi cấu hình, do người kế chấm lại: A chấm lại phần của B, B của C, C của A |
 | Chỉ số | Tỷ lệ ảo giác, từ chối đúng, từ chối sai, Cohen's kappa giữa lượt chấm chính và lượt chấm lại |
 
 ## 1. Nhãn
@@ -63,25 +63,29 @@ Quy ước của công cụ xuất bảng:
 
 - Mã mục (`X0001`, ...) được gán ngẫu nhiên, không theo hệ thống hay thứ tự câu hỏi; thứ tự dòng trong mỗi bảng được trộn.
 - Tất cả câu trả lời của mọi cấu hình cho cùng một câu hỏi thuộc cùng một người chấm chính.
-- Một mục được chấm lại xuất hiện trong bảng của người chấm chính và của người chấm lại với cùng mã mục; mỗi người không biết mục nào là chấm lại.
+- Chọn câu chấm lại theo câu hỏi: câu được chọn xuất hiện trong bảng của người chấm chính và của người chấm lại với cùng mã mục và đủ câu trả lời của mọi cấu hình. Mọi câu hỏi trong bảng của một người đều có cùng số dòng, nên người chấm không phân biệt được câu nào là chấm lại.
 - Bảng có câu hỏi, đáp án gold, mã đoạn nguồn và câu trả lời. Bảng không có đoạn truy hồi, tên cấu hình hay độ trễ.
-- Seed cố định (mặc định 2026); cùng đầu vào cho cùng bảng chấm.
+- Cùng đầu vào và cùng seed cho cùng bảng chấm và cùng khóa. Seed mặc định (2026) được ghi công khai, nên khi chạy chính thức C đặt `--seed` riêng và không công bố; ai có file kết quả của các cấu hình và biết seed đều dựng lại được khóa.
+- `key.json` nằm trong `--out-dir` (mặc định `data/grading/`, đã được `.gitignore` chặn). Chỉ gửi các `sheet_*.csv`, không gửi cả thư mục.
 
 ## 4. Tổng hợp và báo cáo
 
 - Tỷ lệ ảo giác = số câu `sai_bia` / số câu của cấu hình (cả câu trong và ngoài phạm vi); từ chối đúng tính trên câu ngoài phạm vi; từ chối sai tính trên câu trong phạm vi. Mỗi tỷ lệ kèm bootstrap CI 95% lấy mẫu lại theo câu hỏi (`bootstrap_ci` trong `src/metrics.py`).
 - Cohen's kappa tính trên các mục được chấm lại, báo cả năm nhãn và nhãn nhị phân ảo giác (`sai_bia` hay không). Nhãn dùng để báo cáo là nhãn của người chấm chính; bất đồng giữa hai lượt được liệt kê trong phân tích lỗi.
 - Mẫu nhỏ (63 câu trong phạm vi, 7 câu ngoài phạm vi trên test): báo cáo ghi số câu cùng CI và nêu hạn chế trong Limitations.
-- Công cụ từ chối ghi nhãn không hợp lệ (ví dụ `tu_choi_dung` cho câu trong phạm vi) và báo mục thiếu nhãn.
+- Công cụ từ chối ghi nhãn không hợp lệ (ví dụ `tu_choi_dung` cho câu trong phạm vi), báo mục thiếu nhãn và mã trùng trong một bảng. Nhãn không phân biệt hoa thường. Khi xuất bảng, công cụ từ chối tên cấu hình trùng, id trùng và dòng thiếu khóa `answer`; tên sau `--extractive` phải trùng tên cấu hình đã xuất.
+- Khi mẫu rất nhỏ (ví dụ 3 câu ngoài phạm vi trên dev), bootstrap CI suy biến thành một điểm (ví dụ 0,0% [0,0; 0,0]); không diễn giải khoảng đó là độ chắc chắn.
 
 ## 5. Hạn chế
 
 - Ẩn tên cấu hình không che hết phong cách trả lời (ví dụ cách trích dẫn nguồn, độ dài, biểu tượng); người chấm có thể đoán cấu hình. Giao thức giảm chứ không loại bỏ thiên lệch này.
 - Người viết prompt và dựng RAG cũng là người chấm; chia việc chấm cho cả ba người và chấm lại 30% là biện pháp hạn chế thiên lệch.
-- Kappa trên khoảng 40 mục có khoảng tin cậy rộng.
+- C vừa xuất bảng, giữ `key.json` vừa chấm một phần câu hỏi, nên C biết khóa; việc chấm của C chỉ mù trên thực tế khi C không mở `key.json` trước khi nộp nhãn.
+- Kappa được tính trên khoảng 20 câu hỏi chấm lại nhân số cấu hình (khoảng 120 mục với sáu cấu hình trên test; khoảng 9 câu hỏi nhân số cấu hình trên dev). Các mục cùng một câu hỏi không độc lập với nhau, nên khoảng tin cậy rộng hơn số mục gợi ý.
 
 ## 6. Lịch sử chỉnh sửa
 
 | Ngày | Nội dung |
 |---|---|
 | 2026-11-22 | Bản đầu. |
+| 2026-11-23 | Chấm lại theo câu hỏi thay vì theo mục (để người chấm lại không suy ra được mục chấm lại); thêm kiểm tra đầu vào; ghi hạn chế về seed, khóa và kích thước kappa. |

@@ -167,3 +167,64 @@ def test_extractive_system_has_no_hallucination_rate():
     s = summarize(primary, key, gold, extractive_systems=["ext"], n_resamples=100)
     assert s["ext"]["hallucination"] is None and s["ext"]["wrong_count"] == 6
     assert s["gen"]["hallucination"]["estimate"] == 0.0
+
+
+# --- ẩn mục chấm lại và kiểm tra đầu vào -----------------------------------
+
+
+def test_rechecked_questions_have_all_systems_so_row_counts_do_not_leak():
+    gold = make_gold(n_in=27, n_out=3)
+    sheets, key = build_blind_sheets(gold, make_results(gold, ("s1", "s2", "s3", "s4")), seed=5)
+    assert any(k["second"] for k in key.values())
+    for rows in sheets.values():
+        per_question = {}
+        for row in rows:
+            qid = key[row["code"]]["id"]
+            per_question[qid] = per_question.get(qid, 0) + 1
+        assert set(per_question.values()) == {4}
+    # Cả hệ thống của một câu hỏi cùng được chấm lại hoặc cùng không.
+    by_question = {}
+    for k in key.values():
+        by_question.setdefault(k["id"], set()).add(k["second"])
+    assert all(len(v) == 1 for v in by_question.values())
+
+
+def test_build_rejects_duplicate_ids_and_missing_answer_key():
+    gold = make_gold()
+    results = make_results(gold)
+    results["sys_a"].append(dict(results["sys_a"][0]))
+    with pytest.raises(ValueError, match="nhiều lần"):
+        build_blind_sheets(gold, results, seed=1)
+    results = make_results(gold)
+    del results["sys_a"][0]["answer"]
+    with pytest.raises(ValueError, match="thiếu khóa 'answer'"):
+        build_blind_sheets(gold, results, seed=1)
+
+
+def test_labels_are_case_insensitive_and_duplicate_codes_are_reported():
+    gold = make_gold(n_in=6, n_out=3)
+    sheets, key = build_blind_sheets(gold, make_results(gold, ("s",)), seed=2)
+    fill_sheets(sheets, key, gold, lambda s, q, ins: "Dung" if ins else "Tu_Choi_Dung")
+    primary, _, problems = merge_grades(sheets, key, gold)
+    assert problems == [] and len(primary) == len(key)
+    sheets["A"].append(dict(sheets["A"][0]))
+    _, _, problems = merge_grades(sheets, key, gold)
+    assert any("nhiều lần" in msg for _, msg in problems)
+
+
+def test_summarize_rejects_unknown_extractive_name_and_merge_rejects_wrong_split():
+    gold = make_gold(n_in=6, n_out=3)
+    sheets, key = build_blind_sheets(gold, make_results(gold, ("gen",)), seed=4)
+    fill_sheets(sheets, key, gold, lambda s, q, ins: "dung" if ins else "tu_choi_dung")
+    primary, _, _ = merge_grades(sheets, key, gold)
+    with pytest.raises(ValueError, match="--extractive"):
+        summarize(primary, key, gold, extractive_systems=["GEN"], n_resamples=50)
+    with pytest.raises(ValueError, match="--split"):
+        merge_grades(sheets, key, gold[:3])
+
+
+def test_merge_rejects_sheet_without_expected_columns():
+    gold = make_gold(n_in=6, n_out=3)
+    _, key = build_blind_sheets(gold, make_results(gold, ("s",)), seed=2)
+    with pytest.raises(ValueError, match="code/label"):
+        merge_grades({"A": [{"code;question;label": "X0001;a;dung"}]}, key, gold)

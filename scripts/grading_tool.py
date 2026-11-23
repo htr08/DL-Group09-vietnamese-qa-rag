@@ -52,8 +52,14 @@ def cmd_export(args) -> int:
         if not path:
             print(f"--system cần dạng ten=duong_dan: {spec}", file=sys.stderr)
             return 1
+        if name in results:
+            print(f"tên hệ thống trùng: {name}", file=sys.stderr)
+            return 1
         ids = {g["id"] for g in gold}
         results[name] = [r for r in read_jsonl(path) if r["id"] in ids]
+        n_empty = sum(1 for r in results[name] if not (r.get("answer") or "").strip())
+        if n_empty:
+            print(f"[cảnh báo] {name}: {n_empty} câu trả lời rỗng hoặc thiếu", file=sys.stderr)
     sheets, key = build_blind_sheets(gold, results, seed=args.seed)
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -75,8 +81,11 @@ def load_sheets(directory: Path):
     for g in GRADERS:
         p = directory / f"sheet_{g}.csv"
         if p.exists():
-            with open(p, encoding="utf-8-sig", newline="") as f:
-                sheets[g] = list(csv.DictReader(f))
+            try:
+                with open(p, encoding="utf-8-sig", newline="") as f:
+                    sheets[g] = list(csv.DictReader(f))
+            except UnicodeDecodeError as exc:
+                raise SystemExit(f"{p.name} không phải UTF-8; lưu lại ở dạng CSV UTF-8 ({exc.reason})")
     return sheets
 
 

@@ -35,8 +35,12 @@ def build_blind_sheets(
 
     Args:
         gold: các dòng gold (id, question, in_scope, article, clause, answers).
-        results: tên hệ thống -> danh sách {id, answer}; câu trả lời rỗng hoặc None coi là chưa có.
+        results: tên hệ thống -> danh sách {id, answer}; mỗi id xuất hiện đúng một lần và phải có
+            khóa `answer`; câu trả lời rỗng hoặc None được giữ là chuỗi rỗng.
         seed: hạt giống cho việc chia câu hỏi, trộn dòng và chọn câu chấm lại.
+        recheck_fraction: tỉ lệ câu hỏi (không phải mục) của mỗi người chấm chính được chấm lại.
+            Chọn theo câu hỏi, và câu được chọn có đủ câu trả lời của mọi hệ thống trong bảng của
+            người chấm lại, nên số dòng theo câu hỏi không cho biết mục nào là chấm lại.
 
     Returns:
         (bảng chấm theo người chấm, khóa). Bảng chỉ chứa mã mục, câu hỏi, đáp án gold và câu
@@ -48,10 +52,16 @@ def build_blind_sheets(
 
     items: list[dict[str, Any]] = []
     for system in sorted(results):
+        seen: set[str] = set()
         for r in results[system]:
             if r["id"] not in gold_by_id:
                 raise KeyError(f"{system}: id {r['id']} không có trong gold")
-            items.append({"system": system, "qid": r["id"], "answer": (r.get("answer") or "").strip()})
+            if r["id"] in seen:
+                raise ValueError(f"{system}: id {r['id']} xuất hiện nhiều lần")
+            if "answer" not in r:
+                raise ValueError(f"{system}: dòng id {r['id']} thiếu khóa 'answer'")
+            seen.add(r["id"])
+            items.append({"system": system, "qid": r["id"], "answer": (r["answer"] or "").strip()})
     missing = {s: sorted(set(gold_by_id) - {r["id"] for r in rs}) for s, rs in results.items()}
     missing = {s: m for s, m in missing.items() if m}
     if missing:
@@ -66,14 +76,16 @@ def build_blind_sheets(
         it["primary"] = assignment[it["qid"]]
         key[code] = {"system": it["system"], "id": it["qid"], "primary": it["primary"], "second": None}
 
-    # Chọn khoảng 30% câu trả lời của từng người chấm chính để người kế chấm lại.
-    by_primary: dict[str, list[dict[str, Any]]] = {g: [] for g in GRADERS}
+    # Chọn khoảng 30% câu hỏi của từng người chấm chính; mọi câu trả lời của câu đó được chấm lại.
+    questions_of: dict[str, list[str]] = {g: [] for g in GRADERS}
+    for qid in sorted(assignment):
+        questions_of[assignment[qid]].append(qid)
+    rechecked: dict[str, str] = {}
+    for primary, qids in questions_of.items():
+        for qid in rng.sample(qids, round(recheck_fraction * len(qids))):
+            rechecked[qid] = SECOND_GRADER[primary]
     for it in items:
-        by_primary[it["primary"]].append(it)
-    for primary, group in by_primary.items():
-        n = round(recheck_fraction * len(group))
-        for it in rng.sample(group, n):
-            key[it["code"]]["second"] = SECOND_GRADER[primary]
+        key[it["code"]]["second"] = rechecked.get(it["qid"])
 
     sheets: dict[str, list[dict[str, Any]]] = {g: [] for g in GRADERS}
     for it in items:
@@ -143,13 +155,25 @@ def merge_grades(
     primary: dict[str, str] = {}
     second: dict[str, str] = {}
     problems: list[tuple[str, str]] = []
+    seen_codes: set[tuple[str, str]] = set()
     for grader, rows in sheets.items():
         for row in rows:
-            code, label = row["code"], (row.get("label") or "").strip()
+            if "code" not in row or "label" not in row:
+                raise ValueError(
+                    f"bảng của người chấm {grader} thiếu cột code/label; kiểm tra dấu phân cách (cần dấu phẩy) "
+                    "và lưu lại ở dạng CSV UTF-8"
+                )
+            code, label = row["code"], (row.get("label") or "").strip().lower()
             k = key.get(code)
             if k is None:
                 problems.append((code, "mã không có trong khóa"))
                 continue
+            if k["id"] not in in_scope:
+                raise ValueError(f"mã {code} thuộc câu hỏi {k['id']} không có trong gold; kiểm tra --split")
+            if (grader, code) in seen_codes:
+                problems.append((code, f"mã xuất hiện nhiều lần trong bảng của người chấm {grader}"))
+                continue
+            seen_codes.add((grader, code))
             if not label:
                 problems.append((code, f"người chấm {grader} chưa điền nhãn"))
                 continue
@@ -188,6 +212,9 @@ def summarize(
     in_scope = {g["id"]: bool(g["in_scope"]) for g in gold}
     out: dict[str, dict[str, Any]] = {}
     systems = sorted({k["system"] for k in key.values()})
+    unknown = extractive - set(systems)
+    if unknown:
+        raise ValueError(f"--extractive: không có hệ thống {sorted(unknown)}; các hệ thống có trong khóa: {systems}")
     for system in systems:
         rows = [(k["id"], primary[c]) for c, k in key.items() if k["system"] == system and c in primary]
         counts = Counter(label for _, label in rows)
