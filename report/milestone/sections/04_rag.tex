@@ -1,0 +1,10 @@
+\section{RAG và tập đánh giá miền ứng dụng (C3)}
+\label{sec:rag}
+
+\paragraph{Tập 100 câu.} Tập gồm 100 câu hỏi tiếng Việt trên Quy chế đào tạo đại học của ĐHQGHN (bản 2014): 90 câu trong phạm vi và 10 câu ngoài phạm vi. Mỗi câu có đoạn nguồn ở mức Khoản và đáp án nguyên văn. Tập chia thành 30 câu dev (27 trong phạm vi, 3 ngoài phạm vi) và 70 câu test (63 và 7); việc chia thực hiện một lần, test chỉ chạy ở giai đoạn đánh giá cuối. \todo{tỉ lệ đồng thuận giữa hai người gán nhãn; nêu cặp không độc lập nếu có}
+
+\paragraph{RAG v1.} \todo{hybrid + Qwen2.5-7B 4-bit; prompt ràng buộc ngữ cảnh; kiểm tra ký tự CJK và sinh lại; độ trễ và bộ nhớ GPU; kết quả trên 30 câu dev}
+
+\paragraph{Baseline B2.} Hệ thống nền cắt Quy chế thành 358 chunk theo tiêu đề Markdown, trong khi kho của nhóm cắt theo Điều và Khoản. \todo{cấu hình B2 đã chạy, model sinh thực tế (Gemini~2.5~Flash không còn cấp cho dự án mới tại thời điểm chạy), kết quả thô}
+
+\paragraph{Giao thức chấm ảo giác.} Câu trả lời của mọi cấu hình được trộn và ẩn tên hệ thống; mỗi người chấm khoảng một phần ba số câu hỏi, và khoảng 30\% câu trả lời được người kế chấm lại để tính kappa. Nhãn gồm đúng, đúng một phần, sai-bịa (ảo giác), từ chối đúng và từ chối sai.

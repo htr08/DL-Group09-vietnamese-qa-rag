@@ -1,0 +1,42 @@
+% Milestone report - Nhom 9 - De tai 10 (toi da 4 trang noi dung)
+% Bien dich bang XeLaTeX hoac LuaLaTeX:  latexmk -xelatex main.tex
+\documentclass[11pt]{article}
+
+\usepackage[final]{acl}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{array}
+
+% Ho tro tieng Viet (XeLaTeX/LuaLaTeX); font tuong tu Times theo template ACL.
+\usepackage[vietnamese,bidi=default]{babel}
+\babelfont{rm}{TeXGyreTermesX}
+
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=1.3em}
+
+% Danh dau cho noi dung chua dien; xoa truoc khi nop.
+\newcommand{\todo}[1]{\textbf{[TODO: #1]}}
+
+\title{Hỏi đáp tiếng Việt: Cải tiến hệ thống RAG bằng mô hình mã nguồn mở và đọc hiểu trích xuất \\
+  \large Báo cáo Milestone}
+
+\author{Nguyễn Thị Hiền Trang \\
+  MSSV: 24022470 \And
+  Nguyễn Hữu Hoà \\
+  MSSV: 24022333 \And
+  Nguyễn Bá Hiển \\
+  MSSV: 24022322 \AND
+  Nhóm 9 \quad|\quad Đề tài 10: Hỏi đáp tiếng Việt (extractive QA và RAG)}
+
+\begin{document}
+\maketitle
+
+\input{sections/01_progress}
+\input{sections/02_extractive_qa}
+\input{sections/03_retrieval}
+\input{sections/04_rag}
+\input{sections/05_difficulties_plan}
+
+\bibliography{references}
+
+\end{document}
