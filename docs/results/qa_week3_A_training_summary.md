@@ -1,56 +1,124 @@
-# Tuần 3 — A: PhoBERT trên ViQuAD Dev nội bộ đã làm sạch
+Phạm vi báo cáo: Tổng hợp kết quả huấn luyện PhoBERT QA trong Tuần 3, đánh giá trên ViQuAD Dev nội bộ, xây dựng baseline B1 (BM25 + PhoBERT)
 
-> **Bản hợp nhất tài liệu của `origin/main` và nhánh QA.** Kết quả trong các bảng dưới đây là **evidence lịch sử Tuần 3**, không phải kết quả re-inference Tuần 4. Nguồn ngoài repository: `phobert_3lr_clean_dev_EVIDENCE.zip` (15 file: manifest, history, training summaries và n-best summaries). ZIP **không chứa trained weights hoặc predictions đầy đủ**.
+Báo cáo phân biệt hai nhóm kết quả:
+- Kết quả lịch sử Tuần 3: được ghi nhận trong phobert_3lr_clean_dev_EVIDENCE.zip, gồm 15 tệp manifest, lịch sử huấn luyện, tổng kết huấn luyện và đánh giá n-best. Gói evidence này không chứa trọng số mô hình hoặc predictions đầy đủ từng câu.
+- Kết quả kiểm toán bổ sung: được tính từ các tệp checkpoint, predictions và kết quả đánh giá đã lưu trên máy thực nghiệm. Việc kiểm toán không bao gồm huấn luyện lại mô hình hoặc đánh giá trên Test.
+1. Cấu hình huấn luyện và dữ liệu
+1.1. Cấu hình PhoBERT
+- Mô hình nền: vinai/phobert-base.
+- Số epoch: 3.
+- Random seed: 12.
+- Các learning rate được thử nghiệm: 2e-5, 3e-5, 5e-5.
+- Bài toán: Extractive Question Answering, gồm câu hỏi có đáp án và không có đáp án.
+- Phương pháp hậu xử lý: n-best span decoding kết hợp ngưỡng phát hiện câu hỏi không có đáp án.
+1.2. Dữ liệu ViQuAD Dev nội bộ
+Tập Dev được tách từ dữ liệu Train theo title, nhằm hạn chế việc cùng bài viết xuất hiện đồng thời trong Train và Dev.
+Chỉ số	Giá trị
+Số title	13
+Tổng số câu hỏi	2.768
+Câu có đáp án	1.886
+Câu không có đáp án	882
+Tổng số features	3.155
+Câu bị bỏ qua	0
+Câu không căn chỉnh được đáp án (unalignable)	29
 
-## 1. Cấu hình huấn luyện và dữ liệu
 
-- Backbone: `vinai/phobert-base`; **3 epoch**, `seed=12`; ba learning rates: `2e-5`, `3e-5`, `5e-5`.
-- Dev nội bộ tách theo **title** từ train, **13 title**, **2.768 câu**, **3.155 features**; gồm **1.886 answerable** và **882 impossible**; **0 skipped**; **29 unalignable** vẫn giữ để đánh giá.
-- Theo kiểm tra split: không overlap title/context giữa Train và Dev. Clean Dev dùng tiền xử lý suy luận không phụ thuộc Gold (`mode=eval`) để tránh Gold-driven input/window refinement.
-- SHA-256 Dev features ghi trong manifest lịch sử: `b27046196cd92f0ede419737b155f7f36a6bb1f2c54c563b3bafa31c82d8d3c3`.
-- Source fingerprint ghi trong training manifests: `3e04aedb82c69908f19b1cdcda6499ab51ac497b656ba7826ef90b0b6bd82deb`.
-- **Lưu ý:** Hash trên thuộc tệp features lịch sử (trước khi schema thêm `preprocessing_mode`); việc `mode=eval` của pipeline thí nghiệm và metadata hiện diện trong file là hai vấn đề khác nhau. Không dùng hash đơn lẻ để chứng minh không leakage.
+Theo kết quả kiểm tra dữ liệu, không phát hiện trùng lặp title hoặc context giữa Train và Dev.
 
-## 2. Kết quả Dev: n-best + ngưỡng không có đáp án tune trên Dev
+Trong giai đoạn đánh giá, các features được tạo bằng chế độ mode=eval, không sử dụng đáp án Gold để điều chỉnh đầu vào hoặc vị trí cửa sổ trượt.
+2. Kết quả thực nghiệm PhoBERT Tuần 3
+2.1. So sánh ba learning rates
+Mỗi cấu hình được huấn luyện trong 3 epoch và đánh giá trên cùng tập Dev nội bộ.
 
-| Learning rate | Best epoch | Train-loop Dev F1 (%) | Dev EM sau tune (%) | Dev F1 sau tune (%) | Null threshold |
-|---|---:|---:|---:|---:|---:|
-| `2e-5` | 3 | 65,59 | 52,42 | 66,39 | -1,483816 |
-| `3e-5` | 3 | 67,35 | 53,76 | 67,93 | -0,657978 |
-| **`5e-5`** | **3** | **69,53** | **55,78** | **69,94** | **-1,489326** |
+Kết quả dưới đây được lấy từ evidence lịch sử Tuần 3.
+Learning rate	Best epoch	Train-loop Dev F1 (%)	Dev EM sau tune (%)	Dev F1 sau tune (%)	Null threshold
+2e-5	3	65,59	52,42	66,39	-1,483816
+3e-5	3	67,35	53,76	67,93	-0,657978
+5e-5	3	69,53	55,78	69,94	-1,489326
 
-**Cấu hình được chọn:** LR `5e-5`, epoch 3 theo **Dev F1 tổng thể**. Đây là **lựa chọn dựa trên Dev**, không phải đánh giá Public Test. F1 trong training loop tại ngưỡng của lần đánh giá đó và F1 sau decoder n-best + tune threshold là **hai phép đo khác nhau**.
 
-### 2.1. Kết quả theo nhóm câu hỏi
+Cấu hình được lựa chọn: learning rate 5e-5, epoch 3, dựa trên F1 tổng thể cao nhất trên Dev.
 
-| Learning rate | F1 câu có đáp án (%) | EM/F1 câu không có đáp án (%) |
-|---|---:|---:|
-| `2e-5` | 67,16 | 64,74 |
-| `3e-5` | **70,33** | 62,81 |
-| `5e-5` | 68,08 | **73,92** |
+Điểm F1 trong vòng lặp huấn luyện và F1 sau n-best decoding kết hợp tối ưu ngưỡng là hai phép đo khác nhau, không nên so sánh trực tiếp nếu chưa thống nhất cách tính.
 
-Theo Dev F1 tổng thể, `5e-5` là cấu hình tốt nhất, mặc dù F1 riêng nhóm answerable của `3e-5` cao hơn. Không chọn mô hình bằng cách chỉ nhìn một nhóm câu.
+Việc lựa chọn cấu hình được thực hiện trên Dev, không sử dụng Public Test.
+2.2. Kết quả theo nhóm câu hỏi
+Learning rate	F1 câu có đáp án (%)	EM/F1 câu không có đáp án (%)
+2e-5	67,16	64,74
+3e-5	70,33	62,81
+5e-5	68,08	73,92
 
-## 3. Hậu xử lý, leakage và tính tái lập
 
-- Decoder n-best chọn các span start/end hợp lệ trên sliding windows, giới hạn chiều dài và ánh xạ về văn bản gốc; ngưỡng không có đáp án được **tối ưu trên Dev**, không trên Test.
-- Audit preprocessing cũ ghi **29/2.768 câu** có input features thay đổi bởi Gold-dependent token refinement; đây **không phải** phần tăng/giảm EM hoặc F1 đã được đo. Chi tiết ở `docs/results/gold_leakage_audit/` và `docs/qa_week2_A_evidence.md`.
-- **Base commit lịch sử** từ manifest: `b202d3dc9fb4bcdd02131d213d4b1b8d26f1dde8`. Các sửa đổi CI/QA sau đó thay đổi code; muốn tái lập đúng lần chạy cũ cần pin commit, dependencies và kiểm tra hash input/checkpoint.
-- ZIP evidence gồm kết quả và manifest, **không có trained weights/predictions từng câu**, do đó bản báo cáo lịch sử này **không chứng minh đã reload checkpoint hay chạy lại inference**.
-- **Bootstrap 95% CI của PhoBERT chính chưa được xác minh trong evidence ZIP lịch sử**, không tự tạo giá trị CI.
-- W&B được ghi nhận ở project `nhom09-vi-qa-rag/vi-qa-rag`, liên hệ với commit nêu trên; URL của từng run cần được bổ sung vào báo cáo có thể kiểm tra độc lập.
-- **Public Test chưa được sử dụng** để chọn cấu hình hoặc threshold trong các kết quả này; theo kế hoạch chỉ dùng ở đợt đánh giá cuối.
+Nhận xét:
+- Learning rate 3e-5 cho F1 cao nhất trên nhóm câu hỏi có đáp án.
+- Learning rate 5e-5 cho kết quả tốt nhất trên nhóm câu hỏi không có đáp án.
+- Xét F1 tổng thể, 5e-5 vẫn là cấu hình tốt nhất trong ba cấu hình được thử nghiệm.
+Kết quả cho thấy cần đánh giá đồng thời khả năng trích xuất đáp án và khả năng xác định câu hỏi không có đáp án, thay vì chỉ tối ưu một nhóm.
+3. Hậu xử lý, kiểm tra rò rỉ dữ liệu và khả năng tái lập
+3.1. N-best decoding và ngưỡng không có đáp án
+Quá trình hậu xử lý gồm:
+1. Thu thập các vị trí bắt đầu và kết thúc đáp án từ các cửa sổ trượt.
+2. Loại những span không hợp lệ hoặc vượt quá độ dài cho phép.
+3. Ánh xạ vị trí đáp án về văn bản gốc.
+4. Chọn đáp án từ các ứng viên hợp lệ.
+5. So sánh điểm số với ngưỡng để quyết định trả về đáp án hay chuỗi rỗng.
+Ngưỡng không có đáp án được tối ưu trên Dev. Không sử dụng Test để lựa chọn ngưỡng.
+3.2. Kiểm toán Gold leakage
+Chỉ số	Kết quả
+Tổng số câu Dev	2.768
+Câu có input features thay đổi do phụ thuộc Gold	29
+Tỷ lệ bị ảnh hưởng	1,05%
+Câu bị bỏ qua	0
 
-## 4. B1 Domain Dev — tách biệt với ViQuAD
 
-- Baseline B1 = BM25 Top-3 + PhoBERT QA, đánh giá trên **30 câu Domain Dev** (27 in-scope, 3 out-of-scope), **không phải** 2.768 câu ViQuAD Dev.
-- Người thực hiện đã chạy local với **213 chunks**: fixed threshold = `0`, **EM 66,67% / F1 84,89%**; Dev-tuned threshold ≈ `-0,700919` cho cùng EM/F1.
-- **Giới hạn:** số *tuned* chọn và chấm trên chính 30 câu Dev (**in-sample**); threshold có tính cấu hình theo `top_k`, corpus và checkpoint. Việc chốt nhãn Gold cần truy vết hồ sơ đối soát trước khi tuyên bố điểm B1 cuối cùng; không có kết quả Domain Test ở đây.
-- Kết quả này được ghi theo log local do người thực hiện cung cấp sau Tuần 3; **không thuộc archive PhoBERT 3 LR**. Để tái lập cần lưu cùng hash Gold/index/metadata/checkpoint và predictions tương ứng.
+4. Baseline B1 — BM25 kết hợp PhoBERT trên Domain Dev
+4.1. Mục tiêu
+B1 kết hợp hai thành phần:
+- BM25: truy hồi các đoạn văn bản có khả năng chứa đáp án.
+- PhoBERT QA: đọc các đoạn được truy hồi và dự đoán span đáp án.
+Khác với việc đánh giá PhoBERT trực tiếp trên ViQuAD Dev, B1 được đánh giá trên bộ câu hỏi thuộc miền Quy chế đào tạo ĐHQGHN.
+4.2. Cấu hình và kết quả
+Tham số	Giá trị
+Tập đánh giá	Domain Dev
+Tổng số câu	30
+Trong phạm vi	27
+Ngoài phạm vi	3
+Corpus	213 chunks
+Phương pháp truy hồi	BM25
+Top-k	3
+Mô hình đọc hiểu	PhoBERT QA
 
-## 5. Đối chiếu với báo cáo khác và phần chưa xác minh
 
-- EDA/offsets, Dev features và Gold leakage: `docs/qa_week2_A_evidence.md`, `docs/qa_week2_A_eda_reproduced.md`, `data/splits/viquad_split_meta.json`.
-- PhoBERT n-best và 3 LR: `phobert_3lr_clean_dev_EVIDENCE.zip` (lưu ngoài repo).
-- **Không gộp kết quả re-evaluation Tuần 4 vào bảng lịch sử Tuần 3.** Nếu cấu hình mới cho EM/F1 khác, ghi thành bảng đối chiếu riêng với hash checkpoint, preprocessing, decoder và ngưỡng.
-- **Chưa xác minh** CI 95% từ predictions đầy đủ của lần chạy PhoBERT lịch sử; không coi kết quả tuning trên Dev là kết quả tổng quát hóa trên Test.
+Kết quả:
+Cấu hình ngưỡng	EM (%)	F1 (%)
+Fixed threshold = 0	66,67	84,89
+Tuned threshold = -0,700919	66,67	84,89
+
+
+Hai ngưỡng cho cùng kết quả trên 30 câu Domain Dev.
+4.3. Giới hạn đánh giá B1
+Ngưỡng được tối ưu và đánh giá trên cùng 30 câu Dev nên kết quả tuned là in-sample.
+
+Ngưỡng còn phụ thuộc vào:
+- Giá trị top_k.
+- Tập chunks và chỉ mục BM25.
+- Checkpoint PhoBERT.
+- Cách tính score và tổng hợp các cửa sổ dự đoán.
+Vì vậy, không mặc định áp dụng ngưỡng đã tối ưu ở Top-3 cho một cấu hình Top-k khác.
+5. Đánh giá lại PhoBERT trên ViQuAD Clean Dev
+Kết quả đánh giá lại checkpoint gốc LR 5e-5, seed 12 bằng pipeline hiện tại được đối chiếu với kết quả lịch sử Tuần 3.
+Chỉ số	Lịch sử Tuần 3	Đánh giá lại checkpoint gốc	Chênh lệch
+EM (%)	55,78	55,24	-0,54 điểm %
+F1 (%)	69,94	70,10	+0,16 điểm %
+Số câu Dev	2.768	2.768	0
+Null threshold	-1,489326	≈ -0,64443	Khác
+
+
+Kết quả đánh giá lại đạt:
+- EM = 55,24%.
+- F1 = 70,10%.
+Số lượng câu hỏi:
+- Có đáp án: 1.886 câu.
+- Không có đáp án: 882 câu.
+- Tổng cộng: 2.768 câu (3.155 features).
+Đánh giá lại sử dụng checkpoint gốc tại phobert_5e5_extracted/phobert_qa_lr5e-5_seed12/best_model, bộ features Dev ở data/processed/qa_features_week4_eval/dev.jsonl và decoder hiện tại trong scripts/eval_qa_nbest.py. Kết quả được lưu tại outputs/week3_original_checkpoint_eval/summary.json.
