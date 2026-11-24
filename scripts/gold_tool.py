@@ -8,7 +8,12 @@ Sử dụng (từ thư mục gốc repo):
 `build` mặc định chỉ in thống kê (dry run); thêm --write để ghi data/gold/gold_dev.jsonl,
 data/gold/gold_test.jsonl và data/splits/gold_split.json. Việc chia dev/test chỉ được
 ghi MỘT LẦN (hướng dẫn gán nhãn, mục 6): nếu gold_split.json đã có, `build` dùng đúng danh
-sách dev trong tệp đó (không bốc lại) và từ chối --write.
+sách dev trong tệp đó (không bốc lại) và từ chối --write. `build` cũng từ chối --write khi
+gold_dev/gold_test.jsonl đã có nội dung mà chưa có gold_split.json.
+
+--force chỉ bỏ qua bốn nhóm lỗi nhãn tác giả: câu hỏi trùng, tối đa mỗi Điều, tối đa mỗi loại
+câu (bang, co_khong) và tối thiểu mỗi nhóm ngoài phạm vi. Thiếu nhãn độc lập, resolutions không
+hợp lệ và gold cuối không nhất quán (gồm cụm bị cấm, question_type, quota) luôn làm build thất bại.
 """
 from __future__ import annotations
 
@@ -24,8 +29,8 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8")
 
 from src.gold import (  # noqa: E402
-    agreement_summary, build_gold, check_annotation_coverage, choose_split_seed,
-    clause_leakage, compare_labels, load_split, read_jsonl, validate_authors, validate_gold,
+    agreement_summary, build_gold, check_annotation_coverage, check_disagreements_resolved,
+    choose_split_seed, clause_leakage, compare_labels, load_split, read_jsonl, validate_authors, validate_gold,
     validate_resolutions, write_jsonl,
 )
 from src.metrics import bootstrap_ci  # noqa: E402
@@ -126,7 +131,10 @@ def cmd_build(args) -> int:
     if set(authors) != set(ANNOTATOR_OF):
         print("Thiếu nhãn tác giả; không thể sinh gold.", file=sys.stderr)
         return 1
-    errors = validate_authors(authors) + check_annotation_coverage(authors, annotations)
+    coverage = check_annotation_coverage(authors, annotations)
+    if coverage:  # thiếu nhãn độc lập: không bỏ qua được bằng --force
+        return _fail(coverage, "Dừng vì nhãn độc lập chưa đầy đủ (không bỏ qua được bằng --force).")
+    errors = validate_authors(authors)
     if errors and not args.force:
         return _fail(errors, "Dừng vì nhãn chưa hợp lệ (dùng --force để bỏ qua).")
     final = {}
@@ -140,6 +148,7 @@ def cmd_build(args) -> int:
         errors += [f"resolution id trùng: {i}" for i in sorted({i for i in ids if i and ids.count(i) > 1})]
         final = {r["id"]: r for r in res_rows if r.get("id")}
         errors += validate_resolutions(authors, final)  # không bỏ qua được bằng --force
+        errors += check_disagreements_resolved(authors, annotations, final)
         if errors:
             return _fail(errors, "Dừng vì resolutions không hợp lệ.")
     locked = SPLIT_FILE.exists()
@@ -170,6 +179,12 @@ def cmd_build(args) -> int:
         return 0
     if locked:
         print(f"{SPLIT_FILE.name} đã tồn tại: chia dev/test chỉ làm một lần, không ghi đè.", file=sys.stderr)
+        return 1
+    existing = [p.name for p in (GOLD / "gold_dev.jsonl", GOLD / "gold_test.jsonl")
+                if p.exists() and p.stat().st_size > 0]
+    if existing:  # gold đã có nội dung nhưng chưa có khóa chia: không ghi đè
+        print(f"{', '.join(existing)} đã có nội dung nhưng chưa có {SPLIT_FILE.name}; "
+              "không ghi đè gold hiện có.", file=sys.stderr)
         return 1
     GOLD.mkdir(parents=True, exist_ok=True)
     write_jsonl(GOLD / "gold_dev.jsonl", dev)

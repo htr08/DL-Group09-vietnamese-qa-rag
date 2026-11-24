@@ -5,8 +5,8 @@ import pytest
 
 import scripts.gold_tool as gold_tool
 from src.gold import (
-    AUTHOR_QUOTA, agreement_summary, build_gold, check_annotation_coverage, choose_split_seed,
-    clause_leakage, compare_labels, draw_split, source_code, validate_authors, validate_gold,
+    AUTHOR_QUOTA, agreement_summary, build_gold, check_annotation_coverage,
+    check_disagreements_resolved, choose_split_seed, clause_leakage, compare_labels, draw_split, source_code, validate_authors, validate_gold,
     validate_resolutions,
 )
 
@@ -421,23 +421,122 @@ def test_build_and_agreement_refuse_missing_author_file_even_with_force(workspac
     assert report["complete"] is False and any("tác giả: C" in e for e in report["coverage_errors"])
 
 
-def test_build_refuses_incomplete_annotations_and_force_bypasses_only_label_errors(workspace):
+def test_build_refuses_incomplete_annotations_even_with_force(workspace):
     ann = workspace / "drafts" / "annot_A_of_B.jsonl"
     ann.write_text("\n".join(ann.read_text(encoding="utf-8").splitlines()[:10]), encoding="utf-8")
-    assert gold_tool.main(["build"]) == 1
-    assert gold_tool.main(["build", "--write"]) == 1
+    for flags in ([], ["--write"], ["--force"], ["--force", "--write"]):
+        assert gold_tool.main(["build", *flags]) == 1, flags
+    assert not (workspace / "gold").exists() and not (workspace / "splits").exists()
+
+
+@pytest.mark.parametrize("breakage", ["missing_file", "extra_id", "duplicate_id"])
+def test_force_never_bypasses_annotation_coverage_errors(workspace, breakage):
+    ann = workspace / "drafts" / "annot_A_of_B.jsonl"
+    rows = [json.loads(line) for line in ann.read_text(encoding="utf-8").splitlines()]
+    if breakage == "missing_file":
+        ann.unlink()
+    elif breakage == "extra_id":
+        _write_jsonl(ann, rows + [dict(rows[0], id="B99")])
+    else:
+        _write_jsonl(ann, rows + [dict(rows[0])])
+    assert gold_tool.main(["build", "--force", "--write"]) == 1
+    assert not (workspace / "gold").exists() and not (workspace / "splits").exists()
+
+
+def test_validate_gold_rejects_missing_independent_label_and_unresolved_disagreement():
+    data, dev = _data_and_dev()
+    ann = annotations_of(data)
+    ann["B"] = ann["B"][1:]  # thiếu nhãn độc lập của câu đầu
+    errors = "\n".join(validate_gold(build_gold(data, ann, {}, dev)))
+    assert f"{data['B'][0]['id']}: thiếu nhãn độc lập" in errors
+
+    ann = annotations_of(data)
+    ann["A"][0]["clause"] = 9  # cùng Điều, khác Khoản, chưa có resolution
+    first = data["A"][0]["id"]
+    errors = "\n".join(validate_gold(build_gold(data, ann, {}, dev)))
+    assert f"{first}: hai nhãn bất đồng (scope=same, source=same_article)" in errors
+    resolved = {first: {"id": first, "resolution": "author_label"}}
+    assert not any(e.startswith(f"{first}:") for e in validate_gold(build_gold(data, ann, resolved, dev)))
+
+
+@pytest.mark.parametrize("change,expected", [
+    ({"in_scope": False, "article": None, "clause": None, "answer": None}, "scope=different"),
+    ({"article": 44, "clause": 1}, "source=different"),
+])
+def test_validate_gold_flags_scope_and_article_disagreement(change, expected):
+    data, dev = _data_and_dev()
+    ann = annotations_of(data)
+    ann["A"][0].update(change)
+    first = data["A"][0]["id"]
+    errors = "\n".join(validate_gold(build_gold(data, ann, {}, dev)))
+    assert f"{first}: hai nhãn bất đồng" in errors and expected in errors
+
+
+def test_disagreement_needs_resolution_with_explicit_final_label():
+    data, _ = _data_and_dev()
+    ann = annotations_of(data)
+    ann["A"][0].update({"in_scope": False, "article": None, "clause": None, "answer": None})
+    first = data["A"][0]["id"]
+    assert check_disagreements_resolved(data, ann, {})[0].startswith(f"{first}: hai nhãn bất đồng")
+    bare = {first: {"id": first, "resolution": "annotator_label"}}  # chỉ có tên, không có nhãn cuối
+    assert "thiếu nhãn cuối (in_scope, article, clause, answers)" in check_disagreements_resolved(data, ann, bare)[0]
+    full = {first: {"id": first, "resolution": "annotator_label", "in_scope": False,
+                    "article": None, "clause": None, "answers": []}}
+    assert check_disagreements_resolved(data, ann, full) == []
+    assert check_disagreements_resolved(data, annotations_of(data), {}) == []  # đồng thuận: không cần
+
+
+def test_cmd_build_rejects_bare_resolution_for_disagreement(workspace):
+    ann = workspace / "drafts" / "annot_C_of_A.jsonl"
+    rows = [json.loads(line) for line in ann.read_text(encoding="utf-8").splitlines()]
+    rows[0].update({"in_scope": False, "article": None, "clause": None, "answer": None})
+    _write_jsonl(ann, rows)
+    first = rows[0]["id"]
+    res = workspace / "res.jsonl"
+    _write_jsonl(res, [{"id": first, "resolution": "annotator_label"}])
+    assert gold_tool.main(["build", "--resolutions", str(res), "--write"]) == 1
     assert not (workspace / "gold").exists()
-    assert gold_tool.main(["build", "--force"]) == 0  # --force chỉ bỏ qua lỗi nhãn, không ghi gì (dry run)
+
+
+def test_build_refuses_to_overwrite_when_only_gold_test_exists(workspace):
+    gold = workspace / "gold"
+    gold.mkdir()
+    (gold / "gold_test.jsonl").write_text('{"id": "X"}\n', encoding="utf-8")
+    before = _snapshot(workspace)
+    assert gold_tool.main(["build", "--write"]) == 1
+    assert _snapshot(workspace) == before and not (workspace / "splits").exists()
 
 
 def test_build_refuses_invalid_author_labels_unless_forced(workspace):
-    p = workspace / "drafts" / "author_A.jsonl"
-    rows = [json.loads(line) for line in p.read_text(encoding="utf-8").splitlines()]
-    for r in rows[:4]:
-        r["article"] = 40  # 4 câu cùng một Điều: vượt MAX_PER_ARTICLE, gold vẫn nhất quán
-    _write_jsonl(p, rows)
+    for name in ("author_A.jsonl", "annot_C_of_A.jsonl"):  # đổi cả hai nhãn để không phát sinh bất đồng
+        p = workspace / "drafts" / name
+        rows = [json.loads(line) for line in p.read_text(encoding="utf-8").splitlines()]
+        for r in rows[:4]:
+            r["article"] = 40  # 4 câu cùng một Điều: vượt MAX_PER_ARTICLE, gold vẫn nhất quán
+        _write_jsonl(p, rows)
     assert gold_tool.main(["build"]) == 1
-    assert gold_tool.main(["build", "--force"]) == 0
+    assert gold_tool.main(["build", "--force"]) == 0  # --force chỉ bỏ qua lỗi nhãn tác giả (dry run)
+    assert gold_tool.main(["build", "--force", "--write"]) == 0
+
+
+def test_build_refuses_to_overwrite_existing_gold_without_split_lock(workspace):
+    gold = workspace / "gold"
+    gold.mkdir()
+    (gold / "gold_dev.jsonl").write_text('{"id": "X"}\n', encoding="utf-8")
+    before = _snapshot(workspace)
+    assert gold_tool.main(["build", "--write"]) == 1
+    assert gold_tool.main(["build", "--force", "--write"]) == 1
+    assert _snapshot(workspace) == before and not (workspace / "splits").exists()
+
+
+def test_build_may_write_over_empty_placeholder_gold_files(workspace):
+    gold = workspace / "gold"
+    gold.mkdir()
+    for name in ("gold_dev.jsonl", "gold_test.jsonl"):
+        (gold / name).write_text("", encoding="utf-8")
+    assert gold_tool.main(["build", "--write"]) == 0
+    assert len((gold / "gold_dev.jsonl").read_text(encoding="utf-8").splitlines()) == 30
+    assert (workspace / "splits" / "gold_split.json").exists()
 
 
 def test_locked_split_blocks_write_and_leaves_every_file_untouched(workspace):

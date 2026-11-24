@@ -214,6 +214,37 @@ def validate_resolutions(
     return errors
 
 
+RESOLVED_KEYS = ("in_scope", "article", "clause", "answers")
+
+
+def check_disagreements_resolved(
+    authors: Mapping[str, Sequence[Label]],
+    annotations: Mapping[str, Sequence[Label]],
+    final_labels: Mapping[str, Label],
+) -> list[str]:
+    """Lỗi nếu câu có hai nhãn bất đồng (phạm vi khác, hoặc khác Điều/Khoản) mà resolution
+    không ghi đủ nhãn cuối (`in_scope`, `article`, `clause`, `answers`).
+
+    Nếu thiếu, build_gold giữ nhãn tác giả và gộp đáp án của người gán nhãn, kể cả đáp án
+    thuộc Khoản khác.
+    """
+    errors: list[str] = []
+    for author, labels in authors.items():
+        ann = {x["id"]: x for x in annotations.get(author, [])}
+        for x in labels:
+            a = ann.get(x["id"])
+            if a is None:
+                continue
+            ag = compare_labels(x, a)
+            if ag["scope"] == "same" and ag["source"] not in ("same_article", "different"):
+                continue
+            missing = [k for k in RESOLVED_KEYS if k not in final_labels.get(x["id"], {})]
+            if missing:
+                errors.append(f"{x['id']}: hai nhãn bất đồng, resolution thiếu nhãn cuối "
+                              f"({', '.join(missing)})")
+    return errors
+
+
 def _is_int(v: Any) -> bool:
     return isinstance(v, int) and not isinstance(v, bool)
 
@@ -226,6 +257,13 @@ def validate_gold(rows: Sequence[Mapping[str, Any]]) -> list[str]:
         i = r["id"]
         if r["split"] not in ("dev", "test"):
             errors.append(f"{i}: split '{r['split']}' không hợp lệ")
+        ag = r.get("agreement")
+        if ag is None:
+            errors.append(f"{i}: thiếu nhãn độc lập của người gán nhãn (agreement = null)")
+        elif r.get("resolution") == "none" and (
+                ag["scope"] != "same" or ag["source"] in ("same_article", "different")):
+            errors.append(f"{i}: hai nhãn bất đồng (scope={ag['scope']}, source={ag['source']}) "
+                          "nhưng chưa có resolution")
         if not isinstance(r["question"], str) or not r["question"].strip():
             errors.append(f"{i}: câu hỏi rỗng hoặc không phải chuỗi")
         elif _FORBIDDEN.search(r["question"]):
