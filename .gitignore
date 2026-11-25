@@ -36,6 +36,8 @@ artifacts/phobert_qa/
 qdrant_storage/
 indexes/
 data/index/
+# Bảng chấm mù và khóa ánh xạ (key.json) không được commit.
+data/grading/
 *.faiss
 # Checkpoints and weights.
 checkpoints/
