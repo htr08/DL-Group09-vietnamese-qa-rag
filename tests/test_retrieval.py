@@ -23,7 +23,7 @@ def test_hybrid_retrieve_fuses_with_rrf():
     dense = _FakeRetriever(["b", "c", "a"])
     result = hybrid_retrieve(bm25, dense, "q", top_k=3, rrf_k=15)
 
-    assert result == reciprocal_rank_fusion([["a", "b", "c"], ["b", "c", "a"]], rrf_k=15)
+    assert result == reciprocal_rank_fusion([["b", "c", "a"], ["a", "b", "c"]], rrf_k=15)
     # b: 1/17 + 1/16, a: 1/16 + 1/18, c: 1/18 + 1/17
     assert [doc_id for doc_id, _ in result] == ["b", "a", "c"]
 
@@ -33,9 +33,9 @@ def test_hybrid_retrieve_takes_top_k_from_each_retriever_then_truncates():
     dense = _FakeRetriever(["d", "c", "b", "a"])
 
     # Mỗi retriever chỉ đóng góp 2 kết quả đầu: BM25 [a, b], dense [d, c].
-    # a và d cùng điểm 1/61; BM25 đứng trước nên a xếp trước d (xem docstring của RRF).
+    # a và d cùng điểm 1/61; dense đứng trước nên d xếp trước a (tie-break theo dense).
     result = hybrid_retrieve(bm25, dense, "q", top_k=2)
-    assert [doc_id for doc_id, _ in result] == ["a", "d"]
+    assert [doc_id for doc_id, _ in result] == ["d", "a"]
 
 
 def test_hybrid_retrieve_reranks_only_when_titles_are_given():

@@ -1,0 +1,66 @@
+{
+  "dataset": "ViQuAD title-held-out Dev",
+  "questions": 2768,
+  "bootstrap_resamples": 3000,
+  "bootstrap_seed": 20261123,
+  "method": "paired question bootstrap, fixed Dev predictions and per-seed tuned thresholds; no re-tuning",
+  "seed_results": {
+    "12": {
+      "em_percent": 54.7327,
+      "f1_percent": 69.8567,
+      "em_95ci": [
+        52.854,
+        56.576
+      ],
+      "f1_95ci": [
+        68.3176,
+        71.3943
+      ],
+      "null_threshold": 0.025114059448242188
+    },
+    "21": {
+      "em_percent": 54.9133,
+      "f1_percent": 69.313,
+      "em_95ci": [
+        53.0347,
+        56.8289
+      ],
+      "f1_95ci": [
+        67.7695,
+        70.9435
+      ],
+      "null_threshold": -1.3592276573181152
+    },
+    "42": {
+      "em_percent": 55.672,
+      "f1_percent": 69.9572,
+      "em_95ci": [
+        53.7572,
+        57.5506
+      ],
+      "f1_95ci": [
+        68.4337,
+        71.5316
+      ],
+      "null_threshold": -2.6952319145202637
+    }
+  },
+  "aggregate": {
+    "em": {
+      "mean_percent": 55.106,
+      "sample_std_percentage_points": 0.4984,
+      "question_bootstrap_mean_95ci": [
+        53.3836,
+        56.8762
+      ]
+    },
+    "f1": {
+      "mean_percent": 69.709,
+      "sample_std_percentage_points": 0.3466,
+      "question_bootstrap_mean_95ci": [
+        68.3258,
+        71.1579
+      ]
+    }
+  }
+}

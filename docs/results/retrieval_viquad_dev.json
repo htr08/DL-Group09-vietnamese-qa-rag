@@ -1,6 +1,9 @@
 {
   "split": "viquad_dev",
-  "commit_hash": "00d854b",
+  "commit_hash": "a2f8ba7",
+  "n_chunks": 4101,
+  "device": "cpu",
+  "model": "BAAI/bge-m3",
   "rrf_k": 15,
   "rerank_beta": 0.1,
   "ks": [
@@ -13,24 +16,203 @@
   "bootstrap_ci": {
     "comparison": "Hybrid (k=15) vs Dense",
     "metric": "Recall@5",
-    "estimate": 0.0408,
-    "ci_low": 0.0281,
-    "ci_high": 0.0536,
+    "estimate": 0.044,
+    "ci_low": 0.0313,
+    "ci_high": 0.0567,
     "confidence": 0.95,
-    "n_resamples": 2000,
+    "n_resamples": 10000,
     "seed": 42,
-    "is_significant": true
+    "is_significant": true,
+    "detailed": {
+      "hybrid_vs_bm25": {
+        "R@1": {
+          "comparison": "Hybrid (k=15) vs BM25",
+          "metric": "R@1",
+          "estimate": 0.0583,
+          "ci_low": 0.0387,
+          "ci_high": 0.0779,
+          "confidence": 0.95,
+          "n_resamples": 10000,
+          "seed": 42,
+          "is_significant": true
+        },
+        "MRR@10": {
+          "comparison": "Hybrid (k=15) vs BM25",
+          "metric": "MRR@10",
+          "estimate": 0.0644,
+          "ci_low": 0.0512,
+          "ci_high": 0.0777,
+          "confidence": 0.95,
+          "n_resamples": 10000,
+          "seed": 42,
+          "is_significant": true
+        },
+        "R@5": {
+          "comparison": "Hybrid (k=15) vs BM25",
+          "metric": "R@5",
+          "estimate": 0.0726,
+          "ci_low": 0.0589,
+          "ci_high": 0.087,
+          "confidence": 0.95,
+          "n_resamples": 10000,
+          "seed": 42,
+          "is_significant": true
+        }
+      },
+      "hybrid_vs_dense": {
+        "R@1": {
+          "comparison": "Hybrid (k=15) vs Dense",
+          "metric": "R@1",
+          "estimate": 0.0774,
+          "ci_low": 0.0599,
+          "ci_high": 0.0944,
+          "confidence": 0.95,
+          "n_resamples": 10000,
+          "seed": 42,
+          "is_significant": true
+        },
+        "MRR@10": {
+          "comparison": "Hybrid (k=15) vs Dense",
+          "metric": "MRR@10",
+          "estimate": 0.0643,
+          "ci_low": 0.0523,
+          "ci_high": 0.0761,
+          "confidence": 0.95,
+          "n_resamples": 10000,
+          "seed": 42,
+          "is_significant": true
+        },
+        "R@5": {
+          "comparison": "Hybrid (k=15) vs Dense",
+          "metric": "R@5",
+          "estimate": 0.044,
+          "ci_low": 0.0313,
+          "ci_high": 0.0567,
+          "confidence": 0.95,
+          "n_resamples": 10000,
+          "seed": 42,
+          "is_significant": true
+        }
+      }
+    }
+  },
+  "bootstrap_ci_detailed": {
+    "hybrid_vs_bm25": {
+      "R@1": {
+        "comparison": "Hybrid (k=15) vs BM25",
+        "metric": "R@1",
+        "estimate": 0.0583,
+        "ci_low": 0.0387,
+        "ci_high": 0.0779,
+        "confidence": 0.95,
+        "n_resamples": 10000,
+        "seed": 42,
+        "is_significant": true
+      },
+      "MRR@10": {
+        "comparison": "Hybrid (k=15) vs BM25",
+        "metric": "MRR@10",
+        "estimate": 0.0644,
+        "ci_low": 0.0512,
+        "ci_high": 0.0777,
+        "confidence": 0.95,
+        "n_resamples": 10000,
+        "seed": 42,
+        "is_significant": true
+      },
+      "R@5": {
+        "comparison": "Hybrid (k=15) vs BM25",
+        "metric": "R@5",
+        "estimate": 0.0726,
+        "ci_low": 0.0589,
+        "ci_high": 0.087,
+        "confidence": 0.95,
+        "n_resamples": 10000,
+        "seed": 42,
+        "is_significant": true
+      }
+    },
+    "hybrid_vs_dense": {
+      "R@1": {
+        "comparison": "Hybrid (k=15) vs Dense",
+        "metric": "R@1",
+        "estimate": 0.0774,
+        "ci_low": 0.0599,
+        "ci_high": 0.0944,
+        "confidence": 0.95,
+        "n_resamples": 10000,
+        "seed": 42,
+        "is_significant": true
+      },
+      "MRR@10": {
+        "comparison": "Hybrid (k=15) vs Dense",
+        "metric": "MRR@10",
+        "estimate": 0.0643,
+        "ci_low": 0.0523,
+        "ci_high": 0.0761,
+        "confidence": 0.95,
+        "n_resamples": 10000,
+        "seed": 42,
+        "is_significant": true
+      },
+      "R@5": {
+        "comparison": "Hybrid (k=15) vs Dense",
+        "metric": "R@5",
+        "estimate": 0.044,
+        "ci_low": 0.0313,
+        "ci_high": 0.0567,
+        "confidence": 0.95,
+        "n_resamples": 10000,
+        "seed": 42,
+        "is_significant": true
+      }
+    }
   },
   "bootstrap_ci_rerank": {
     "comparison": "Hybrid + Rerank Title (k=15) vs Hybrid (k=15)",
     "metric": "Recall@5",
-    "estimate": 0.0005,
+    "estimate": 0.0011,
     "ci_low": -0.0011,
-    "ci_high": 0.0021,
+    "ci_high": 0.0032,
     "confidence": 0.95,
-    "n_resamples": 2000,
+    "n_resamples": 10000,
     "seed": 42,
-    "is_significant": false
+    "is_significant": false,
+    "detailed": {
+      "R@1": {
+        "comparison": "Hybrid + Rerank Title vs Hybrid",
+        "metric": "R@1",
+        "estimate": 0.0016,
+        "ci_low": -0.0016,
+        "ci_high": 0.0048,
+        "confidence": 0.95,
+        "n_resamples": 10000,
+        "seed": 42,
+        "is_significant": false
+      },
+      "MRR@10": {
+        "comparison": "Hybrid + Rerank Title vs Hybrid",
+        "metric": "MRR@10",
+        "estimate": 0.0009,
+        "ci_low": -0.0006,
+        "ci_high": 0.0026,
+        "confidence": 0.95,
+        "n_resamples": 10000,
+        "seed": 42,
+        "is_significant": false
+      },
+      "R@5": {
+        "comparison": "Hybrid + Rerank Title vs Hybrid",
+        "metric": "R@5",
+        "estimate": 0.0011,
+        "ci_low": -0.0011,
+        "ci_high": 0.0032,
+        "confidence": 0.95,
+        "n_resamples": 10000,
+        "seed": 42,
+        "is_significant": false
+      }
+    }
   },
   "results": [
     {
@@ -41,7 +223,7 @@
       "R@10": 0.8743,
       "R@20": 0.9072,
       "MRR@10": 0.7333,
-      "Latency (ms)": 22.3,
+      "Latency (ms)": 26.3,
       "n_queries": 1886
     },
     {
@@ -52,40 +234,40 @@
       "R@10": 0.9008,
       "R@20": 0.9401,
       "MRR@10": 0.7334,
-      "Latency (ms)": 28.5,
+      "Latency (ms)": 115.1,
       "n_queries": 1886
     },
     {
       "method": "Hybrid RRF (k=60)",
-      "R@1": 0.72,
-      "R@3": 0.8537,
-      "R@5": 0.8982,
+      "R@1": 0.719,
+      "R@3": 0.8552,
+      "R@5": 0.9014,
       "R@10": 0.9401,
-      "R@20": 0.9592,
-      "MRR@10": 0.7964,
-      "Latency (ms)": 63.3,
+      "R@20": 0.9597,
+      "MRR@10": 0.797,
+      "Latency (ms)": 127.7,
       "n_queries": 1886
     },
     {
       "method": "Hybrid RRF (k=15)",
-      "R@1": 0.72,
-      "R@3": 0.8568,
-      "R@5": 0.8998,
-      "R@10": 0.9406,
-      "R@20": 0.9592,
-      "MRR@10": 0.7971,
-      "Latency (ms)": 63.7,
+      "R@1": 0.719,
+      "R@3": 0.8574,
+      "R@5": 0.903,
+      "R@10": 0.9401,
+      "R@20": 0.9597,
+      "MRR@10": 0.7977,
+      "Latency (ms)": 129.7,
       "n_queries": 1886
     },
     {
       "method": "Hybrid + Rerank Title (k=15)",
-      "R@1": 0.7227,
+      "R@1": 0.7206,
       "R@3": 0.8568,
-      "R@5": 0.9003,
-      "R@10": 0.9406,
+      "R@5": 0.904,
+      "R@10": 0.9401,
       "R@20": 0.9592,
-      "MRR@10": 0.7989,
-      "Latency (ms)": 63.7,
+      "MRR@10": 0.7986,
+      "Latency (ms)": 131.9,
       "n_queries": 1886
     }
   ]
