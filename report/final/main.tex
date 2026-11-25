@@ -1,0 +1,50 @@
+% Báo cáo cuối - Nhóm 9 - Đề tài 10. Nội dung chính tối đa 8 trang;
+% Limitations, Đóng góp của thành viên và References không tính vào 8 trang.
+% Biên dịch bằng XeLaTeX hoặc LuaLaTeX:  latexmk -xelatex main.tex
+\documentclass[11pt]{article}
+
+\usepackage[final]{acl}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{array}
+
+% Hỗ trợ tiếng Việt (XeLaTeX/LuaLaTeX); font tương tự Times theo template ACL.
+\usepackage[vietnamese,bidi=default]{babel}
+\babelfont{rm}{TeXGyreTermesX}
+
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=1.3em}
+
+% Đánh dấu nội dung chưa điền; xóa mọi \todo trước khi nộp.
+\newcommand{\todo}[1]{\textbf{[TODO: #1]}}
+
+\title{Hỏi đáp tiếng Việt: Cải tiến hệ thống RAG bằng mô hình mã nguồn mở và đọc hiểu trích xuất}
+
+\author{Nguyễn Thị Hiền Trang \\
+  MSSV: 24022470 \And
+  Nguyễn Hữu Hoà \\
+  MSSV: 24022333 \And
+  Nguyễn Bá Hiển \\
+  MSSV: 24022322 \AND
+  Nhóm 9 \quad|\quad Đề tài 10: Hỏi đáp tiếng Việt (extractive QA và RAG)}
+
+\begin{document}
+\maketitle
+
+\input{sections/00_abstract}
+\input{sections/01_introduction}
+\input{sections/02_related_work}
+\input{sections/03_method}
+\input{sections/04_experiments}
+\input{sections/05_analysis}
+\input{sections/06_conclusion}
+\input{sections/07_ai_usage}
+
+% Theo kế hoạch (mục 1.2), ba phần sau không tính vào giới hạn 8 trang.
+\input{sections/08_limitations}
+
+\bibliography{references}
+
+\input{sections/09_contributions}
+
+\end{document}

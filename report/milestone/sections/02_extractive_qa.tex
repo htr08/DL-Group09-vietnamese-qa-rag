@@ -1,0 +1,20 @@
+\section{Extractive QA (C1)}
+\label{sec:qa}
+
+\paragraph{Phương pháp.} \todo{tách từ VnCoreNLP, cửa sổ trượt, lớp đầu ra start/end, vòng lặp huấn luyện, hậu xử lý n-best và ngưỡng không có đáp án; nêu phần tự cài đặt}
+
+\paragraph{Kết quả.} \todo{EM/F1 trên dev ViQuAD; so với B3 (mBERT: EM 53,55, F1 63,03 trên tập kiểm thử công khai); số lần tuning}
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Mô hình} & \textbf{Tách từ} & \textbf{EM} & \textbf{F1} & \textbf{F1 (không đáp án)} \\
+\midrule
+B3: mBERT (bài báo) & --- & 53,55 & 63,03 & --- \\
+PhoBERT-base & Có & \todo{} & \todo{} & \todo{} \\
+\bottomrule
+\end{tabular}
+\caption{Extractive QA trên tập dev (số liệu lấy từ log W\&B).}
+\label{tab:qa}
+\end{table}
