@@ -397,7 +397,7 @@ def main():
     )
     parser.add_argument(
         "--rrf_k", type=int, default=None,
-        help="Hằng số k trong công thức RRF. Nếu không chỉ định, thử cả k=15 và k=60 rồi chọn k tốt nhất theo Recall@5.",
+        help="Hằng số k trong công thức RRF. Nếu không chỉ định, thử cả k=15 và k=60 rồi chọn k tốt nhất theo (MRR@10, R@1).",
     )
     args = parser.parse_args()
 
