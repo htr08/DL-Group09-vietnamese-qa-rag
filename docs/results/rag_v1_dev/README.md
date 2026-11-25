@@ -10,7 +10,8 @@ Kết quả của `notebooks/07_kaggle_rag_v1_dev_run.ipynb`, chạy trên Kaggl
 
 Lưu ý khi dùng:
 
-- Cấu hình truy hồi (top-5, `rrf_k = 60`, không xếp hạng lại theo tiêu đề) là mặc định chưa chốt; retrieval v1 do B chốt sau.
+- Cấu hình truy hồi (`rrf_k = 60`, không xếp hạng lại theo tiêu đề) khớp retrieval v1 do B chốt trên `main` (`docs/results/retrieval_domain_dev.json`: k = 15 và k = 60 cho kết quả bằng nhau trên 30 câu dev, chọn k = 60; xếp hạng lại theo tiêu đề không đổi kết quả). Số đoạn đưa vào LLM (top-5) là giá trị tạm cho đến khi có ablation k ∈ {3, 5, 10}.
+- Lần chạy dùng mã trước khi `main` đổi thứ tự RRF khi đồng điểm sang ưu tiên nhánh dense; chạy lại bằng mã hiện tại của `main` có thể đổi `sources` và `first_gold_rank` (số câu có Khoản đúng ở hạng 1 trong lần chạy này là 24/27, còn hybrid ở `retrieval_domain_dev.json` là 25/27).
 - Đây là dữ liệu để thử giao thức chấm ảo giác trên dev, chưa có nhãn chấm; không dùng làm kết quả đánh giá trong báo cáo.
 - Mã băm trong `code_snapshot` và `gold_dev_sha256_12` tính trên file có xuống dòng CRLF (dataset được dựng bằng `git archive` trên Windows). Sau khi chuẩn hóa xuống dòng, nội dung khớp commit `a569936`.
 - `auto_flag = refused` chỉ nghĩa là câu trả lời đúng bằng câu từ chối cố định; nhãn đúng/sai/ảo giác do người chấm gán.
