@@ -98,7 +98,7 @@
 - Tư liệu thí nghiệm lịch sử: `phobert_3lr_clean_dev_EVIDENCE.zip` (manifest và summary), **không nằm trong Git repo**, không bao gồm model weights/predictions đầy đủ; không coi có ZIP là đã tái chạy inference.
 - Báo cáo lần chạy W&B: project `nhom09-vi-qa-rag/vi-qa-rag`; commit huấn luyện `b202d3dc9fb4bcdd02131d213d4b1b8d26f1dde8`. **Chưa có URL/ID run riêng được đối chiếu trong tài liệu này**; cần dẫn link cụ thể khi tổng hợp báo cáo cuối.
 - Đóng góp nhãn của A: **viết 33 câu**, **gán nhãn độc lập 33 câu của B**. Bộ Gold nhóm có **30 Dev / 70 Test** (trên `main` theo lần kiểm tra Git); việc chốt bất đồng và bằng chứng đồng thuận hai vòng cần đối chiếu với hồ sơ gán nhãn trước khi khẳng định toàn bộ đã *finalized*.
-- B1 sơ bộ: script `scripts/run_b1_domain_dev.py` hiện có. Kết quả chạy local theo người thực hiện trên **30 Domain Dev, BM25 Top-3, 213 chunks**, fixed threshold 0: **EM 66,67%, F1 84,89%**. Đây là **kết quả Dev của cấu hình 213 chunks**, không phải Test; để tái lập cần đúng checkpoint, BM25 index và chunks metadata tương ứng. Output từng câu/summary chưa được đính kèm trong tài liệu hợp nhất này.
+- B1 hiện tại: BM25 Top-3 + PhoBERT, index 216 chunks, đánh giá trên 30 câu Domain Dev (27 in-scope, 3 out-of-scope). Fixed threshold = 0: EM 70,00%, F1 86,73%. Evidence và SHA-256: `docs/results/b1_domain_dev/summary.json`. Kết quả 213 chunks là thí nghiệm lịch sử, không tái lập được bằng mã build index hiện tại. Gold 30 Dev / 70 Test đã có; việc chốt nhãn cuối chưa được xác minh.
 
 ## 6. Giới hạn và vị trí bằng chứng
 
