@@ -33,17 +33,17 @@ from src.metrics import recall_at_k, mrr_at_k, mean_metric, paired_bootstrap_dif
 from src.retrieval import DEFAULT_TITLE_BETA, BM25Retriever, DenseRetriever, hybrid_retrieve
 from src.tracking import git_commit_hash, init_run
 
-# Tham số bootstrap CI của chênh lệch Recall@5 (ghi vào JSON kết quả).
-CI_N_RESAMPLES = 2000
+# Tham số bootstrap CI của chênh lệch chỉ số (ghi vào JSON kết quả).
+CI_N_RESAMPLES = 10000
 CI_SEED = 42
 
 
-def paired_ci_info(comparison: str, scores_a: List[float], scores_b: List[float]) -> Dict[str, Any]:
-    """Bootstrap CI 95% (ghép cặp) của chênh lệch Recall@5 giữa hai hệ thống trên cùng danh sách câu hỏi."""
+def paired_ci_info(comparison: str, scores_a: List[float], scores_b: List[float], metric: str = "Recall@5") -> Dict[str, Any]:
+    """Bootstrap CI 95% (ghép cặp) của chênh lệch metric giữa hai hệ thống trên cùng danh sách câu hỏi."""
     ci = paired_bootstrap_diff_ci(scores_a, scores_b, n_resamples=CI_N_RESAMPLES, seed=CI_SEED)
     return {
         "comparison": comparison,
-        "metric": "Recall@5",
+        "metric": metric,
         "estimate": round(ci.estimate, 4),
         "ci_low": round(ci.low, 4),
         "ci_high": round(ci.high, 4),
@@ -275,13 +275,18 @@ def evaluate_retriever(retriever, queries: List[Dict], ks: List[int],
     article_mrrs = []
     latencies = []
 
+    # Warm-up 1-2 truy vấn trước khi đo để loại bỏ chi phí khởi động/load tensor
+    if queries:
+        for w_q in queries[:min(2, len(queries))]:
+            retriever.retrieve(normalize_text(w_q["question"]), top_k=top_k_retrieve)
+
     for q in queries:
         question = normalize_text(q["question"])
         relevant_id = q["relevant_id"]
 
-        t0 = time.time()
+        t0 = time.perf_counter()
         results = retriever.retrieve(question, top_k=top_k_retrieve)
-        latencies.append((time.time() - t0) * 1000)
+        latencies.append((time.perf_counter() - t0) * 1000)
 
         retrieved_ids = [doc_id for doc_id, _ in results]
         for k in ks:
@@ -296,6 +301,7 @@ def evaluate_retriever(retriever, queries: List[Dict], ks: List[int],
     metrics["n_queries"] = len(mrrs)
     if article_level:
         metrics.update(_article_metrics(article_recalls, article_mrrs))
+    recalls["mrr"] = mrrs
     return metrics, recalls
 
 
@@ -310,14 +316,20 @@ def evaluate_hybrid(bm25_retriever, dense_retriever, queries: List[Dict],
     article_mrrs = []
     latencies = []
 
+    # Warm-up 1-2 truy vấn trước khi đo
+    if queries:
+        for w_q in queries[:min(2, len(queries))]:
+            hybrid_retrieve(bm25_retriever, dense_retriever, normalize_text(w_q["question"]),
+                            top_k=top_k_retrieve, rrf_k=rrf_k, doc_titles=doc_titles if do_rerank else None)
+
     for q in queries:
         question = normalize_text(q["question"])
         relevant_id = q["relevant_id"]
 
-        t0 = time.time()
+        t0 = time.perf_counter()
         fused = hybrid_retrieve(bm25_retriever, dense_retriever, question, top_k=top_k_retrieve,
                                 rrf_k=rrf_k, doc_titles=doc_titles if do_rerank else None)
-        latencies.append((time.time() - t0) * 1000)
+        latencies.append((time.perf_counter() - t0) * 1000)
         retrieved_ids = [did for did, _ in fused]
 
         for k in ks:
@@ -332,6 +344,7 @@ def evaluate_hybrid(bm25_retriever, dense_retriever, queries: List[Dict],
     metrics["n_queries"] = len(mrrs)
     if article_level:
         metrics.update(_article_metrics(article_recalls, article_mrrs))
+    recalls["mrr"] = mrrs
     return metrics, recalls
 
 
@@ -384,7 +397,7 @@ def main():
     )
     parser.add_argument(
         "--rrf_k", type=int, default=None,
-        help="Hằng số k trong công thức RRF. Nếu không chỉ định, thử cả k=15 và k=60 rồi chọn k tốt nhất theo Recall@5.",
+        help="Hằng số k trong công thức RRF. Nếu không chỉ định, thử cả k=15 và k=60 rồi chọn k tốt nhất theo (MRR@10, R@1).",
     )
     args = parser.parse_args()
 
@@ -422,33 +435,42 @@ def main():
         print("Tải Dense index (BGE-M3)...")
         dense_ret = load_dense(corpus)
 
-    # Điểm Recall@5 từng câu cho BM25 và Dense (dùng tính Bootstrap CI)
+    # Điểm từng câu cho BM25 và Dense (dùng tính Bootstrap CI)
+    bm25_r1_scores: List[float] = []
     bm25_r5_scores: List[float] = []
+    bm25_mrr_scores: List[float] = []
+    dense_r1_scores: List[float] = []
     dense_r5_scores: List[float] = []
+    dense_mrr_scores: List[float] = []
 
     if run_bm25 and bm25_ret:
         print("Đánh giá BM25...")
         m, bm25_recalls = evaluate_retriever(bm25_ret, queries, ks, "BM25", article_level=article_level)
         rows.append({"method": "BM25", **m})
+        bm25_r1_scores = bm25_recalls.get(1, [])
         bm25_r5_scores = bm25_recalls.get(5, [])
+        bm25_mrr_scores = bm25_recalls.get("mrr", [])
 
     if run_dense and dense_ret:
         print("Đánh giá Dense (BGE-M3)...")
         m, dense_recalls = evaluate_retriever(dense_ret, queries, ks, "Dense", article_level=article_level)
         rows.append({"method": "Dense (BGE-M3)", **m})
+        dense_r1_scores = dense_recalls.get(1, [])
         dense_r5_scores = dense_recalls.get(5, [])
+        dense_mrr_scores = dense_recalls.get("mrr", [])
 
     best_rrf_k: Optional[int] = None
+    ci_dict: Dict[str, Any] = {}
     ci_info: Optional[Dict[str, Any]] = None
     rerank_ci_info: Optional[Dict[str, Any]] = None
 
     if run_hybrid and bm25_ret and dense_ret:
-        # Mục 1: Trên tập test, rrf_k phải được chọn từ dev và truyền qua --rrf_k (§8.2)
+        # Mục 1: Trên tập test, rrf_k phải được chọn từ dev và truyền qua --rrf_k (§3.5c)
         if "test" in args.split:
             if args.rrf_k is None:
                 raise ValueError(
                     f"Khi đánh giá trên tập test ({args.split}), --rrf_k phải được chọn từ dev "
-                    f"và truyền tường minh qua CLI (ví dụ: --rrf_k 15). Không tự chọn lại k trên tập test (§8.2)."
+                    f"và truyền tường minh qua CLI (ví dụ: --rrf_k 60). Không tự chọn lại k trên tập test (§3.5c)."
                 )
             rrf_ks_to_try = [args.rrf_k]
         else:
@@ -457,38 +479,84 @@ def main():
             else:
                 rrf_ks_to_try = [60, 15]
 
+        hybrid_r1_scores: List[float] = []
         hybrid_r5_scores: List[float] = []
+        hybrid_mrr_scores: List[float] = []
         best_rrf_k = rrf_ks_to_try[0]
-        best_r5 = -1.0
+        best_eval_tuple = (-1.0, -1.0)  # (MRR@10, R@1)
 
+        hybrid_metrics = {}
         for rrf_k in rrf_ks_to_try:
             label = f"Hybrid RRF (k={rrf_k})"
             print(f"Đánh giá {label}...")
             m, h_recalls = evaluate_hybrid(bm25_ret, dense_ret, queries, ks, rrf_k=rrf_k,
                                            article_level=article_level)
             rows.append({"method": label, **m})
-            if m.get("R@5", 0) > best_r5:
-                best_r5 = m.get("R@5", 0)
+            hybrid_metrics[rrf_k] = m
+            # Chọn theo MRR@10 (hòa thì theo R@1)
+            curr_tuple = (m.get("MRR@10", 0.0), m.get("R@1", 0.0))
+            if curr_tuple > best_eval_tuple:
+                best_eval_tuple = curr_tuple
                 best_rrf_k = rrf_k
+                hybrid_r1_scores = h_recalls.get(1, [])
                 hybrid_r5_scores = h_recalls.get(5, [])
+                hybrid_mrr_scores = h_recalls.get("mrr", [])
 
         if len(rrf_ks_to_try) > 1:
-            print(f"  → Chọn rrf_k={best_rrf_k} theo Recall@5={best_r5:.4f} trên {args.split}")
-
-        # Mục 2: Bootstrap CI (Hybrid vs retriever đơn tốt nhất) - không nuốt lỗi
-        if hybrid_r5_scores and (bm25_r5_scores or dense_r5_scores):
-            single_r5 = bm25_r5_scores if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else dense_r5_scores
-            best_single_name = "BM25" if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else "Dense"
-            ci_info = paired_ci_info(f"Hybrid (k={best_rrf_k}) vs {best_single_name}",
-                                     hybrid_r5_scores, single_r5)
-            print(f"\n  Bootstrap CI (Hybrid vs {best_single_name}) Recall@5 diff:")
-            print(f"    estimate={ci_info['estimate']:+.4f}, 95% CI=[{ci_info['ci_low']:+.4f}, {ci_info['ci_high']:+.4f}]")
-            if not ci_info["is_significant"]:
-                print(f"    → Chênh lệch chưa có ý nghĩa thống kê ở mức 95% (CI chứa 0)")
-            elif ci_info["estimate"] > 0:
-                print(f"    → Hybrid vượt trội có ý nghĩa thống kê (CI hoàn toàn > 0)")
+            all_tied = len(set((m.get("MRR@10"), m.get("R@1")) for m in hybrid_metrics.values())) == 1
+            if all_tied:
+                print(f"  → Cả k=15 và k=60 cho kết quả tương đương trên {args.split} (MRR@10={best_eval_tuple[0]:.4f}, R@1={best_eval_tuple[1]:.4f}). Chọn k={best_rrf_k} theo §3.5c (dev không phân biệt được k).")
             else:
-                print(f"    → {best_single_name} vượt trội có ý nghĩa thống kê")
+                print(f"  → Chọn rrf_k={best_rrf_k} theo MRR@10={best_eval_tuple[0]:.4f}, R@1={best_eval_tuple[1]:.4f} trên {args.split}")
+
+        # Mục 2: Bootstrap CI cho R@1, MRR@10 và R@5
+        if hybrid_r5_scores and (bm25_r5_scores or dense_r5_scores):
+            if bm25_r5_scores:
+                ci_bm25_r1 = paired_ci_info(f"Hybrid (k={best_rrf_k}) vs BM25", hybrid_r1_scores, bm25_r1_scores, metric="R@1")
+                ci_bm25_mrr = paired_ci_info(f"Hybrid (k={best_rrf_k}) vs BM25", hybrid_mrr_scores, bm25_mrr_scores, metric="MRR@10")
+                ci_bm25_r5 = paired_ci_info(f"Hybrid (k={best_rrf_k}) vs BM25", hybrid_r5_scores, bm25_r5_scores, metric="R@5")
+                ci_dict["hybrid_vs_bm25"] = {
+                    "R@1": ci_bm25_r1,
+                    "MRR@10": ci_bm25_mrr,
+                    "R@5": ci_bm25_r5,
+                }
+                print(f"\n  Bootstrap CI (Hybrid vs BM25):")
+                print(f"    R@1:    estimate={ci_bm25_r1['estimate']:+.4f}, 95% CI=[{ci_bm25_r1['ci_low']:+.4f}, {ci_bm25_r1['ci_high']:+.4f}]")
+                print(f"    MRR@10: estimate={ci_bm25_mrr['estimate']:+.4f}, 95% CI=[{ci_bm25_mrr['ci_low']:+.4f}, {ci_bm25_mrr['ci_high']:+.4f}]")
+                if all(s == 1.0 for s in hybrid_r5_scores) and all(s == 1.0 for s in bm25_r5_scores):
+                    print(f"    R@5:    Cả hai phương pháp đều đạt Recall@5 = 1.0 (chạm trần hiệu năng / bão hòa trên dev)")
+                else:
+                    print(f"    R@5:    estimate={ci_bm25_r5['estimate']:+.4f}, 95% CI=[{ci_bm25_r5['ci_low']:+.4f}, {ci_bm25_r5['ci_high']:+.4f}]")
+
+            if dense_r5_scores:
+                ci_dense_r1 = paired_ci_info(f"Hybrid (k={best_rrf_k}) vs Dense", hybrid_r1_scores, dense_r1_scores, metric="R@1")
+                ci_dense_mrr = paired_ci_info(f"Hybrid (k={best_rrf_k}) vs Dense", hybrid_mrr_scores, dense_mrr_scores, metric="MRR@10")
+                ci_dense_r5 = paired_ci_info(f"Hybrid (k={best_rrf_k}) vs Dense", hybrid_r5_scores, dense_r5_scores, metric="R@5")
+                ci_dict["hybrid_vs_dense"] = {
+                    "R@1": ci_dense_r1,
+                    "MRR@10": ci_dense_mrr,
+                    "R@5": ci_dense_r5,
+                }
+                print(f"\n  Bootstrap CI (Hybrid vs Dense):")
+                print(f"    R@1:    estimate={ci_dense_r1['estimate']:+.4f}, 95% CI=[{ci_dense_r1['ci_low']:+.4f}, {ci_dense_r1['ci_high']:+.4f}]")
+                print(f"    MRR@10: estimate={ci_dense_mrr['estimate']:+.4f}, 95% CI=[{ci_dense_mrr['ci_low']:+.4f}, {ci_dense_mrr['ci_high']:+.4f}]")
+                if all(s == 1.0 for s in hybrid_r5_scores) and all(s == 1.0 for s in dense_r5_scores):
+                    print(f"    R@5:    Cả hai phương pháp đều đạt Recall@5 = 1.0 (chạm trần hiệu năng / bão hòa trên dev)")
+                else:
+                    print(f"    R@5:    estimate={ci_dense_r5['estimate']:+.4f}, 95% CI=[{ci_dense_r5['ci_low']:+.4f}, {ci_dense_r5['ci_high']:+.4f}]")
+
+            if bm25_r5_scores and dense_r5_scores:
+                single_r5 = bm25_r5_scores if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else dense_r5_scores
+                best_single_name = "BM25" if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else "Dense"
+            elif bm25_r5_scores:
+                single_r5 = bm25_r5_scores
+                best_single_name = "BM25"
+            else:
+                single_r5 = dense_r5_scores
+                best_single_name = "Dense"
+            ci_info = paired_ci_info(f"Hybrid (k={best_rrf_k}) vs {best_single_name}",
+                                     hybrid_r5_scores, single_r5, metric="Recall@5")
+            ci_info["detailed"] = ci_dict
         else:
             print("  [CI] Bỏ qua: cần chạy cùng BM25 hoặc Dense để so sánh với hybrid.")
 
@@ -502,27 +570,56 @@ def main():
             if hybrid_r5_scores:
                 rerank_ci_info = paired_ci_info(
                     f"Hybrid + Rerank Title (k={best_rrf_k}) vs Hybrid (k={best_rrf_k})",
-                    rerank_recalls.get(5, []), hybrid_r5_scores)
-                print(f"  Bootstrap CI (Rerank vs Hybrid) Recall@5 diff: estimate={rerank_ci_info['estimate']:+.4f}, "
-                      f"95% CI=[{rerank_ci_info['ci_low']:+.4f}, {rerank_ci_info['ci_high']:+.4f}]")
+                    rerank_recalls.get(5, []), hybrid_r5_scores, metric="Recall@5"
+                )
+                rerank_ci_info["detailed"] = {
+                    "R@1": paired_ci_info(f"Hybrid + Rerank Title vs Hybrid", rerank_recalls.get(1, []), hybrid_r1_scores, metric="R@1"),
+                    "MRR@10": paired_ci_info(f"Hybrid + Rerank Title vs Hybrid", rerank_recalls.get("mrr", []), hybrid_mrr_scores, metric="MRR@10"),
+                    "R@5": paired_ci_info(f"Hybrid + Rerank Title vs Hybrid", rerank_recalls.get(5, []), hybrid_r5_scores, metric="R@5"),
+                }
+                print(f"  Bootstrap CI (Rerank vs Hybrid):")
+                print(f"    R@1:    estimate={rerank_ci_info['detailed']['R@1']['estimate']:+.4f}, 95% CI=[{rerank_ci_info['detailed']['R@1']['ci_low']:+.4f}, {rerank_ci_info['detailed']['R@1']['ci_high']:+.4f}]")
+                print(f"    MRR@10: estimate={rerank_ci_info['detailed']['MRR@10']['estimate']:+.4f}, 95% CI=[{rerank_ci_info['detailed']['MRR@10']['ci_low']:+.4f}, {rerank_ci_info['detailed']['MRR@10']['ci_high']:+.4f}]")
         else:
             print("  [Rerank] Bỏ qua: không có tiêu đề chunk.")
 
     print(f"\n--- Kết quả ({args.split}) ---")
     print_table(rows, ks)
 
-    # Mục 2: Lưu đầy đủ commit hash, rrf_k, rerank_beta, bootstrap CI vào JSON
+    # Mục 2: Lưu đầy đủ commit hash, n_chunks, device, model, rrf_k, rerank_beta, bootstrap CI vào JSON
     beta_used = DEFAULT_TITLE_BETA if (run_hybrid and doc_titles) else None
     out_dir = ROOT / "docs" / "results"
     out_dir.mkdir(exist_ok=True)
     out_path = out_dir / f"retrieval_{args.split}.json"
+
+    # Lấy thông tin thiết bị và số chunk
+    device_str = "cpu"
+    if dense_ret and hasattr(dense_ret, "model"):
+        device_str = str(dense_ret.model.device)
+    elif run_dense:
+        try:
+            import torch
+            device_str = "cuda" if torch.cuda.is_available() else "cpu"
+        except ImportError:
+            device_str = "cpu"
+
+    n_chunks = None
+    if bm25_ret and hasattr(bm25_ret, "doc_ids"):
+        n_chunks = len(bm25_ret.doc_ids)
+    elif dense_ret and hasattr(dense_ret, "doc_ids"):
+        n_chunks = len(dense_ret.doc_ids)
+
     output_data = {
         "split": args.split,
         "commit_hash": git_commit_hash(),
+        "n_chunks": n_chunks,
+        "device": device_str,
+        "model": "BAAI/bge-m3" if (run_dense or run_hybrid) else None,
         "rrf_k": best_rrf_k,
         "rerank_beta": beta_used,
         "ks": ks,
         "bootstrap_ci": ci_info,
+        "bootstrap_ci_detailed": ci_dict,
         "bootstrap_ci_rerank": rerank_ci_info,
         "results": rows,
     }
@@ -546,6 +643,9 @@ def main():
                     config={
                         "split": args.split,
                         "method": args.method,
+                        "n_chunks": n_chunks,
+                        "device": device_str,
+                        "model": "BAAI/bge-m3",
                         "rrf_k": best_rrf_k,
                         "rerank_beta": beta_used,
                         "ks": ks,
@@ -557,14 +657,20 @@ def main():
                     for metric_k, metric_v in row.items():
                         if metric_k != "method":
                             wb_run.summary[f"{m_prefix}/{metric_k}"] = metric_v
-                if ci_info:
-                    wb_run.summary["bootstrap_ci/estimate"] = ci_info["estimate"]
-                    wb_run.summary["bootstrap_ci/ci_low"] = ci_info["ci_low"]
-                    wb_run.summary["bootstrap_ci/ci_high"] = ci_info["ci_high"]
+                for comp_key, comp_dict in ci_dict.items():
+                    for metric_key, c_info in comp_dict.items():
+                        wb_run.summary[f"bootstrap_ci/{comp_key}/{metric_key}/estimate"] = c_info["estimate"]
+                        wb_run.summary[f"bootstrap_ci/{comp_key}/{metric_key}/ci_low"] = c_info["ci_low"]
+                        wb_run.summary[f"bootstrap_ci/{comp_key}/{metric_key}/ci_high"] = c_info["ci_high"]
                 if rerank_ci_info:
-                    wb_run.summary["bootstrap_ci_rerank/estimate"] = rerank_ci_info["estimate"]
-                    wb_run.summary["bootstrap_ci_rerank/ci_low"] = rerank_ci_info["ci_low"]
-                    wb_run.summary["bootstrap_ci_rerank/ci_high"] = rerank_ci_info["ci_high"]
+                    wb_run.summary["bootstrap_ci/rerank_vs_hybrid/R@5/estimate"] = rerank_ci_info["estimate"]
+                    wb_run.summary["bootstrap_ci/rerank_vs_hybrid/R@5/ci_low"] = rerank_ci_info["ci_low"]
+                    wb_run.summary["bootstrap_ci/rerank_vs_hybrid/R@5/ci_high"] = rerank_ci_info["ci_high"]
+                    if "detailed" in rerank_ci_info:
+                        for m_k, sub_c in rerank_ci_info["detailed"].items():
+                            wb_run.summary[f"bootstrap_ci/rerank_vs_hybrid/{m_k}/estimate"] = sub_c["estimate"]
+                            wb_run.summary[f"bootstrap_ci/rerank_vs_hybrid/{m_k}/ci_low"] = sub_c["ci_low"]
+                            wb_run.summary[f"bootstrap_ci/rerank_vs_hybrid/{m_k}/ci_high"] = sub_c["ci_high"]
                 wb_run.finish()
                 print(f"✓ Đã log W&B run '{run_name}' lên dự án nhom09-vi-qa-rag/vi-qa-rag")
             else:

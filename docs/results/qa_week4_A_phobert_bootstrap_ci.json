@@ -1,0 +1,21 @@
+{
+  "dataset": "ViQuAD title-held-out Dev",
+  "n_questions": 2768,
+  "em_percent": 55.2384,
+  "f1_percent": 70.0986,
+  "em_95pct_bootstrap_ci": [
+    53.3598,
+    57.0809
+  ],
+  "f1_95pct_bootstrap_ci": [
+    68.5147,
+    71.6406
+  ],
+  "resamples": 3000,
+  "bootstrap_seed": 20261123,
+  "null_threshold": -0.6444253921508789,
+  "sha256_gold": "4a5ecb10d766f91e0bf89bb429b68c003dd186dde373e2096e7706418e5f0107",
+  "sha256_predictions": "9f0416ccfee5ab3dd99455c0a56a9c555e9b3c7a5c1579e9ff755427b27f467e",
+  "sha256_summary": "96f13a185903c7f7178920b93ae8b394756411955caaab5956c48fae5e323e24",
+  "method": "paired-by-question percentile bootstrap; full fixed Dev predictions; no threshold retuning per replicate"
+}

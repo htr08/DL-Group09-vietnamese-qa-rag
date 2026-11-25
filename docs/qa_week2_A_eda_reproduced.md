@@ -1,5 +1,5 @@
 # Tuần 2 – A: EDA ViQuAD và VnCoreNLP/PhoBERT
-- Ngày tạo: 2026-11-21T23:36:04
+
 - Dữ liệu: data/raw/viquad/{train,dev,public_test}.jsonl
 - Split: data/splits/viquad_dev_titles.txt (13 title, PASS; Train/Dev title overlap = 0)
 - Khuyến nghị: chỉ dùng Dev để tuning, không đánh giá public_test trước mốc test cuối.
@@ -75,4 +75,3 @@
 ## Kết luận
 - Kiểm tra 13 title và không overlap: PASS
 - VnCoreNLP/PhoBERT: đã kiểm tra mẫu
-- Kiểm tra log tiền xử lý toàn bộ: xem data/processed/qa_features/pipeline_summary.json (nếu đã chạy).
