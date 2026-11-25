@@ -483,6 +483,10 @@ def test_disagreement_needs_resolution_with_explicit_final_label():
     full = {first: {"id": first, "resolution": "annotator_label", "in_scope": False,
                     "article": None, "clause": None, "answers": []}}
     assert check_disagreements_resolved(data, ann, full) == []
+    null_answers = {first: {**full[first], "in_scope": True, "answers": None}}
+    assert "thiếu nhãn cuối (answers)" in check_disagreements_resolved(data, ann, null_answers)[0]
+    null_scope = {first: {**full[first], "in_scope": None}}
+    assert "thiếu nhãn cuối (in_scope)" in check_disagreements_resolved(data, ann, null_scope)[0]
     assert check_disagreements_resolved(data, annotations_of(data), {}) == []  # đồng thuận: không cần
 
 

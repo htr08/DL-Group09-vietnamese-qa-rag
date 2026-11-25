@@ -235,6 +235,7 @@ def validate_resolutions(
 
 
 RESOLVED_KEYS = ("in_scope", "article", "clause", "answers")
+NON_NULL_RESOLVED_KEYS = ("in_scope", "answers")
 
 
 def check_disagreements_resolved(
@@ -245,8 +246,8 @@ def check_disagreements_resolved(
     """Lỗi nếu câu có hai nhãn bất đồng (phạm vi khác, hoặc khác Điều/Khoản) mà resolution
     không ghi đủ nhãn cuối (`in_scope`, `article`, `clause`, `answers`).
 
-    Nếu thiếu, build_gold giữ nhãn tác giả và gộp đáp án của người gán nhãn, kể cả đáp án
-    thuộc Khoản khác.
+    Khóa vắng mặt, hoặc `in_scope`/`answers` có giá trị null, đều tính là thiếu: khi đó
+    build_gold giữ nhãn tác giả và gộp đáp án của người gán nhãn, kể cả đáp án thuộc Khoản khác.
     """
     errors: list[str] = []
     for author, labels in authors.items():
@@ -258,7 +259,11 @@ def check_disagreements_resolved(
             ag = compare_labels(x, a)
             if ag["scope"] == "same" and ag["source"] not in ("same_article", "different"):
                 continue
-            missing = [k for k in RESOLVED_KEYS if k not in final_labels.get(x["id"], {})]
+            fin = final_labels.get(x["id"], {})
+            # article/clause = null hợp lệ (câu ngoài phạm vi, Khoản không xác định);
+            # in_scope/answers = null bị coi như thiếu vì build_gold sẽ quay về nhãn lượt đầu
+            missing = [k for k in RESOLVED_KEYS
+                       if k not in fin or (k in NON_NULL_RESOLVED_KEYS and fin[k] is None)]
             if missing:
                 errors.append(f"{x['id']}: hai nhãn bất đồng, resolution thiếu nhãn cuối "
                               f"({', '.join(missing)})")
