@@ -20,9 +20,9 @@ DENSE = FakeRetriever([("b", 0.9), ("a", 0.8), ("c", 0.1)])
 def test_retrieve_contexts_returns_top_k_with_text():
     contexts = retrieve_contexts(BM25, DENSE, CHUNKS, "câu hỏi", top_k=2)
     assert len(contexts) == 2
-    # a và b đều đứng đầu một danh sách; RRF đồng điểm giữ thứ tự xuất hiện đầu tiên (BM25 trước).
-    assert [c["id"] for c in contexts] == ["a", "b"]
-    assert [c["text"] for c in contexts] == ["đoạn a", "đoạn b"]
+    # a và b đều đứng đầu một danh sách; RRF đồng điểm giữ thứ tự xuất hiện đầu tiên (Dense trước).
+    assert [c["id"] for c in contexts] == ["b", "a"]
+    assert [c["text"] for c in contexts] == ["đoạn b", "đoạn a"]
     assert contexts[0]["score"] >= contexts[1]["score"]
 
 
@@ -34,9 +34,9 @@ def test_answer_question_passes_numbered_contexts_and_returns_sources():
         return "Trả lời [1]."
 
     result = answer_question(fake_generate, BM25, DENSE, CHUNKS, "câu hỏi", top_k=2)
-    assert "[1] đoạn a" in seen["user"] and "[2] đoạn b" in seen["user"]
+    assert "[1] đoạn b" in seen["user"] and "[2] đoạn a" in seen["user"]
     assert result["answer"] == "Trả lời [1]."
-    assert result["sources"] == ["a", "b"]  # nguồn [i+1] ứng với sources[i]
+    assert result["sources"] == ["b", "a"]  # nguồn [i+1] ứng với sources[i]
     assert result["retrieval_seconds"] >= 0 and not result["cjk"]
 
 
