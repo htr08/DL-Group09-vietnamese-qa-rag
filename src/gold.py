@@ -120,12 +120,10 @@ def agreement_summary(pairs: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
 # --------------------------------------------------------------------------
 
 
-def validate_authors(labels_by_author: Mapping[str, Sequence[Label]]) -> list[str]:
-    """Trả về danh sách lỗi (rỗng nếu hợp lệ). Kiểm tra mọi mục không cần mở PDF."""
-    errors: list[str] = []
-    all_labels: list[tuple[str, Label]] = []
-    errors += [f"thiếu nhãn của tác giả {a} (cần đủ {', '.join(sorted(AUTHOR_QUOTA))})"
-               for a in sorted(set(AUTHOR_QUOTA) - set(labels_by_author))]
+def check_author_counts(labels_by_author: Mapping[str, Sequence[Label]]) -> list[str]:
+    """Lỗi nếu thiếu tác giả A/B/C, có tác giả lạ, hoặc số câu (trong phạm vi) lệch quota."""
+    errors = [f"thiếu nhãn của tác giả {a} (cần đủ {', '.join(sorted(AUTHOR_QUOTA))})"
+              for a in sorted(set(AUTHOR_QUOTA) - set(labels_by_author))]
     for author, labels in labels_by_author.items():
         quota = AUTHOR_QUOTA.get(author)
         if quota is None:
@@ -136,10 +134,36 @@ def validate_authors(labels_by_author: Mapping[str, Sequence[Label]]) -> list[st
             errors.append(f"{author}: {len(labels)} câu, cần {quota['total']}")
         if n_in != quota["in"]:
             errors.append(f"{author}: {n_in} câu trong phạm vi, cần {quota['in']}")
+    return errors
+
+
+def check_author_fields(labels_by_author: Mapping[str, Sequence[Label]]) -> list[str]:
+    """Lỗi trường bắt buộc của nhãn tác giả mà gold cuối không kiểm lại được.
+
+    build_gold lấy đáp án của người gán nhãn cho câu mà tác giả bỏ trống, nên validate_gold
+    không thấy lỗi thiếu đáp án; validate_gold cũng không kiểm tiền tố id. `build --force`
+    không bỏ qua các lỗi này.
+    """
+    errors: list[str] = []
+    for author, labels in labels_by_author.items():
+        if author not in AUTHOR_QUOTA:
+            continue
         for x in labels:
             if not x["id"].startswith(author):
                 errors.append(f"{x['id']}: id không bắt đầu bằng {author}")
-        all_labels += [(author, x) for x in labels]
+            if x["in_scope"] and (x.get("article") is None or not x.get("answer")):
+                errors.append(f"{x['id']}: trong phạm vi nhưng thiếu article/answer")
+            if not x["in_scope"] and (x.get("article") is not None or x.get("answer")):
+                errors.append(f"{x['id']}: ngoài phạm vi nhưng có article/answer")
+    return errors
+
+
+def validate_authors(labels_by_author: Mapping[str, Sequence[Label]]) -> list[str]:
+    """Trả về danh sách lỗi (rỗng nếu hợp lệ). Kiểm tra mọi mục không cần mở PDF."""
+    errors = check_author_counts(labels_by_author) + check_author_fields(labels_by_author)
+    all_labels: list[tuple[str, Label]] = [
+        (author, x) for author, labels in labels_by_author.items() if author in AUTHOR_QUOTA for x in labels
+    ]
 
     ids = Counter(x["id"] for _, x in all_labels)
     errors += [f"id trùng: {i}" for i, n in ids.items() if n > 1]
@@ -149,10 +173,6 @@ def validate_authors(labels_by_author: Mapping[str, Sequence[Label]]) -> list[st
     for _, x in all_labels:
         if _FORBIDDEN.search(x["question"]):
             errors.append(f"{x['id']}: câu hỏi nêu số Điều/Khoản hoặc dùng cụm bị cấm")
-        if x["in_scope"] and (x.get("article") is None or not x.get("answer")):
-            errors.append(f"{x['id']}: trong phạm vi nhưng thiếu article/answer")
-        if not x["in_scope"] and (x.get("article") is not None or x.get("answer")):
-            errors.append(f"{x['id']}: ngoài phạm vi nhưng có article/answer")
 
     per_article = Counter(x["article"] for _, x in all_labels if x["in_scope"])
     errors += [f"Điều {a}: {n} câu (tối đa {MAX_PER_ARTICLE})"

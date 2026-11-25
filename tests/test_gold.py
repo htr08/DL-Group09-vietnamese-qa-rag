@@ -5,8 +5,8 @@ import pytest
 
 import scripts.gold_tool as gold_tool
 from src.gold import (
-    AUTHOR_QUOTA, agreement_summary, build_gold, check_annotation_coverage,
-    check_disagreements_resolved, choose_split_seed, clause_leakage, compare_labels, draw_split, source_code, validate_authors, validate_gold,
+    AUTHOR_QUOTA, agreement_summary, build_gold, check_annotation_coverage, check_author_counts,
+    check_author_fields, check_disagreements_resolved, choose_split_seed, clause_leakage, compare_labels, draw_split, source_code, validate_authors, validate_gold,
     validate_resolutions,
 )
 
@@ -418,7 +418,7 @@ def test_build_and_agreement_refuse_missing_author_file_even_with_force(workspac
     out = workspace / "agreement.json"
     assert gold_tool.main(["agreement", "--allow-partial", "--json", str(out)]) == 0
     report = json.loads(out.read_text(encoding="utf-8"))
-    assert report["complete"] is False and any("tác giả: C" in e for e in report["coverage_errors"])
+    assert report["complete"] is False and any("tác giả C" in e for e in report["coverage_errors"])
 
 
 def test_build_refuses_incomplete_annotations_even_with_force(workspace):
@@ -517,6 +517,59 @@ def test_build_refuses_invalid_author_labels_unless_forced(workspace):
     assert gold_tool.main(["build"]) == 1
     assert gold_tool.main(["build", "--force"]) == 0  # --force chỉ bỏ qua lỗi nhãn tác giả (dry run)
     assert gold_tool.main(["build", "--force", "--write"]) == 0
+
+
+def test_agreement_is_incomplete_when_same_ids_are_missing_from_both_label_sets(workspace):
+    # tệp tác giả và tệp gán nhãn cùng thiếu 5 id: hai tệp khớp nhau nhưng số câu lệch quota
+    for name in ("author_A.jsonl", "annot_C_of_A.jsonl"):
+        p = workspace / "drafts" / name
+        _write_jsonl(p, [json.loads(line) for line in p.read_text(encoding="utf-8").splitlines()][5:])
+    assert gold_tool.main(["agreement"]) == 1
+    out = workspace / "agreement.json"
+    assert gold_tool.main(["agreement", "--allow-partial", "--json", str(out)]) == 0
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert report["complete"] is False
+    assert any("A: 28 câu, cần 33" in e for e in report["coverage_errors"])
+
+
+def test_check_author_counts_flags_missing_author_and_wrong_quota():
+    data = valid_set()
+    assert check_author_counts(data) == []
+    data["A"] = data["A"][:-1]
+    del data["C"]
+    errors = "\n".join(check_author_counts(data))
+    assert "thiếu nhãn của tác giả C" in errors and "A: 32 câu, cần 33" in errors
+
+
+def test_check_author_fields_flags_prefix_missing_answer_and_oos_answer():
+    data = valid_set()
+    assert check_author_fields(data) == []
+    data["A"][0]["id"] = "Z01"
+    data["B"][0]["answer"] = None
+    data["C"][-1]["answer"] = "không được có"
+    errors = "\n".join(check_author_fields(data))
+    assert "Z01: id không bắt đầu bằng A" in errors
+    assert "B01: trong phạm vi nhưng thiếu article/answer" in errors
+    assert f"{data['C'][-1]['id']}: ngoài phạm vi nhưng có article/answer" in errors
+
+
+@pytest.mark.parametrize("breakage", ["author_without_answer", "wrong_id_prefix"])
+def test_force_never_bypasses_required_author_fields(workspace, breakage):
+    drafts = workspace / "drafts"
+    path = drafts / "author_A.jsonl"
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    if breakage == "author_without_answer":
+        rows[0]["answer"], rows[0]["alt_answers"] = None, []  # người gán nhãn vẫn giữ đáp án của họ
+    else:
+        rows[0]["id"] = "Z01"
+        ann = drafts / "annot_C_of_A.jsonl"
+        ann_rows = [json.loads(line) for line in ann.read_text(encoding="utf-8").splitlines()]
+        ann_rows[0]["id"] = "Z01"
+        _write_jsonl(ann, ann_rows)
+    _write_jsonl(path, rows)
+    for flags in ([], ["--force"], ["--force", "--write"]):
+        assert gold_tool.main(["build", *flags]) == 1, flags
+    assert not (workspace / "gold").exists() and not (workspace / "splits").exists()
 
 
 def test_build_refuses_to_overwrite_existing_gold_without_split_lock(workspace):

@@ -11,9 +11,12 @@ ghi MỘT LẦN (hướng dẫn gán nhãn, mục 6): nếu gold_split.json đã
 sách dev trong tệp đó (không bốc lại) và từ chối --write. `build` cũng từ chối --write khi
 gold_dev/gold_test.jsonl đã có nội dung mà chưa có gold_split.json.
 
---force chỉ bỏ qua bốn nhóm lỗi nhãn tác giả: câu hỏi trùng, tối đa mỗi Điều, tối đa mỗi loại
-câu (bang, co_khong) và tối thiểu mỗi nhóm ngoài phạm vi. Thiếu nhãn độc lập, resolutions không
-hợp lệ và gold cuối không nhất quán (gồm cụm bị cấm, question_type, quota) luôn làm build thất bại.
+--force bỏ qua các lỗi của `validate` trừ id sai tiền tố và lỗi trường bắt buộc (thiếu
+article/answer ở câu trong phạm vi, có article/answer ở câu ngoài phạm vi). Trong số lỗi bị bỏ
+qua, quota, cụm bị cấm và question_type vẫn được kiểm lại ở gold cuối; chỉ bốn nhóm sau không
+còn ai kiểm: câu hỏi trùng, tối đa mỗi Điều, tối đa mỗi loại câu (bang, co_khong) và tối thiểu
+mỗi nhóm ngoài phạm vi. Thiếu nhãn độc lập, resolutions không hợp lệ và gold cuối không nhất
+quán luôn làm build thất bại. `agreement` thoát với mã 1 khi số câu của một tác giả lệch quota.
 """
 from __future__ import annotations
 
@@ -29,8 +32,8 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8")
 
 from src.gold import (  # noqa: E402
-    agreement_summary, build_gold, check_annotation_coverage, check_disagreements_resolved,
-    choose_split_seed, clause_leakage, compare_labels, load_split, read_jsonl, validate_authors, validate_gold,
+    agreement_summary, build_gold, check_annotation_coverage, check_author_counts,
+    check_author_fields, check_disagreements_resolved, choose_split_seed, clause_leakage, compare_labels, load_split, read_jsonl, validate_authors, validate_gold,
     validate_resolutions, write_jsonl,
 )
 from src.metrics import bootstrap_ci  # noqa: E402
@@ -74,9 +77,8 @@ def _pct(x):
 
 def cmd_agreement(args) -> int:
     authors, annotations = load_drafts()
-    coverage = check_annotation_coverage(authors, annotations)
-    if set(authors) != set(ANNOTATOR_OF):
-        coverage.insert(0, "thiếu nhãn tác giả: " + ", ".join(sorted(set(ANNOTATOR_OF) - set(authors))))
+    # số câu lệch quota (kể cả khi file tác giả và file gán nhãn cùng thiếu một id) cũng là dữ liệu chưa đủ
+    coverage = check_author_counts(authors) + check_annotation_coverage(authors, annotations)
     for e in coverage:
         print("THIẾU:", e, file=sys.stderr)
     if coverage and not args.allow_partial:
@@ -134,6 +136,9 @@ def cmd_build(args) -> int:
     coverage = check_annotation_coverage(authors, annotations)
     if coverage:  # thiếu nhãn độc lập: không bỏ qua được bằng --force
         return _fail(coverage, "Dừng vì nhãn độc lập chưa đầy đủ (không bỏ qua được bằng --force).")
+    errors = check_author_fields(authors)  # không bỏ qua được bằng --force
+    if errors:
+        return _fail(errors, "Dừng vì nhãn tác giả thiếu trường bắt buộc (không bỏ qua được bằng --force).")
     errors = validate_authors(authors)
     if errors and not args.force:
         return _fail(errors, "Dừng vì nhãn chưa hợp lệ (dùng --force để bỏ qua).")
