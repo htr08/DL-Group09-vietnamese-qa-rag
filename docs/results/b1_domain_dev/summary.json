@@ -1,0 +1,68 @@
+{
+  "eval_split": "domain_dev",
+  "questions": 30,
+  "in_scope": 27,
+  "out_of_scope": 3,
+  "top_k": 3,
+  "chunk_count": 216,
+  "checkpoint": "C:\\Users\\DELL\\Downloads\\phobert_5e5_extracted\\phobert_qa_lr5e-5_seed12\\best_model",
+  "device": "cpu",
+  "preprocessing_mode": "predict_gold_independent",
+  "decoder": "word_char_offsets; global best span vs min null across retrieved windows",
+  "max_answer_length": 30,
+  "fixed_threshold_0": {
+    "threshold": 0.0,
+    "em": 70.0,
+    "f1": 86.73,
+    "breakdown": {
+      "all": {
+        "n": 30,
+        "em": 70.0,
+        "f1": 86.73
+      },
+      "in_scope": {
+        "n": 27,
+        "em": 66.67,
+        "f1": 85.25
+      },
+      "out_of_scope": {
+        "n": 3,
+        "em": 100.0,
+        "f1": 100.0
+      }
+    }
+  },
+  "tuned_on_domain_dev": {
+    "threshold": -0.4774336814880371,
+    "em": 70.0,
+    "f1": 86.73,
+    "breakdown": {
+      "all": {
+        "n": 30,
+        "em": 70.0,
+        "f1": 86.73
+      },
+      "in_scope": {
+        "n": 27,
+        "em": 66.67,
+        "f1": 85.25
+      },
+      "out_of_scope": {
+        "n": 3,
+        "em": 100.0,
+        "f1": 100.0
+      }
+    }
+  },
+  "provenance": {
+    "gold_sha256": "80b434b045f2f09253c40ca277b723fa2715e6cab0f3855ea2a3c8a353b1e0e3",
+    "bm25_sha256": "b804ca6aab83a0c266ddbf1a113d1c3b2684c93c40bf0f015e5bc77a92a76d73",
+    "chunks_sha256": "46e3ff18b9217c6f8078a16266e99134aab9fa3651750a012e8657da19a29f43",
+    "head_sha256": "9cd8c5f92ef9a7af8665b9664801bc58ae8b97b323633321cac8e5ada1ed3e95"
+  },
+  "caveats": [
+    "Top-k retrieval logits are not calibrated across documents; baseline only.",
+    "Domain Dev contains 3 out-of-scope questions, threshold tuning is high-variance.",
+    "Never tune on domain Test. Do not compare this directly with ViQuAD Dev EM/F1."
+  ]
+}

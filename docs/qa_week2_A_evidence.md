@@ -1,140 +1,112 @@
-# Tuần 2 – A: EDA ViQuAD và VnCoreNLP/PhoBERT
-- Ngày tạo: 2026-11-19T21:23:35
-- Dữ liệu: data/raw/viquad/{train,dev,public_test}.jsonl
-- Split: data/splits/viquad_dev_titles.txt (13 title, PASS; Train/Dev title overlap = 0)
-- Khuyến nghị: chỉ dùng Dev để tuning, không đánh giá public_test trước mốc test cuối.
+# Tuần 2 — A: EDA ViQuAD, tiền xử lý và bằng chứng PhoBERT
 
-## EDA
-| Split | Questions | Titles | Contexts | Answerable | Impossible | Impossible % | Median context chars |
+> **Bản hợp nhất tài liệu khi merge `origin/main` vào `feat/extractive-qa-pipeline`.** Giữ lại EDA/audit lịch sử trên `main` và phần tổng kết tiếng Việt của nhánh QA. Đây là báo cáo dữ liệu và tiến độ, không phải báo cáo kết quả Test.
+>
+> **Phạm vi:** Công việc của thành viên A theo `docs/project_plan.md`: ViQuAD 2.0, tách Train/Dev theo bài viết, VnCoreNLP–PhoBERT, QA features, EM/F1, QA head/training loop, đóng góp nhãn Gold và baseline B1 sơ bộ. Các kết quả tuning chính nằm trong `docs/results/qa_week3_A_training_summary.md`.
+
+## 1. Nguồn dữ liệu và quy tắc chia
+
+- Nguồn ViQuAD 2.0: `taidng/UIT-ViQuAD2.0`. Dữ liệu raw/processed được chuẩn bị bằng `scripts/download_data.py`, `scripts/prepare_viquad_qa.py`, `scripts/fix_answer_start.py` (theo phiên bản pipeline thích hợp).
+- Tách **Dev từ Train theo `title`**, cố định danh sách tại `data/splits/viquad_dev_titles.txt` (**13 title**). Kiểm tra: **Train/Dev title overlap = 0**, context overlap = 0 (theo báo cáo đối chiếu).
+- Split `validation` do nguồn Hugging Face cung cấp được dành làm **Public Test**. Chỉ thống kê dữ liệu; **không dùng Public Test để chọn mô hình, tune threshold hoặc đánh giá trước mốc test cuối**.
+
+### 1.1. EDA ngày 19/11/2026
+
+| Split | Số câu | Số title | Số context | Có đáp án | Không đáp án | Không đáp án (%) | Trung vị độ dài context (ký tự) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| train | 25686 | 125 | 3711 | 17352 | 8334 | 32.45 | 741 |
-| dev | 2768 | 13 | 390 | 1886 | 882 | 31.86 | 760 |
-| public_test | 3814 | 19 | 557 | 2653 | 1161 | 30.44 | 721 |
+| Train | 25.686 | 125 | 3.711 | 17.352 | 8.334 | 32,45 | 741 |
+| Dev nội bộ | 2.768 | 13 | 390 | 1.886 | 882 | 31,86 | 760 |
+| Public Test (chỉ thống kê) | 3.814 | 19 | 557 | 2.653 | 1.161 | 30,44 | 721 |
 
-## Answer offsets (RAW)
-```json
-{
-  "train": {
-    "matching_spans": 17206,
-    "mismatched_spans": 146,
-    "missing_answer_records": 0,
-    "example_error_ids": [
-      "0004-0002-0003",
-      "0004-0005-0003",
-      "0006-0002-0001",
-      "0011-0005-0001",
-      "0011-0007-0005"
-    ]
-  },
-  "dev": {
-    "matching_spans": 1878,
-    "mismatched_spans": 8,
-    "missing_answer_records": 0,
-    "example_error_ids": [
-      "0059-0019-0004",
-      "0083-0020-0004",
-      "0093-0006-0001",
-      "0117-0002-0004",
-      "0117-0057-0005"
-    ]
-  }
-}
-```
+*Các số này phản ánh dữ liệu của nhóm theo lần chạy EDA, không phải số trích nguyên từ bài báo.*
 
-## Answer offsets (PROCESSED)
-```json
-{
-  "train": {
-    "matching_spans": 17309,
-    "mismatched_spans": 0,
-    "missing_answer_records": 0,
-    "example_error_ids": []
-  },
-  "dev": {
-    "matching_spans": 1929,
-    "mismatched_spans": 0,
-    "missing_answer_records": 0,
-    "example_error_ids": []
-  }
-}
-```
+## 2. Kiểm tra answer offsets
 
-## VnCoreNLP và PhoBERT tokenizer
-```json
-{
-  "status": "unavailable",
-  "success": 0,
-  "failed": 0,
-  "failures": [],
-  "reason": "ModuleNotFoundError: No module named 'py_vncorenlp'"
-}
-```
+### 2.1. Raw — báo cáo ngày 19/11/2026
 
-## Kết luận
-- Kiểm tra 13 title và không overlap: PASS
-- VnCoreNLP/PhoBERT: CHƯA XÁC MINH trên môi trường này (kết quả ngày 19/11/2026; đã được thay thế, xem ghi chú bên dưới)
-- Kiểm tra log tiền xử lý toàn bộ: xem data/processed/qa_features/pipeline_summary.json (nếu đã chạy).
+| Split | `matching_spans` | `mismatched_spans` | `missing_answer_records` |
+|---|---:|---:|---:|
+| Train | 17.206 | 146 | 0 |
+| Dev | 1.878 | 8 | 0 |
 
-**Ghi chú ngày 22/11/2026:** mục "VnCoreNLP và PhoBERT tokenizer" ở trên (`unavailable`, thiếu `py_vncorenlp`) là kết quả của lần chạy ngày 19/11/2026 trên môi trường chưa cài VnCoreNLP. Lần chạy lại ngày 21/11/2026 có `status: executed`, 10/10 mẫu thành công; xem `docs/qa_week2_A_eda_reproduced.md`.
+- Ví dụ ID có offset lỗi ở Train: `0004-0002-0003`, `0004-0005-0003`, `0006-0002-0001`, `0011-0005-0001`, `0011-0007-0005`.
+- Ví dụ ID có offset lỗi ở Dev: `0059-0019-0004`, `0083-0020-0004`, `0093-0006-0001`, `0117-0002-0004`, `0117-0057-0005`.
 
+### 2.2. Processed — báo cáo lịch sử ngày 19/11/2026
 
-## Đối chiếu và xác minh dữ liệu — 21/11/2026
+| Split | `matching_spans` | `mismatched_spans` | `missing_answer_records` |
+|---|---:|---:|---:|
+| Train | 17.309 | 0 | 0 |
+| Dev | 1.929 | 0 | 0 |
 
-Sau khi sửa preprocessing, nhóm thực hiện kiểm tra lại các tập ViQuAD Train và Dev.
+**Cảnh báo về số liệu lịch sử:** Hai chỉ số `matching_spans` này **khác phân bố answerable** trong EDA tái tạo (Train 17.352 / Dev 1.886), nhưng tổng bằng nhau: `17.309 + 1.929 = 17.352 + 1.886 = 19.238`. Chênh **43 câu chuyển giữa hai split** chưa có nguyên nhân xác định do dữ liệu trung gian của lần chạy cũ không còn. **Kết quả tái tạo mới** được dùng cho thí nghiệm tiếp theo; không âm thầm thay số liệu EDA cũ.
 
-| Chỉ số | Train | Dev |
-|---|---:|---:|
-| Tổng số câu hỏi | 25.686 | 2.768 |
-| Answerable | 17.352 | 1.886 |
-| Impossible | 8.334 | 882 |
+### 2.3. Đối chiếu tái tạo ngày 21–22/11/2026
 
-Các số trong bảng khớp `docs/qa_week2_A_eda_reproduced.md`. Số QA features (29.333 cho Train, 3.155 cho Dev) khớp `train_features` và `dev_features` trong config các run fine-tune PhoBERT trên W&B (project `nhom09-vi-qa-rag/vi-qa-rag`, commit `b202d3dc`).
+- Sau khi chạy `prepare_viquad_qa.py --overwrite` rồi `fix_answer_start.py`, báo cáo đối chiếu ghi: ID, `title`, `context` không đổi giữa raw và processed; danh sách title Dev khớp tệp split đã commit.
+- Theo phép kiểm tra này, số offset lỗi trong Raw là **146 Train, 8 Dev, 22 Public Test**; sau sửa còn **0** ở cả ba split. Việc kiểm tra offset Public Test **không tương đương sử dụng Test để tune mô hình**.
+- Không có context trùng Train/Dev; tham chiếu `data/splits/viquad_split_meta.json` (`context_overlap_count = 0`).
+- Đoạn mã so sánh từng bản ghi của lần chạy này **không được lưu trong repository**, là hạn chế tái lập cần ghi nhận.
 
-**Tái tạo Dev ngày 22/11/2026** trên Kaggle bằng `preprocess_qa.py` (VnCoreNLP 1.2, `transformers==4.57.6`): 2.768 câu được xử lý, 0 câu bị skip, 3.155 features, trong đó 1.857 `aligned`, 882 `impossible` và 29 `unalignable`. SHA-256 của `dev.jsonl`, tính sau khi chuẩn hóa dấu xuống dòng sang CRLF (tệp sinh trên Windows), trùng giá trị ghi trong `docs/results/qa_week3_A_training_summary.md`. Số features Train (29.333) chưa được tái tạo; lần chạy trên 2.000 câu Train đầu tiên có 0 câu bị skip. Từ ngày 22/11/2026 mỗi feature có thêm trường `preprocessing_mode`, nên tệp tạo bằng mã hiện tại có SHA-256 khác giá trị nêu trên; giá trị đó thuộc tệp tạo trước khi trường này được thêm.
+## 3. Kiểm tra VnCoreNLP/PhoBERT và QA features
 
-**Đối chiếu Raw và Processed** (tái tạo ngày 22/11/2026 bằng `prepare_viquad_qa.py --overwrite` rồi `fix_answer_start.py`, so sánh từng bản ghi):
-- ID, `title` và `context` giống nhau giữa Raw và Processed ở cả ba split.
-- Không có context nào nằm ở cả Train lẫn Dev, khớp `data/splits/viquad_split_meta.json` (`context_overlap_count = 0`).
-- Danh sách title Dev tạo lại trùng `data/splits/viquad_dev_titles.txt` đã commit.
-- Số span sai offset ở Raw là 146 (Train), 8 (Dev) và 22 (Public Test); sau `fix_answer_start.py` còn 0 ở cả ba split.
+### 3.1. Môi trường
 
-Đoạn mã so sánh không nằm trong repository.
+- Ngày **19/11/2026**: kiểm tra VnCoreNLP/tokenizer báo `unavailable` vì `ModuleNotFoundError: No module named 'py_vncorenlp'` (**0 thành công / 0 thất bại** vì chưa thực thi mẫu).
+- Ngày **21/11/2026**: chạy lại có môi trường phù hợp, **10/10 mẫu thành công**. Xem `docs/qa_week2_A_eda_reproduced.md`. Vì vậy không được dùng dòng `unavailable` của lần đầu để mô tả trạng thái cuối của pipeline.
 
-**Giải trình số liệu lịch sử:**
+### 3.2. Preprocessing Clean Dev
 
-Báo cáo ngày 19/11 (phần "Answer offsets (PROCESSED)" phía trên) ghi `matching_spans` của Train là 17.309 và Dev là 1.929. Báo cáo tái tạo ngày 21/11 (`docs/qa_week2_A_eda_reproduced.md`) ghi 17.352 và 1.886, bằng số câu answerable, cùng tên chỉ số.
+- Pipeline: VnCoreNLP word segmentation → PhoBERT tokenizer → sliding windows (`max_length=256`, `doc_stride=128`) → QA features, nhãn huấn luyện start/end. Đối với Dev, **các input/window phải độc lập với Gold** (`mode=eval`).
+- Đợt tái tạo ngày **22/11/2026** trên Kaggle dùng VnCoreNLP 1.2 và `transformers==4.57.6`.
 
-Tổng hai split bằng nhau (17.309 + 1.929 = 17.352 + 1.886 = 19.238); Train thấp hơn 43 và Dev cao hơn 43 so với số hiện tại. Nguyên nhân chưa xác định vì dữ liệu của lần chạy cũ không còn trong repository. Số mới được dùng cho các thí nghiệm tiếp theo.
-
-## Gold Leakage Audit — 21/11/2026
-
-**Mục tiêu:** Định lượng mức ảnh hưởng của việc sử dụng Gold answer trong preprocessing Dev trước khi sửa.
-
-**Phương pháp:**
-- Sử dụng preprocessing cũ từ `origin/main:src/preprocessing_qa.py`.
-- So sánh với Dev features sạch được tạo bằng `mode=eval`.
-- Sử dụng cùng PhoBERT tokenizer.
-- Thực hiện trên toàn bộ 2.768 câu Dev.
-
-**Kết quả:**
-
-| Chỉ số | Số câu |
+| Chỉ số Clean Dev | Giá trị |
 |---|---:|
-| Tổng câu Dev | 2.768 |
-| Gold làm thay đổi context tokens | 29 |
-| Gold làm thay đổi ranh giới window khi giữ nguyên token (`overlap_changed`) | 0 |
-| Input features cũ khác Dev sạch | 29 |
-| Tổng số câu bị ảnh hưởng | 29 |
-| Pipeline cũ không xử lý được | 0 |
+| Tổng/đã xử lý | 2.768 / 2.768 |
+| Features | 3.155 |
+| Bỏ qua (`skipped`) | 0 |
+| `aligned` | 1.857 |
+| `impossible` | 882 |
+| `unalignable` | 29 |
 
-**Kết luận:** Pipeline cũ có Gold Leakage, ảnh hưởng đến 29/2.768 câu Dev (1,05%). Tác động được phát hiện ở bước tinh chỉnh token theo Gold answer, không phát hiện thay đổi ranh giới window do overlap phụ thuộc đáp án khi giữ nguyên token đã tinh chỉnh trong bộ dữ liệu này.
+- Kết quả `unalignable=29` được **giữ để đánh giá**, không tự loại các câu khó.
+- Số lượng Train features **29.333** được nêu trong cấu hình của các run PhoBERT; báo cáo ngày 22/11 ghi **chưa tái tạo toàn bộ** Train features. Kiểm tra 2.000 câu đầu của Train không có mẫu bị bỏ qua.
+- SHA-256 của Dev feature file được ghi trong manifest thí nghiệm cũ: `b27046196cd92f0ede419737b155f7f36a6bb1f2c54c563b3bafa31c82d8d3c3`. Theo báo cáo tái tạo ngày 22/11, file được chuẩn hóa dấu xuống dòng CRLF khi đối chiếu hash.
+- **Chú ý phiên bản:** Từ ngày 22/11/2026, schema feature thêm `preprocessing_mode`. File được sinh bằng code mới có hash khác file lưu trước thay đổi schema. **Hash khớp không thay cho kiểm tra `mode=eval` và tính độc lập Gold.**
 
-Pipeline mới tách `mode=train` và `mode=eval`, không sử dụng Gold answer để thay đổi đầu vào Dev.
+## 4. Gold Leakage Audit — 21–22/11/2026
 
-Kết quả audit chỉ phản ánh số câu có representation khác nhau, chưa đo trực tiếp thay đổi EM/F1.
+**Mục tiêu:** so sánh representation Dev của pipeline cũ (có tinh chỉnh token theo Gold) với pipeline độc lập Gold, **không dùng audit để ước lượng trực tiếp chênh lệch F1**.
 
-**Đo lại ngày 22/11/2026** (Kaggle; so sánh `mode=eval` với `mode=train` của mã hiện tại trên 1.886 câu Dev có đáp án): 29 câu đổi token và đổi `input_ids`, trùng đúng 29 câu `unalignable` của Dev sạch; ranh giới cửa sổ (`context_start`, `context_end`) khác nhau ở 25/29 câu. Hai phép đo khác nhau ở điều kiện: audit gốc (cột `overlap_changed`, bằng 0 ở cả 29 dòng) đếm thay đổi start/end của window khi giữ nguyên token đã tinh chỉnh, nên chỉ phản ánh phần do overlap phụ thuộc đáp án; phép đo lại không giữ cố định token, nên ranh giới window còn thay đổi theo token được tinh chỉnh. Vì vậy 0 và 25/29 không mâu thuẫn. Chế độ `train` của mã hiện tại chỉ ước lượng hành vi cũ, không phải lần chạy trên mã cũ.
+| Chỉ số audit lịch sử | Kết quả |
+|---|---:|
+| Tổng Dev | 2.768 |
+| Context token thay đổi do Gold | 29 |
+| Window boundary thay đổi chỉ do overlap khi giữ nguyên token | 0 |
+| Feature input khác Clean Dev | 29 |
+| Mẫu pipeline cũ không xử lý được | 0 |
 
-**Evidence:** `docs/results/gold_leakage_audit/summary.json` và `affected_examples.csv`.
+- Trong phép audit lịch sử: Gold-dependent token refinement ảnh hưởng **29/2.768 câu (1,05%)**; không phát hiện thay đổi window boundary do overlap **khi giữ nguyên token đã tinh chỉnh**.
+- Đo lại **22/11/2026** trên 1.886 câu Dev có đáp án, so sánh `mode=eval` với `mode=train` trong code hiện tại: **29 câu thay đổi token và `input_ids`** (trùng 29 câu `unalignable`), **25/29** câu có `context_start/context_end` khác. Hai phép đo **không mâu thuẫn**: phép đo sau không giữ cố định token; phép đo trước chỉ quy thay đổi window cho riêng yếu tố overlap.
+- `mode=train` trong code hiện tại chỉ **ước lượng** hành vi Gold-dependent cũ, không phải chạy trực tiếp bằng phiên bản code cũ.
+- Danh sách ID ở audit cũ chưa được đối chiếu trực tiếp theo `label_status`, vì `affected_examples.csv` không có cột này.
+- **Evidence trong repo:** `docs/results/gold_leakage_audit/summary.json` và `affected_examples.csv`.
 
-Gold Leakage Audit: Pipeline cũ làm thay đổi token của 29/2.768 câu Dev (1,05%). Không phát hiện thay đổi ranh giới window do overlap phụ thuộc Gold khi giữ nguyên token. Phép đo lại ngày 22/11/2026 cho 29 câu đổi đầu vào, trùng 29/29 với các câu `unalignable` trong Dev sạch; danh sách ID của audit gốc chưa được đối chiếu trực tiếp vì `affected_examples.csv` không có cột `label_status`.
+## 5. Thí nghiệm, truy vết nguồn và phạm vi đóng góp
+
+- Mô hình PhoBERT QA: tự triển khai QA head/loss, training loop, EM/F1 và n-best decoder theo kế hoạch; tài liệu chi tiết 3 LR, threshold và chỉ số Dev tại `docs/results/qa_week3_A_training_summary.md`.
+- Tư liệu thí nghiệm lịch sử: `phobert_3lr_clean_dev_EVIDENCE.zip` (manifest và summary), **không nằm trong Git repo**, không bao gồm model weights/predictions đầy đủ; không coi có ZIP là đã tái chạy inference.
+- Báo cáo lần chạy W&B: project `nhom09-vi-qa-rag/vi-qa-rag`; commit huấn luyện `b202d3dc9fb4bcdd02131d213d4b1b8d26f1dde8`. **Chưa có URL/ID run riêng được đối chiếu trong tài liệu này**; cần dẫn link cụ thể khi tổng hợp báo cáo cuối.
+- Đóng góp nhãn của A: **viết 33 câu**, **gán nhãn độc lập 33 câu của B**. Bộ Gold nhóm có **30 Dev / 70 Test** (trên `main` theo lần kiểm tra Git); việc chốt bất đồng và bằng chứng đồng thuận hai vòng cần đối chiếu với hồ sơ gán nhãn trước khi khẳng định toàn bộ đã *finalized*.
+- B1 hiện tại: BM25 Top-3 + PhoBERT, index 216 chunks, đánh giá trên 30 câu Domain Dev (27 in-scope, 3 out-of-scope). Fixed threshold = 0: EM 70,00%, F1 86,73%. Evidence và SHA-256: `docs/results/b1_domain_dev/summary.json`. Kết quả 213 chunks là thí nghiệm lịch sử, không tái lập được bằng mã build index hiện tại. Gold 30 Dev / 70 Test đã có; việc chốt nhãn cuối chưa được xác minh.
+
+## 6. Giới hạn và vị trí bằng chứng
+
+- EDA cũ và kết quả tái tạo có lệch `matching_spans` giữa Train/Dev; nguyên nhân chưa xác minh.
+- Manifest 3 LR không cung cấp checkpoint hoặc predictions đầy đủ để tự tính bootstrap CI của thí nghiệm lịch sử; việc xác minh load/inference checkpoint cần có evidence riêng.
+- Bằng chứng EDA ngày 21/11: `docs/qa_week2_A_eda_reproduced.md`.
+- Bằng chứng dữ liệu/split: `data/splits/viquad_dev_titles.txt`, `data/splits/viquad_split_meta.json`.
+- Bằng chứng leakage: `docs/results/gold_leakage_audit/`.
+- Bằng chứng PhoBERT 3 LR: `docs/results/qa_week3_A_training_summary.md` và ZIP ngoài repo.
+
+**Không sử dụng Public Test hoặc Domain Test để chọn tham số trong các nội dung trên.**
