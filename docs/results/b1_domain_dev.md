@@ -1,6 +1,6 @@
 # B1 — BM25 (216 chunks) + PhoBERT trên Domain Dev
 
-> **Trạng thái 25/11/2026:** đã chạy inference trên **30 câu Dev**. Đây là kết quả hệ thống tại cấu hình đã chạy, **chưa xác minh chốt nhãn Gold hai vòng**, không phải Test. Không rebuild BM25, không đổi checkpoint.
+> **Trạng thái 25/11/2026:** đã chạy inference trên **30 câu Dev**. Đây là kết quả hệ thống tại cấu hình đã chạy, dùng bộ Gold chính thức của nhóm, không phải Test. Không rebuild BM25, không đổi checkpoint.
 
 ## Cấu hình
 
@@ -39,7 +39,7 @@ Bản JSON nguyên vẹn từ output local: [`docs/results/b1_domain_dev/summary
 - Các lần chạy B1 trước đây với index khác 216 chunks không được dùng làm baseline của cấu hình hiện tại.
 - Score/logits của spans ở các chunk khác nhau **chưa được calibration**, kết quả là baseline.
 - Dev chỉ 30 câu nên việc tune threshold dễ overfit; giữ **threshold 0** làm điểm tham chiếu chính.
-- Dữ liệu Gold Dev/Test đã có 30/70 bản ghi theo kiểm tra, **chưa xác minh hoàn tất đối soát nhãn**. Không tune/chạy Test trước experiment freeze.
+- Dữ liệu Gold Dev/Test gồm 30/70 bản ghi và là bản chính thức. Không tune/chạy Test trước experiment freeze.
 
 ## Chạy B1 (nếu cần tái hiện trên máy có artifact)
 
