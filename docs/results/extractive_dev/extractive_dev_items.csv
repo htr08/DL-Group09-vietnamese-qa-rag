@@ -1,0 +1,31 @@
+id,in_scope,question,answer,refusal,score_diff,source_id,source_rank,source_is_gold,first_gold_rank,windows,retrieval_seconds,extract_seconds,vram_peak_gb
+A05,True,"Mỗi năm, đơn vị đào tạo lập hội đồng xét tốt nghiệp mấy lần?",4 lần,False,-12.198426604270935,dieu44_khoan1,1,True,1,5,0.025,0.2,2.83
+A12,True,Ai là người phụ trách lớp sinh viên cùng ngành và cùng khoá?,giáo viên chủ nhiệm,False,-7.489825129508972,dieu19_khoan1,2,True,2,5,0.027,0.154,2.83
+A14,True,Cán bộ coi thi nghỉ một buổi coi thi vô cớ thì bị xử lý kỷ luật ở mức nào?,Khiển trách,False,-4.851377010345459,dieu37_khoan1,1,True,1,5,0.025,0.138,2.83
+A17,True,"Để chứng minh một ngành học mới đáp ứng nhu cầu xã hội, đơn vị đào tạo cần dựa vào hoạt động nào?",điều tra khảo sát tại các cơ sở sử dụng người học sau tốt nghiệp,False,-5.275455951690674,dieu11_khoan1,1,True,1,5,0.023,0.095,2.83
+A20,True,Sinh viên có thể đăng bài nghiên cứu khoa học trên loại ấn phẩm nào?,tạp chí chuyên ngành,False,-9.139431118965149,dieu27_khoan1,1,True,1,5,0.023,0.116,2.83
+A21,True,"Khi sinh viên giành nhiều giải nghiên cứu khoa học, thành tích nào được dùng để tính điểm thưởng?","điểm trung bình chung học kỳ, điểm trung bình chung tích lũy",False,-8.215887427330017,dieu29_khoan1,2,False,1,5,0.023,0.094,2.83
+A23,True,Bằng đại học của sinh viên học ở trường thành viên do ai ký?,Giám đốc Đại học Quốc gia Hà Nội,False,-7.2409210205078125,dieu44_khoan2,2,False,1,5,0.024,0.078,2.82
+A24,True,"Muốn tạm nghỉ học vì việc cá nhân, sinh viên cần có điểm trung bình tích luỹ ở mức tối thiểu nào?","2,00",False,-4.407480478286743,dieu33_khoan3_diemc,1,True,1,5,0.023,0.127,2.83
+A26,True,"Sau buổi thi cuối môn, nhà trường có tối đa mấy ngày làm việc để chấm và thông báo điểm?",15 ngày làm việc,False,-1.0147759914398193,dieu35_khoan7,2,True,2,5,0.023,0.095,2.83
+A33,False,Lớp khí quyển nào chứa phần lớn tầng ôzôn của Trái Đất?,Không tìm thấy thông tin trong tài liệu.,True,19.15523099899292,dieu19_khoan1,3,False,,5,0.023,0.113,2.83
+B05,True,Ai có thẩm quyền quyết định cách chi tiêu nguồn kinh phí đào tạo ở mỗi đơn vị?,Thủ trưởng đơn vị đào tạo,False,-7.001691222190857,dieu8_khoan2,1,True,1,5,0.024,0.11,2.83
+B12,True,Giám đốc ĐHQGHN phải hoàn tất việc giao chỉ tiêu tuyển sinh về từng đơn vị chậm nhất vào ngày nào mỗi năm?,ngày 30 tháng 6,False,-2.6183245182037354,dieu9_khoan1,1,True,1,5,0.024,0.08,2.83
+B14,True,Việc rút bớt học phần đã đăng ký chỉ được chấp nhận trong thời hạn bao lâu kể từ đầu học kỳ chính?,2 tuần,False,-8.58166241645813,dieu21_khoan2,1,True,1,5,0.023,0.088,2.83
+B17,True,Sinh viên hoàn thành đủ yêu cầu của hai chương trình học song song thì nhận bao nhiêu văn bằng?,hai bằng,False,-3.729048252105713,dieu24_khoan4,1,True,1,5,0.023,0.077,2.82
+B20,True,Điểm trung bình chung các học phần tính từ đầu khóa bao gồm kết quả của những nhóm học phần nào?,các học phần được đánh giá loại đạt và không đạt,False,-6.838654518127441,dieu39_khoan4,1,True,1,5,0.022,0.091,2.83
+B21,True,Hạn chót để giảng viên báo cho phòng đào tạo biết những sinh viên được và không được dự thi cuối học phần là khi nào?,"chậm nhất 7 ngày làm việc kể từ sau ngày kiểm tra hoặc ngày nộp tiểu luận, bài tập lớn",False,-4.080979347229004,dieu35_khoan1,4,False,1,5,0.023,0.091,2.83
+B23,True,Thang điểm nào được dùng để chấm điểm bộ phận và bài thi kết thúc môn học?,Điểm học phần,False,-10.146601393818855,dieu38_khoan2_diemc,2,False,1,5,0.022,0.083,2.83
+B24,True,"Khi xét khen thưởng cho sinh viên sau mỗi học kỳ, nhà trường sử dụng loại điểm trung bình nào?","điểm trung bình chung học kỳ, điểm trung bình chung tích lũy",False,-2.102382183074951,dieu29_khoan1,3,False,1,5,0.023,0.097,2.83
+B26,True,Bản chính bằng tốt nghiệp đại học được cấp tối đa bao nhiêu lần?,một lần,False,-9.076933741569519,dieu44_khoan4,1,True,1,5,0.022,0.076,2.83
+B33,False,Thời hạn gia hạn visa du học cho lưu học sinh quốc tế tại Việt Nam tối đa là bao lâu?,Không tìm thấy thông tin trong tài liệu.,True,3.662057876586914,dieu44_khoan10,2,False,,5,0.023,0.101,2.83
+C06,True,Công trình nghiên cứu của sinh viên đoạt giải nhất cấp Đại học Quốc gia Hà Nội được cộng bao nhiêu điểm thưởng?,"0,20 điểm",False,-2.3584227561950684,dieu29_khoan2,1,True,1,5,0.023,0.08,2.83
+C14,True,Khối lượng kiến thức tích lũy của sinh viên được xác định như thế nào?,"tổng số tín chỉ của những học phần đã được đánh giá loại đạt, tính từ đầu khóa học",False,-10.635183691978455,dieu39_khoan2,2,True,2,5,0.022,0.07,2.83
+C16,True,Đơn vị đào tạo phải gửi đề nghị phê duyệt chỉ tiêu tuyển sinh lên Giám đốc Đại học Quốc gia Hà Nội muộn nhất vào ngày nào mỗi năm?,ngày 30 tháng 5,False,-7.119854211807251,dieu9_khoan1,1,True,1,5,0.023,0.079,2.83
+C19,True,Sinh viên tốt nghiệp hạng giỏi nhưng từng bị kỷ luật cảnh cáo thì hạng tốt nghiệp có bị hạ không?,bị hạ một hạng,False,-0.3669872283935547,dieu44_khoan7,1,True,1,5,0.024,0.11,2.83
+C22,True,Người nước ngoài xin vào học Đại học Quốc gia Hà Nội theo diện chuyển trường cần có trình độ ngôn ngữ đạt chuẩn bậc mấy?,bậc 4,False,-4.651995897293091,dieu26_khoan3_diema,2,True,1,5,0.022,0.104,2.83
+C23,True,Điểm trung bình chung được làm tròn đến mấy chữ số thập phân?,Không tìm thấy thông tin trong tài liệu.,True,0.18814468383789062,dieu40_khoan2_w0,1,True,1,5,0.022,0.093,2.83
+C25,True,"Để được học thêm chương trình thứ hai, điểm trung bình chung các học phần từ đầu khóa phải đạt tối thiểu bao nhiêu?","từ 2,00 trở lên",False,-6.177696466445923,dieu24_khoan1,1,True,1,5,0.023,0.093,2.83
+C26,True,Giảng viên phải có trình độ học vị tối thiểu nào mới làm được cố vấn học tập?,thạc sĩ,False,-7.417247653007507,dieu31_khoan1,1,True,1,5,0.022,0.092,2.83
+C28,True,Sinh viên đang nghỉ học tạm thời phải gửi đơn xin học tiếp chậm nhất khi nào?,2 tuần trước khi hết thời hạn nghỉ học tạm thời,False,-6.5893391370773315,dieu33_khoan3_diemc,1,True,1,5,0.022,0.101,2.83
+C29,False,Sinh viên muốn xin phúc khảo bài thi cuối kỳ thì làm thủ tục như thế nào?,Không tìm thấy thông tin trong tài liệu.,True,7.988629877567291,dieu35_khoan2,4,False,,5,0.022,0.11,2.83

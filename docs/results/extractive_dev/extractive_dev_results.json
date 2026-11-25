@@ -1,0 +1,939 @@
+{
+  "env": {
+    "gpu_name": "Tesla T4",
+    "gpu_total_gb": 15.64,
+    "python": "3.13.16",
+    "torch": "2.11.0+cu130",
+    "cuda": "13.0",
+    "transformers": "4.57.6",
+    "sentence_transformers": "5.7.0",
+    "py_vncorenlp": "0.1.4"
+  },
+  "code_snapshot": {
+    "src/__init__.py": "e3b0c44298fc",
+    "src/extractive.py": "2c494463d88a",
+    "src/generate.py": "20fc1bbcd319",
+    "src/metrics.py": "56a3d3529d0c",
+    "src/pipeline.py": "6e686ed80b39",
+    "src/preprocessing_qa.py": "53f90c1b5d09",
+    "src/qa_metrics.py": "049dd5c5a725",
+    "src/qa_nbest.py": "f2e724fe76a7",
+    "src/qa_resume.py": "24aa082a3749",
+    "src/retrieval.py": "ed1bd4fb99bb",
+    "src/tracking.py": "ddad57e07fd7",
+    "src/train_qa.py": "fdbe9b097600",
+    "scripts/build_index.py": "a0f5ed2e5de1",
+    "scripts/run_eval.py": "3508e857f5a4",
+    "app/app.py": "7a9495f4ed20"
+  },
+  "gold_dev_sha256_12": "80b434b045f2",
+  "config": {
+    "retrieval": "hybrid (BM25 + BGE-M3, RRF)",
+    "top_k": 5,
+    "rrf_k": 60,
+    "title_rerank": false,
+    "null_threshold": 0.0,
+    "checkpoint": "/kaggle/input/datasets/<kaggle-user>/vi-qa-rag-extractive/checkpoint/phobert_qa_lr5e-5_seed12/best_model",
+    "real_checkpoint": true,
+    "n_chunks": 216
+  },
+  "load": {
+    "load_seconds": 20.4,
+    "vram_allocated_gb": 2.81,
+    "max_answer_length": 30
+  },
+  "summary": {
+    "checkpoint": "real",
+    "n_items": 30,
+    "n_in_scope": 27,
+    "n_out_of_scope": 3,
+    "in_scope_refused": 1,
+    "out_of_scope_refused": 3,
+    "gold_in_top_k": {
+      "top1": 24,
+      "top3": 27,
+      "top5": 27
+    },
+    "source_is_gold": 22,
+    "scores": {
+      "fixed_0": {
+        "threshold": 0.0,
+        "all": {
+          "n": 30,
+          "em": 66.67,
+          "f1": 82.09
+        },
+        "in_scope": {
+          "n": 27,
+          "em": 62.96,
+          "f1": 80.1
+        },
+        "out_of_scope": {
+          "n": 3,
+          "em": 100.0,
+          "f1": 100.0
+        },
+        "answered": 26
+      },
+      "viquad_tuned": {
+        "threshold": -1.489326,
+        "all": {
+          "n": 30,
+          "em": 60.0,
+          "f1": 75.43
+        },
+        "in_scope": {
+          "n": 27,
+          "em": 55.56,
+          "f1": 72.7
+        },
+        "out_of_scope": {
+          "n": 3,
+          "em": 100.0,
+          "f1": 100.0
+        },
+        "answered": 24
+      }
+    },
+    "median_retrieval_seconds": 0.023,
+    "median_extract_seconds": 0.095,
+    "max_extract_seconds": 0.2,
+    "median_windows": 5.0,
+    "max_vram_peak_gb": 2.83
+  },
+  "items": [
+    {
+      "id": "A05",
+      "in_scope": true,
+      "question": "Mỗi năm, đơn vị đào tạo lập hội đồng xét tốt nghiệp mấy lần?",
+      "gold_answers": [
+        "4 lần",
+        "mỗi năm 4 lần"
+      ],
+      "answer": "4 lần",
+      "refusal": false,
+      "best_text": "4 lần",
+      "score_diff": -12.198426604270935,
+      "source_id": "dieu44_khoan1",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu44_khoan1",
+        "dieu36_khoan1",
+        "dieu9_khoan1",
+        "dieu44_khoan2",
+        "dieu16_khoan2"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.025,
+      "extract_seconds": 0.2,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "A12",
+      "in_scope": true,
+      "question": "Ai là người phụ trách lớp sinh viên cùng ngành và cùng khoá?",
+      "gold_answers": [
+        "giáo viên chủ nhiệm"
+      ],
+      "answer": "giáo viên chủ nhiệm",
+      "refusal": false,
+      "best_text": "giáo viên chủ nhiệm",
+      "score_diff": -7.489825129508972,
+      "source_id": "dieu19_khoan1",
+      "source_rank": 2,
+      "source_is_gold": true,
+      "first_gold_rank": 2,
+      "sources": [
+        "dieu19_khoan2",
+        "dieu19_khoan1",
+        "dieu35_khoan2",
+        "dieu10_khoan3",
+        "dieu20_khoan8_diema"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.027,
+      "extract_seconds": 0.154,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "A14",
+      "in_scope": true,
+      "question": "Cán bộ coi thi nghỉ một buổi coi thi vô cớ thì bị xử lý kỷ luật ở mức nào?",
+      "gold_answers": [
+        "Khiển trách"
+      ],
+      "answer": "Khiển trách",
+      "refusal": false,
+      "best_text": "Khiển trách",
+      "score_diff": -4.851377010345459,
+      "source_id": "dieu37_khoan1",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu37_khoan1",
+        "dieu37_khoan2",
+        "dieu37_intro",
+        "dieu32_khoan4_diemc",
+        "dieu32_khoan4_diemb"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.025,
+      "extract_seconds": 0.138,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "A17",
+      "in_scope": true,
+      "question": "Để chứng minh một ngành học mới đáp ứng nhu cầu xã hội, đơn vị đào tạo cần dựa vào hoạt động nào?",
+      "gold_answers": [
+        "điều tra khảo sát tại các cơ sở sử dụng người học sau tốt nghiệp"
+      ],
+      "answer": "điều tra khảo sát tại các cơ sở sử dụng người học sau tốt nghiệp",
+      "refusal": false,
+      "best_text": "điều tra khảo sát tại\ncác cơ sở sử dụng người học sau tốt nghiệp",
+      "score_diff": -5.275455951690674,
+      "source_id": "dieu11_khoan1",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu11_khoan1",
+        "dieu3_khoan2",
+        "dieu9_khoan1",
+        "dieu11_khoan4",
+        "dieu28_khoan1"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.095,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "A20",
+      "in_scope": true,
+      "question": "Sinh viên có thể đăng bài nghiên cứu khoa học trên loại ấn phẩm nào?",
+      "gold_answers": [
+        "các tạp chí chuyên ngành",
+        "tạp chí chuyên ngành"
+      ],
+      "answer": "tạp chí chuyên ngành",
+      "refusal": false,
+      "best_text": "tạp chí chuyên ngành",
+      "score_diff": -9.139431118965149,
+      "source_id": "dieu27_khoan1",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu27_khoan1",
+        "dieu29_khoan4",
+        "dieu27_intro",
+        "dieu28_khoan1",
+        "dieu29_khoan1"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.116,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "A21",
+      "in_scope": true,
+      "question": "Khi sinh viên giành nhiều giải nghiên cứu khoa học, thành tích nào được dùng để tính điểm thưởng?",
+      "gold_answers": [
+        "mức giải cao nhất",
+        "ở mức giải cao nhất"
+      ],
+      "answer": "điểm trung bình chung học kỳ, điểm trung bình chung tích lũy",
+      "refusal": false,
+      "best_text": "điểm trung bình chung học kỳ, điểm trung bình\nchung tích lũy",
+      "score_diff": -8.215887427330017,
+      "source_id": "dieu29_khoan1",
+      "source_rank": 2,
+      "source_is_gold": false,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu29_khoan3",
+        "dieu29_khoan1",
+        "dieu29_khoan2",
+        "dieu29_khoan4",
+        "dieu28_khoan2"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.094,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "A23",
+      "in_scope": true,
+      "question": "Bằng đại học của sinh viên học ở trường thành viên do ai ký?",
+      "gold_answers": [
+        "Hiệu trưởng trường đại học thành viên",
+        "Hiệu trưởng"
+      ],
+      "answer": "Giám đốc Đại học Quốc gia Hà Nội",
+      "refusal": false,
+      "best_text": "Giám đốc Đại học Quốc gia Hà Nội",
+      "score_diff": -7.2409210205078125,
+      "source_id": "dieu44_khoan2",
+      "source_rank": 2,
+      "source_is_gold": false,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu45_khoan2",
+        "dieu44_khoan2",
+        "dieu45_khoan3",
+        "dieu20_khoan8_diemb",
+        "dieu44_khoan9"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.024,
+      "extract_seconds": 0.078,
+      "vram_peak_gb": 2.82
+    },
+    {
+      "id": "A24",
+      "in_scope": true,
+      "question": "Muốn tạm nghỉ học vì việc cá nhân, sinh viên cần có điểm trung bình tích luỹ ở mức tối thiểu nào?",
+      "gold_answers": [
+        "không dưới 2,00",
+        "điểm trung bình chung tích lũy không dưới 2,00"
+      ],
+      "answer": "2,00",
+      "refusal": false,
+      "best_text": "2,00",
+      "score_diff": -4.407480478286743,
+      "source_id": "dieu33_khoan3_diemc",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu33_khoan3_diemc",
+        "dieu40_khoan2_w1",
+        "dieu5_khoan2",
+        "dieu41_khoan1",
+        "dieu40_khoan2_w0"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.127,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "A26",
+      "in_scope": true,
+      "question": "Sau buổi thi cuối môn, nhà trường có tối đa mấy ngày làm việc để chấm và thông báo điểm?",
+      "gold_answers": [
+        "15 ngày làm việc",
+        "chậm nhất là 15 ngày làm việc"
+      ],
+      "answer": "15 ngày làm việc",
+      "refusal": false,
+      "best_text": "15 ngày làm việc",
+      "score_diff": -1.0147759914398193,
+      "source_id": "dieu35_khoan7",
+      "source_rank": 2,
+      "source_is_gold": true,
+      "first_gold_rank": 2,
+      "sources": [
+        "dieu35_khoan1",
+        "dieu35_khoan7",
+        "dieu37_khoan2",
+        "dieu35_khoan4",
+        "dieu35_khoan3"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.095,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "A33",
+      "in_scope": false,
+      "question": "Lớp khí quyển nào chứa phần lớn tầng ôzôn của Trái Đất?",
+      "gold_answers": [],
+      "answer": "Không tìm thấy thông tin trong tài liệu.",
+      "refusal": true,
+      "best_text": "có mã hiệu theo quy định của Đại học Quốc gia Hà Nội",
+      "score_diff": 19.15523099899292,
+      "source_id": "dieu19_khoan1",
+      "source_rank": 3,
+      "source_is_gold": false,
+      "first_gold_rank": null,
+      "sources": [
+        "dieu35_khoan1",
+        "dieu5_khoan2",
+        "dieu19_khoan1",
+        "dieu15_intro",
+        "dieu19_khoan2"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.113,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "B05",
+      "in_scope": true,
+      "question": "Ai có thẩm quyền quyết định cách chi tiêu nguồn kinh phí đào tạo ở mỗi đơn vị?",
+      "gold_answers": [
+        "Thủ trưởng đơn vị đào tạo"
+      ],
+      "answer": "Thủ trưởng đơn vị đào tạo",
+      "refusal": false,
+      "best_text": "Thủ trưởng đơn vị đào tạo",
+      "score_diff": -7.001691222190857,
+      "source_id": "dieu8_khoan2",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu8_khoan2",
+        "dieu8_khoan1_diemc",
+        "dieu8_khoan1_diemb_w1",
+        "dieu8_khoan1_diema",
+        "dieu8_khoan1_diemb_w0"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.024,
+      "extract_seconds": 0.11,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "B12",
+      "in_scope": true,
+      "question": "Giám đốc ĐHQGHN phải hoàn tất việc giao chỉ tiêu tuyển sinh về từng đơn vị chậm nhất vào ngày nào mỗi năm?",
+      "gold_answers": [
+        "trước ngày 30 tháng 6 hàng năm",
+        "trước ngày 30 tháng 6",
+        "30 tháng 6"
+      ],
+      "answer": "ngày 30 tháng 6",
+      "refusal": false,
+      "best_text": "ngày 30 tháng 6",
+      "score_diff": -2.6183245182037354,
+      "source_id": "dieu9_khoan1",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu9_khoan1",
+        "dieu24_khoan3",
+        "dieu9_khoan2",
+        "dieu17_khoan7",
+        "dieu35_khoan7"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.024,
+      "extract_seconds": 0.08,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "B14",
+      "in_scope": true,
+      "question": "Việc rút bớt học phần đã đăng ký chỉ được chấp nhận trong thời hạn bao lâu kể từ đầu học kỳ chính?",
+      "gold_answers": [
+        "trong 2 tuần kể từ đầu học kỳ chính",
+        "2 tuần kể từ đầu học kỳ chính",
+        "2 tuần"
+      ],
+      "answer": "2 tuần",
+      "refusal": false,
+      "best_text": "2 tuần",
+      "score_diff": -8.58166241645813,
+      "source_id": "dieu21_khoan2",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu21_khoan2",
+        "dieu21_khoan1",
+        "dieu21_khoan3",
+        "dieu20_khoan3",
+        "dieu42_khoan1"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.088,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "B17",
+      "in_scope": true,
+      "question": "Sinh viên hoàn thành đủ yêu cầu của hai chương trình học song song thì nhận bao nhiêu văn bằng?",
+      "gold_answers": [
+        "được cấp hai bằng",
+        "hai bằng",
+        "hai bằng đại học"
+      ],
+      "answer": "hai bằng",
+      "refusal": false,
+      "best_text": "hai\nbằng",
+      "score_diff": -3.729048252105713,
+      "source_id": "dieu24_khoan4",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu24_khoan4",
+        "dieu44_khoan6",
+        "dieu43_khoan1_dieme",
+        "dieu24_khoan6",
+        "dieu43_khoan1_diema"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.077,
+      "vram_peak_gb": 2.82
+    },
+    {
+      "id": "B20",
+      "in_scope": true,
+      "question": "Điểm trung bình chung các học phần tính từ đầu khóa bao gồm kết quả của những nhóm học phần nào?",
+      "gold_answers": [
+        "bao gồm cả các học phần được đánh giá loại đạt và không đạt",
+        "các học phần được đánh giá loại đạt và không đạt"
+      ],
+      "answer": "các học phần được đánh giá loại đạt và không đạt",
+      "refusal": false,
+      "best_text": "các học phần được đánh giá loại đạt và không đạt",
+      "score_diff": -6.838654518127441,
+      "source_id": "dieu39_khoan4",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu39_khoan4",
+        "dieu39_khoan5",
+        "dieu39_khoan3",
+        "dieu40_khoan2_w0",
+        "dieu42_khoan2"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.022,
+      "extract_seconds": 0.091,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "B21",
+      "in_scope": true,
+      "question": "Hạn chót để giảng viên báo cho phòng đào tạo biết những sinh viên được và không được dự thi cuối học phần là khi nào?",
+      "gold_answers": [
+        "Chậm nhất một ngày sau khi kết thúc giảng dạy học phần",
+        "một ngày sau khi kết thúc giảng dạy học phần"
+      ],
+      "answer": "chậm nhất 7 ngày làm việc kể từ sau ngày kiểm tra hoặc ngày nộp tiểu luận, bài tập lớn",
+      "refusal": false,
+      "best_text": "chậm nhất 7 ngày làm việc kể từ sau ngày kiểm tra hoặc ngày nộp tiểu\nluận, bài tập lớn",
+      "score_diff": -4.080979347229004,
+      "source_id": "dieu35_khoan1",
+      "source_rank": 4,
+      "source_is_gold": false,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu35_khoan4",
+        "dieu35_khoan2",
+        "dieu20_khoan2_diemb",
+        "dieu35_khoan1",
+        "dieu21_khoan3"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.091,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "B23",
+      "in_scope": true,
+      "question": "Thang điểm nào được dùng để chấm điểm bộ phận và bài thi kết thúc môn học?",
+      "gold_answers": [
+        "thang điểm 10",
+        "thang điểm 10 (từ 0 đến 10)"
+      ],
+      "answer": "Điểm học phần",
+      "refusal": false,
+      "best_text": "Điểm học phần",
+      "score_diff": -10.146601393818855,
+      "source_id": "dieu38_khoan2_diemc",
+      "source_rank": 2,
+      "source_is_gold": false,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu38_khoan1",
+        "dieu38_khoan2_diemc",
+        "dieu34_khoan6",
+        "dieu34_khoan1",
+        "dieu35_khoan8"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.022,
+      "extract_seconds": 0.083,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "B24",
+      "in_scope": true,
+      "question": "Khi xét khen thưởng cho sinh viên sau mỗi học kỳ, nhà trường sử dụng loại điểm trung bình nào?",
+      "gold_answers": [
+        "Điểm trung bình chung học kỳ"
+      ],
+      "answer": "điểm trung bình chung học kỳ, điểm trung bình chung tích lũy",
+      "refusal": false,
+      "best_text": "điểm trung bình chung học kỳ, điểm trung bình\nchung tích lũy",
+      "score_diff": -2.102382183074951,
+      "source_id": "dieu29_khoan1",
+      "source_rank": 3,
+      "source_is_gold": false,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu40_khoan2_w1",
+        "dieu42_khoan2",
+        "dieu29_khoan1",
+        "dieu21_khoan1",
+        "dieu40_khoan2_w0"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.097,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "B26",
+      "in_scope": true,
+      "question": "Bản chính bằng tốt nghiệp đại học được cấp tối đa bao nhiêu lần?",
+      "gold_answers": [
+        "chỉ cấp một lần, không cấp lại",
+        "chỉ cấp một lần",
+        "một lần"
+      ],
+      "answer": "một lần",
+      "refusal": false,
+      "best_text": "một lần",
+      "score_diff": -9.076933741569519,
+      "source_id": "dieu44_khoan4",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu44_khoan4",
+        "dieu44_khoan3",
+        "dieu44_khoan10",
+        "dieu44_khoan1",
+        "dieu44_khoan8"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.022,
+      "extract_seconds": 0.076,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "B33",
+      "in_scope": false,
+      "question": "Thời hạn gia hạn visa du học cho lưu học sinh quốc tế tại Việt Nam tối đa là bao lâu?",
+      "gold_answers": [],
+      "answer": "Không tìm thấy thông tin trong tài liệu.",
+      "refusal": true,
+      "best_text": "5 năm",
+      "score_diff": 3.662057876586914,
+      "source_id": "dieu44_khoan10",
+      "source_rank": 2,
+      "source_is_gold": false,
+      "first_gold_rank": null,
+      "sources": [
+        "dieu26_khoan3_diemb",
+        "dieu44_khoan10",
+        "dieu41_khoan2",
+        "dieu33_khoan3_diemc",
+        "dieu33_khoan3_diemb"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.101,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "C06",
+      "in_scope": true,
+      "question": "Công trình nghiên cứu của sinh viên đoạt giải nhất cấp Đại học Quốc gia Hà Nội được cộng bao nhiêu điểm thưởng?",
+      "gold_answers": [
+        "0,20 điểm"
+      ],
+      "answer": "0,20 điểm",
+      "refusal": false,
+      "best_text": "0,20 điểm",
+      "score_diff": -2.3584227561950684,
+      "source_id": "dieu29_khoan2",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu29_khoan2",
+        "dieu29_khoan3",
+        "dieu29_khoan1",
+        "dieu28_khoan2",
+        "dieu29_khoan4"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.08,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "C14",
+      "in_scope": true,
+      "question": "Khối lượng kiến thức tích lũy của sinh viên được xác định như thế nào?",
+      "gold_answers": [
+        "tổng số tín chỉ của những học phần đã được đánh giá loại đạt",
+        "tổng số tín chỉ của những học phần đã được đánh giá loại đạt, tính từ đầu khóa học"
+      ],
+      "answer": "tổng số tín chỉ của những học phần đã được đánh giá loại đạt, tính từ đầu khóa học",
+      "refusal": false,
+      "best_text": "tổng số tín chỉ của những học phần\nđã được đánh giá loại đạt, tính từ đầu khóa học",
+      "score_diff": -10.635183691978455,
+      "source_id": "dieu39_khoan2",
+      "source_rank": 2,
+      "source_is_gold": true,
+      "first_gold_rank": 2,
+      "sources": [
+        "dieu4_khoan2",
+        "dieu39_khoan2",
+        "dieu42_khoan1",
+        "dieu39_khoan1",
+        "dieu29_khoan4"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.022,
+      "extract_seconds": 0.07,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "C16",
+      "in_scope": true,
+      "question": "Đơn vị đào tạo phải gửi đề nghị phê duyệt chỉ tiêu tuyển sinh lên Giám đốc Đại học Quốc gia Hà Nội muộn nhất vào ngày nào mỗi năm?",
+      "gold_answers": [
+        "trước ngày 30 tháng 5",
+        "30 tháng 5"
+      ],
+      "answer": "ngày 30 tháng 5",
+      "refusal": false,
+      "best_text": "ngày 30\ntháng 5",
+      "score_diff": -7.119854211807251,
+      "source_id": "dieu9_khoan1",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu9_khoan1",
+        "dieu24_khoan3",
+        "dieu17_khoan2",
+        "dieu9_khoan2",
+        "dieu17_khoan7"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.079,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "C19",
+      "in_scope": true,
+      "question": "Sinh viên tốt nghiệp hạng giỏi nhưng từng bị kỷ luật cảnh cáo thì hạng tốt nghiệp có bị hạ không?",
+      "gold_answers": [
+        "hạng tốt nghiệp sẽ bị hạ một hạng",
+        "sẽ bị hạ một hạng",
+        "bị hạ một hạng"
+      ],
+      "answer": "bị hạ một hạng",
+      "refusal": false,
+      "best_text": "bị hạ một hạng",
+      "score_diff": -0.3669872283935547,
+      "source_id": "dieu44_khoan7",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu44_khoan7",
+        "dieu32_khoan4_diemb",
+        "dieu32_khoan4_diemc",
+        "dieu41_khoan1",
+        "dieu32_khoan3"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.024,
+      "extract_seconds": 0.11,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "C22",
+      "in_scope": true,
+      "question": "Người nước ngoài xin vào học Đại học Quốc gia Hà Nội theo diện chuyển trường cần có trình độ ngôn ngữ đạt chuẩn bậc mấy?",
+      "gold_answers": [
+        "bậc 4 trở lên",
+        "đạt chuẩn bậc 4 trở lên",
+        "chuẩn bậc 4 trở lên",
+        "bậc 4"
+      ],
+      "answer": "bậc 4",
+      "refusal": false,
+      "best_text": "bậc 4",
+      "score_diff": -4.651995897293091,
+      "source_id": "dieu26_khoan3_diema",
+      "source_rank": 2,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu26_khoan3_diemb",
+        "dieu26_khoan3_diema",
+        "dieu12_khoan3",
+        "dieu26_khoan2",
+        "dieu26_khoan1"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.022,
+      "extract_seconds": 0.104,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "C23",
+      "in_scope": true,
+      "question": "Điểm trung bình chung được làm tròn đến mấy chữ số thập phân?",
+      "gold_answers": [
+        "2 chữ số thập phân",
+        "hai chữ số thập phân"
+      ],
+      "answer": "Không tìm thấy thông tin trong tài liệu.",
+      "refusal": true,
+      "best_text": "2 chữ số thập phân",
+      "score_diff": 0.18814468383789062,
+      "source_id": "dieu40_khoan2_w0",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu40_khoan2_w0",
+        "dieu38_khoan2_diemc",
+        "dieu40_khoan1",
+        "dieu38_khoan2_diemb",
+        "dieu40_khoan2_w1"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.022,
+      "extract_seconds": 0.093,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "C25",
+      "in_scope": true,
+      "question": "Để được học thêm chương trình thứ hai, điểm trung bình chung các học phần từ đầu khóa phải đạt tối thiểu bao nhiêu?",
+      "gold_answers": [
+        "từ 2,00 trở lên",
+        "đạt từ 2,00 trở lên",
+        "2,00"
+      ],
+      "answer": "từ 2,00 trở lên",
+      "refusal": false,
+      "best_text": "từ 2,00 trở lên",
+      "score_diff": -6.177696466445923,
+      "source_id": "dieu24_khoan1",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu24_khoan1",
+        "dieu23_khoan2",
+        "dieu39_khoan4",
+        "dieu13_khoan2_diemdd",
+        "dieu40_khoan2_w1"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.093,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "C26",
+      "in_scope": true,
+      "question": "Giảng viên phải có trình độ học vị tối thiểu nào mới làm được cố vấn học tập?",
+      "gold_answers": [
+        "thạc sĩ trở lên",
+        "trình độ thạc sĩ trở lên"
+      ],
+      "answer": "thạc sĩ",
+      "refusal": false,
+      "best_text": "thạc sĩ",
+      "score_diff": -7.417247653007507,
+      "source_id": "dieu31_khoan1",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu31_khoan1",
+        "dieu31_khoan4",
+        "dieu31_khoan2",
+        "dieu20_khoan1",
+        "dieu31_khoan3"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.022,
+      "extract_seconds": 0.092,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "C28",
+      "in_scope": true,
+      "question": "Sinh viên đang nghỉ học tạm thời phải gửi đơn xin học tiếp chậm nhất khi nào?",
+      "gold_answers": [
+        "chậm nhất 2 tuần trước khi hết thời hạn nghỉ học tạm thời",
+        "2 tuần trước khi hết thời hạn nghỉ học tạm thời"
+      ],
+      "answer": "2 tuần trước khi hết thời hạn nghỉ học tạm thời",
+      "refusal": false,
+      "best_text": "2 tuần trước khi hết thời hạn nghỉ\nhọc tạm thời",
+      "score_diff": -6.5893391370773315,
+      "source_id": "dieu33_khoan3_diemc",
+      "source_rank": 1,
+      "source_is_gold": true,
+      "first_gold_rank": 1,
+      "sources": [
+        "dieu33_khoan3_diemc",
+        "dieu33_khoan3_diemb",
+        "dieu33_khoan3_diema",
+        "dieu41_khoan2",
+        "dieu22_khoan1_diemd"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.022,
+      "extract_seconds": 0.101,
+      "vram_peak_gb": 2.83
+    },
+    {
+      "id": "C29",
+      "in_scope": false,
+      "question": "Sinh viên muốn xin phúc khảo bài thi cuối kỳ thì làm thủ tục như thế nào?",
+      "gold_answers": [],
+      "answer": "Không tìm thấy thông tin trong tài liệu.",
+      "refusal": true,
+      "best_text": "sinh viên chưa dự kỳ thi chính vì lý do chính đáng được cơ quan có thẩm\nquyền xác nhận và được Thủ trưởng đơn vị đào tạo cho phép",
+      "score_diff": 7.988629877567291,
+      "source_id": "dieu35_khoan2",
+      "source_rank": 4,
+      "source_is_gold": false,
+      "first_gold_rank": null,
+      "sources": [
+        "dieu32_khoan4_diemb",
+        "dieu35_khoan1",
+        "dieu32_khoan4_diema",
+        "dieu35_khoan2",
+        "dieu37_khoan3"
+      ],
+      "windows": 5,
+      "retrieval_seconds": 0.022,
+      "extract_seconds": 0.11,
+      "vram_peak_gb": 2.83
+    }
+  ]
+}
