@@ -247,6 +247,28 @@ def load_gold_queries(split: str = "dev") -> List[Dict[str, Any]]:
     return queries
 
 
+def load_samsung_queries() -> List[Dict[str, Any]]:
+    """Tải tập câu hỏi đánh giá miền phụ Samsung Galaxy S24 (cross-lingual)."""
+    path = GOLD_DIR / "samsung_queries.jsonl"
+    if not path.exists() or path.stat().st_size == 0:
+        raise FileNotFoundError(f"Chưa có tệp {path.name}")
+    queries = []
+    with open(path, encoding="utf-8-sig") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            item = json.loads(line)
+            if item.get("in_scope", True):
+                queries.append({
+                    "question": normalize_text(item["question"]),
+                    "relevant_id": item["relevant_id"],
+                    "answerable": True,
+                })
+    print(f"  Samsung queries: {len(queries)} câu hợp lệ dùng đánh giá")
+    return queries
+
+
 # ---------------------------------------------------------------------------
 # Chạy retrieval và tính chỉ số (kèm đo độ trễ)
 # ---------------------------------------------------------------------------
@@ -381,7 +403,7 @@ def main():
     parser = argparse.ArgumentParser(description="Đánh giá retrieval.")
     parser.add_argument(
         "--split",
-        choices=["viquad_dev", "domain_dev", "domain_test"],
+        choices=["viquad_dev", "domain_dev", "domain_test", "samsung"],
         required=True,
         help="Tập dữ liệu đánh giá",
     )
@@ -409,6 +431,9 @@ def main():
     elif args.split == "domain_dev":
         corpus = "domain"
         queries = load_gold_queries("dev")
+    elif args.split == "samsung":
+        corpus = "samsung"
+        queries = load_samsung_queries()
     else:
         corpus = "domain"
         queries = load_gold_queries("test")

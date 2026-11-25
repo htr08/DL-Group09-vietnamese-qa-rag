@@ -145,3 +145,12 @@ def test_test_split_requires_explicit_rrf_k(monkeypatch):
     monkeypatch.setattr(run_eval, "load_dense", lambda corpus: object())
     with pytest.raises(ValueError, match="--rrf_k"):
         run_eval.main()
+
+
+def test_load_samsung_queries(tmp_path, monkeypatch):
+    monkeypatch.setattr(run_eval, "GOLD_DIR", tmp_path)
+    samsung_path = tmp_path / "samsung_queries.jsonl"
+    samsung_path.write_text(json.dumps({"question": "Q1", "relevant_id": "chunk_01", "in_scope": True}), encoding="utf-8")
+    queries = run_eval.load_samsung_queries()
+    assert len(queries) == 1
+    assert queries[0]["relevant_id"] == "chunk_01"
