@@ -14,18 +14,20 @@
   },
   "code_snapshot": {
     "src/__init__.py": "e3b0c44298fc",
+    "src/extractive.py": "5aa957ffe313",
     "src/generate.py": "20fc1bbcd319",
+    "src/gold.py": "76687655cd2b",
     "src/metrics.py": "56a3d3529d0c",
-    "src/pipeline.py": "deffe6fa4076",
+    "src/pipeline.py": "6e686ed80b39",
     "src/preprocessing_qa.py": "53f90c1b5d09",
     "src/qa_metrics.py": "049dd5c5a725",
     "src/qa_nbest.py": "f2e724fe76a7",
     "src/qa_resume.py": "24aa082a3749",
-    "src/retrieval.py": "ed1bd4fb99bb",
+    "src/retrieval.py": "18944395cf18",
     "src/tracking.py": "ddad57e07fd7",
     "src/train_qa.py": "fdbe9b097600",
     "scripts/build_index.py": "a0f5ed2e5de1",
-    "scripts/run_eval.py": "3508e857f5a4"
+    "scripts/run_eval.py": "3481150e76b7"
   },
   "gold_dev_sha256_12": "80b434b045f2",
   "config": {
@@ -41,7 +43,7 @@
     "system_prompt": "Bạn là trợ lý hỏi đáp tiếng Việt. Chỉ trả lời dựa trên phần NGỮ CẢNH được cung cấp, không dùng kiến thức bên ngoài. Luôn trả lời bằng tiếng Việt, ngắn gọn, chỉ dùng chữ Latinh (không dùng chữ Hán). Sau mỗi ý, nêu nguồn bằng số thứ tự của đoạn ngữ cảnh trong ngoặc vuông, ví dụ [1]. Nếu ngữ cảnh không chứa thông tin để trả lời, chỉ trả lời đúng một câu: 'Không tìm thấy thông tin trong tài liệu.'"
   },
   "load": {
-    "load_seconds": 105.8,
+    "load_seconds": 109.4,
     "vram_allocated_after_load_gb": 7.83,
     "vram_peak_during_load_gb": 7.96
   },
@@ -55,57 +57,57 @@
     "n_regenerated": 0,
     "n_invalid_citations": 0,
     "gold_in_top_k": {
-      "top1": 24,
+      "top1": 25,
       "top3": 27,
       "top5": 27
     },
-    "median_retrieval_seconds": 0.025,
-    "median_generation_seconds": 2.42,
-    "max_generation_seconds": 4.6,
-    "max_vram_peak_gb": 8.52
+    "median_retrieval_seconds": 0.022,
+    "median_generation_seconds": 2.34,
+    "max_generation_seconds": 4.32,
+    "max_vram_peak_gb": 8.36
   },
   "items": [
     {
       "id": "A05",
       "in_scope": true,
       "question": "Mỗi năm, đơn vị đào tạo lập hội đồng xét tốt nghiệp mấy lần?",
-      "answer": "Đơn vị đào tạo lập hội đồng xét tốt nghiệp 4 lần trong năm [1].",
+      "answer": "Đơn vị đào tạo lập hội đồng xét tốt nghiệp 4 lần trong năm, cụ thể là tháng 3; tháng 6 và tháng 7; tháng 9; tháng 12 [1].",
       "auto_flag": "answered",
       "sources": [
         "dieu44_khoan1",
         "dieu36_khoan1",
         "dieu9_khoan1",
-        "dieu44_khoan2",
-        "dieu16_khoan2"
+        "dieu16_khoan2",
+        "dieu44_khoan2"
       ],
       "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.057,
-      "generation_seconds": 2.03,
+      "retrieval_seconds": 0.059,
+      "generation_seconds": 3.26,
       "vram_peak_gb": 8.24
     },
     {
       "id": "A12",
       "in_scope": true,
       "question": "Ai là người phụ trách lớp sinh viên cùng ngành và cùng khoá?",
-      "answer": "Phụ trách lớp sinh viên cùng ngành và cùng khoá là giáo viên chủ nhiệm [2].",
+      "answer": "Giáo viên chủ nhiệm là người phụ trách lớp sinh viên cùng ngành và cùng khoá.[1]",
       "auto_flag": "answered",
       "sources": [
-        "dieu19_khoan2",
         "dieu19_khoan1",
-        "dieu35_khoan2",
+        "dieu19_khoan2",
         "dieu10_khoan3",
-        "dieu20_khoan8_diema"
+        "dieu35_khoan2",
+        "dieu11_khoan3"
       ],
-      "first_gold_rank": 2,
+      "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.025,
-      "generation_seconds": 2.0,
-      "vram_peak_gb": 8.23
+      "retrieval_seconds": 0.023,
+      "generation_seconds": 1.93,
+      "vram_peak_gb": 8.18
     },
     {
       "id": "A14",
@@ -118,36 +120,36 @@
         "dieu37_khoan2",
         "dieu37_intro",
         "dieu32_khoan4_diemc",
-        "dieu32_khoan4_diemb"
+        "dieu37_khoan3"
       ],
       "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.029,
-      "generation_seconds": 1.31,
-      "vram_peak_gb": 8.19
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 1.25,
+      "vram_peak_gb": 8.18
     },
     {
       "id": "A17",
       "in_scope": true,
       "question": "Để chứng minh một ngành học mới đáp ứng nhu cầu xã hội, đơn vị đào tạo cần dựa vào hoạt động nào?",
-      "answer": "Để chứng minh một ngành học mới đáp ứng nhu cầu xã hội, đơn vị đào tạo cần dựa vào điều tra khảo sát tại các cơ sở sử dụng người học sau tốt nghiệp [1].",
+      "answer": "Đơn vị đào tạo cần dựa vào điều tra khảo sát tại các cơ sở sử dụng người học sau tốt nghiệp để chứng minh nhu cầu xã hội cao cho ngành học mới [1].",
       "auto_flag": "answered",
       "sources": [
         "dieu11_khoan1",
         "dieu3_khoan2",
-        "dieu9_khoan1",
         "dieu11_khoan4",
-        "dieu28_khoan1"
+        "dieu9_khoan1",
+        "dieu11_khoan2"
       ],
       "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.028,
-      "generation_seconds": 3.24,
-      "vram_peak_gb": 8.11
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 2.81,
+      "vram_peak_gb": 8.08
     },
     {
       "id": "A20",
@@ -166,29 +168,29 @@
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.024,
-      "generation_seconds": 1.39,
+      "retrieval_seconds": 0.023,
+      "generation_seconds": 1.34,
       "vram_peak_gb": 8.15
     },
     {
       "id": "A21",
       "in_scope": true,
       "question": "Khi sinh viên giành nhiều giải nghiên cứu khoa học, thành tích nào được dùng để tính điểm thưởng?",
-      "answer": "Khi sinh viên giành nhiều giải nghiên cứu khoa học, chỉ cộng điểm thưởng một lần ở mức giải cao nhất [1].",
+      "answer": "Nếu sinh viên đạt nhiều giải thưởng nghiên cứu khoa học ở các cấp thì chỉ cộng điểm thưởng một lần ở mức giải cao nhất [2].",
       "auto_flag": "answered",
       "sources": [
-        "dieu29_khoan3",
         "dieu29_khoan1",
+        "dieu29_khoan3",
         "dieu29_khoan2",
         "dieu29_khoan4",
-        "dieu28_khoan2"
+        "dieu36_khoan3"
       ],
-      "first_gold_rank": 1,
+      "first_gold_rank": 2,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.024,
-      "generation_seconds": 2.49,
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 2.53,
       "vram_peak_gb": 8.12
     },
     {
@@ -208,8 +210,8 @@
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.025,
-      "generation_seconds": 2.64,
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 2.4,
       "vram_peak_gb": 8.09
     },
     {
@@ -221,37 +223,37 @@
       "sources": [
         "dieu33_khoan3_diemc",
         "dieu40_khoan2_w1",
-        "dieu5_khoan2",
         "dieu41_khoan1",
-        "dieu40_khoan2_w0"
+        "dieu5_khoan2",
+        "dieu33_khoan3_diemb"
       ],
       "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.024,
-      "generation_seconds": 2.87,
-      "vram_peak_gb": 8.52
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 2.52,
+      "vram_peak_gb": 8.35
     },
     {
       "id": "A26",
       "in_scope": true,
       "question": "Sau buổi thi cuối môn, nhà trường có tối đa mấy ngày làm việc để chấm và thông báo điểm?",
-      "answer": "Tối đa 15 ngày làm việc kể từ ngày tổ chức thi kết thúc học phần.[2]",
+      "answer": "15 ngày làm việc kể từ ngày tổ chức thi kết thúc học phần. [1]",
       "auto_flag": "answered",
       "sources": [
-        "dieu35_khoan1",
         "dieu35_khoan7",
-        "dieu37_khoan2",
+        "dieu35_khoan1",
         "dieu35_khoan4",
-        "dieu35_khoan3"
+        "dieu37_khoan2",
+        "dieu35_khoan8"
       ],
-      "first_gold_rank": 2,
+      "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.025,
-      "generation_seconds": 2.17,
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 1.89,
       "vram_peak_gb": 8.15
     },
     {
@@ -261,19 +263,19 @@
       "answer": "Không tìm thấy thông tin trong tài liệu.",
       "auto_flag": "refused",
       "sources": [
-        "dieu35_khoan1",
         "dieu5_khoan2",
-        "dieu19_khoan1",
+        "dieu35_khoan1",
         "dieu15_intro",
-        "dieu19_khoan2"
+        "dieu19_khoan1",
+        "dieu2_khoan2"
       ],
       "first_gold_rank": null,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.024,
-      "generation_seconds": 1.88,
-      "vram_peak_gb": 8.37
+      "retrieval_seconds": 0.021,
+      "generation_seconds": 1.79,
+      "vram_peak_gb": 8.36
     },
     {
       "id": "B05",
@@ -292,8 +294,8 @@
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.024,
-      "generation_seconds": 2.85,
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 2.7,
       "vram_peak_gb": 8.29
     },
     {
@@ -305,16 +307,16 @@
       "sources": [
         "dieu9_khoan1",
         "dieu24_khoan3",
-        "dieu9_khoan2",
         "dieu17_khoan7",
-        "dieu35_khoan7"
+        "dieu9_khoan2",
+        "dieu17_khoan2"
       ],
       "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.024,
-      "generation_seconds": 2.85,
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 2.67,
       "vram_peak_gb": 8.1
     },
     {
@@ -334,8 +336,8 @@
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.025,
-      "generation_seconds": 1.55,
+      "retrieval_seconds": 0.023,
+      "generation_seconds": 1.44,
       "vram_peak_gb": 8.11
     },
     {
@@ -349,26 +351,26 @@
         "dieu44_khoan6",
         "dieu43_khoan1_dieme",
         "dieu24_khoan6",
-        "dieu43_khoan1_diema"
+        "dieu13_khoan2_dieme"
       ],
       "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.026,
-      "generation_seconds": 1.93,
-      "vram_peak_gb": 8.08
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 1.96,
+      "vram_peak_gb": 8.1
     },
     {
       "id": "B20",
       "in_scope": true,
       "question": "Điểm trung bình chung các học phần tính từ đầu khóa bao gồm kết quả của những nhóm học phần nào?",
-      "answer": "Điểm trung bình chung các học phần tính từ đầu khóa bao gồm kết quả của tất cả các học phần mà sinh viên đăng ký học từ đầu khóa học cho tới thời điểm xem xét, bao gồm cả các học phần được đánh giá loại đạt và không đạt [1].",
+      "answer": "Điểm trung bình chung các học phần tính từ đầu khóa học bao gồm kết quả của tất cả các học phần mà sinh viên đăng ký học từ đầu khóa học đến thời điểm xem xét, bao gồm cả các học phần được đánh giá loại đạt và không đạt [1].",
       "auto_flag": "answered",
       "sources": [
         "dieu39_khoan4",
-        "dieu39_khoan5",
         "dieu39_khoan3",
+        "dieu39_khoan5",
         "dieu40_khoan2_w0",
         "dieu42_khoan2"
       ],
@@ -376,8 +378,8 @@
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.026,
-      "generation_seconds": 4.6,
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 4.32,
       "vram_peak_gb": 8.19
     },
     {
@@ -391,15 +393,15 @@
         "dieu35_khoan2",
         "dieu20_khoan2_diemb",
         "dieu35_khoan1",
-        "dieu21_khoan3"
+        "dieu35_khoan7"
       ],
       "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.025,
-      "generation_seconds": 2.1,
-      "vram_peak_gb": 8.22
+      "retrieval_seconds": 0.024,
+      "generation_seconds": 1.88,
+      "vram_peak_gb": 8.2
     },
     {
       "id": "B23",
@@ -410,16 +412,16 @@
       "sources": [
         "dieu38_khoan1",
         "dieu38_khoan2_diemc",
-        "dieu34_khoan6",
         "dieu34_khoan1",
+        "dieu34_khoan6",
         "dieu35_khoan8"
       ],
       "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.026,
-      "generation_seconds": 2.83,
+      "retrieval_seconds": 0.021,
+      "generation_seconds": 2.6,
       "vram_peak_gb": 8.1
     },
     {
@@ -432,15 +434,15 @@
         "dieu40_khoan2_w1",
         "dieu42_khoan2",
         "dieu29_khoan1",
-        "dieu21_khoan1",
-        "dieu40_khoan2_w0"
+        "dieu40_khoan2_w0",
+        "dieu21_khoan1"
       ],
       "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.024,
-      "generation_seconds": 2.06,
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 1.95,
       "vram_peak_gb": 8.3
     },
     {
@@ -454,14 +456,14 @@
         "dieu44_khoan3",
         "dieu44_khoan10",
         "dieu44_khoan1",
-        "dieu44_khoan8"
+        "dieu44_khoan6"
       ],
       "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.023,
-      "generation_seconds": 1.86,
+      "retrieval_seconds": 0.021,
+      "generation_seconds": 1.68,
       "vram_peak_gb": 8.09
     },
     {
@@ -471,19 +473,19 @@
       "answer": "Không tìm thấy thông tin trong tài liệu.",
       "auto_flag": "refused",
       "sources": [
-        "dieu26_khoan3_diemb",
         "dieu44_khoan10",
-        "dieu41_khoan2",
+        "dieu26_khoan3_diemb",
         "dieu33_khoan3_diemc",
-        "dieu33_khoan3_diemb"
+        "dieu41_khoan2",
+        "dieu16_khoan1_diemd"
       ],
       "first_gold_rank": null,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.026,
-      "generation_seconds": 1.61,
-      "vram_peak_gb": 8.25
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 1.51,
+      "vram_peak_gb": 8.24
     },
     {
       "id": "C06",
@@ -502,8 +504,8 @@
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.027,
-      "generation_seconds": 1.41,
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 1.32,
       "vram_peak_gb": 8.12
     },
     {
@@ -523,29 +525,29 @@
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.028,
-      "generation_seconds": 2.97,
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 2.73,
       "vram_peak_gb": 8.09
     },
     {
       "id": "C16",
       "in_scope": true,
       "question": "Đơn vị đào tạo phải gửi đề nghị phê duyệt chỉ tiêu tuyển sinh lên Giám đốc Đại học Quốc gia Hà Nội muộn nhất vào ngày nào mỗi năm?",
-      "answer": "Đơn vị đào tạo phải gửi đề nghị phê duyệt chỉ tiêu tuyển sinh lên Giám đốc Đại học Quốc gia Hà Nội muộn nhất vào ngày 30 tháng 5 mỗi năm [1].",
+      "answer": "Đơn vị đào tạo phải gửi đề nghị phê duyệt chỉ tiêu tuyển sinh lên Giám đốc Đại học Quốc gia Hà Nội muộn nhất vào ngày 30 tháng 5 hàng năm [1].",
       "auto_flag": "answered",
       "sources": [
         "dieu9_khoan1",
         "dieu24_khoan3",
         "dieu17_khoan2",
-        "dieu9_khoan2",
-        "dieu17_khoan7"
+        "dieu17_khoan7",
+        "dieu9_khoan2"
       ],
       "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.026,
-      "generation_seconds": 3.27,
+      "retrieval_seconds": 0.024,
+      "generation_seconds": 2.94,
       "vram_peak_gb": 8.1
     },
     {
@@ -565,30 +567,30 @@
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.025,
-      "generation_seconds": 2.91,
+      "retrieval_seconds": 0.021,
+      "generation_seconds": 2.76,
       "vram_peak_gb": 8.32
     },
     {
       "id": "C22",
       "in_scope": true,
       "question": "Người nước ngoài xin vào học Đại học Quốc gia Hà Nội theo diện chuyển trường cần có trình độ ngôn ngữ đạt chuẩn bậc mấy?",
-      "answer": "Theo quy định trong ngữ cảnh [2], người nước ngoài xin vào học Đại học Quốc gia Hà Nội theo diện chuyển trường cần có trình độ tiếng Việt hoặc ngoại ngữ đạt chuẩn bậc 4 trở lên.",
+      "answer": "Người nước ngoài xin vào học Đại học Quốc gia Hà Nội theo diện chuyển trường cần có trình độ ngôn ngữ đạt chuẩn bậc 4 trở lên [1][2].",
       "auto_flag": "answered",
       "sources": [
-        "dieu26_khoan3_diemb",
         "dieu26_khoan3_diema",
-        "dieu12_khoan3",
+        "dieu26_khoan3_diemb",
         "dieu26_khoan2",
-        "dieu26_khoan1"
+        "dieu12_khoan3",
+        "dieu20_khoan6"
       ],
       "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.025,
-      "generation_seconds": 4.0,
-      "vram_peak_gb": 8.28
+      "retrieval_seconds": 0.021,
+      "generation_seconds": 3.54,
+      "vram_peak_gb": 8.36
     },
     {
       "id": "C23",
@@ -598,17 +600,17 @@
       "auto_flag": "answered",
       "sources": [
         "dieu40_khoan2_w0",
-        "dieu38_khoan2_diemc",
         "dieu40_khoan1",
-        "dieu38_khoan2_diemb",
-        "dieu40_khoan2_w1"
+        "dieu38_khoan2_diemc",
+        "dieu40_khoan2_w1",
+        "dieu38_khoan2_diemb"
       ],
       "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.024,
-      "generation_seconds": 2.45,
+      "retrieval_seconds": 0.025,
+      "generation_seconds": 2.28,
       "vram_peak_gb": 8.26
     },
     {
@@ -620,17 +622,17 @@
       "sources": [
         "dieu24_khoan1",
         "dieu23_khoan2",
-        "dieu39_khoan4",
         "dieu13_khoan2_diemdd",
-        "dieu40_khoan2_w1"
+        "dieu39_khoan4",
+        "dieu20_khoan1"
       ],
       "first_gold_rank": 1,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.024,
-      "generation_seconds": 3.17,
-      "vram_peak_gb": 8.23
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 3.27,
+      "vram_peak_gb": 8.3
     },
     {
       "id": "C26",
@@ -649,8 +651,8 @@
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.025,
-      "generation_seconds": 2.38,
+      "retrieval_seconds": 0.023,
+      "generation_seconds": 2.18,
       "vram_peak_gb": 8.13
     },
     {
@@ -670,8 +672,8 @@
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.025,
-      "generation_seconds": 3.01,
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 2.84,
       "vram_peak_gb": 8.21
     },
     {
@@ -681,19 +683,19 @@
       "answer": "Không tìm thấy thông tin trong tài liệu.",
       "auto_flag": "refused",
       "sources": [
-        "dieu32_khoan4_diemb",
         "dieu35_khoan1",
-        "dieu32_khoan4_diema",
+        "dieu32_khoan4_diemb",
         "dieu35_khoan2",
-        "dieu37_khoan3"
+        "dieu32_khoan4_diema",
+        "dieu35_khoan9"
       ],
       "first_gold_rank": null,
       "invalid_citations": [],
       "cjk": false,
       "attempts": 1,
-      "retrieval_seconds": 0.023,
-      "generation_seconds": 1.99,
-      "vram_peak_gb": 8.32
+      "retrieval_seconds": 0.022,
+      "generation_seconds": 1.55,
+      "vram_peak_gb": 8.25
     }
   ]
 }
