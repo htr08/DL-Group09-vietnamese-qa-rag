@@ -1,0 +1,96 @@
+{
+  "name": "A_v2_xlmr_lr5e-5_seed12",
+  "tag": "xlmr",
+  "lr_label": "5e-5",
+  "learning_rate": 5e-05,
+  "seed": 12,
+  "checkpoint": "/kaggle/working/A_QA_FULL_RERUN_V2/checkpoints/xlmr_lr5e-5_seed12/best_model",
+  "best_epoch": 3,
+  "training_dev_f1": 0.41284497996831626,
+  "training_dev_em": 0.36054913294797686,
+  "checkpoint_hashes": {
+    "config.json": "ac7aff5828f41e25b0a7bd9f950424e6d3dd9bb08c6142cb892e81a638156ca9",
+    "model.safetensors": "f5d8ffcb62a9157869055eee0f6a8486bbc7fda79626cb6265513037e459e064",
+    "qa_config.json": "adea17a0e0e2ad680eabd2a37d4d869fb3076a7696f1953638482a03aeeb48ee",
+    "qa_dropout.pt": "060dfaed0d3cdd05db7c074bb56c3334c1698ecd182e9ecf20f1d89a4787e02a",
+    "qa_head.pt": "b7ab6ad9f2a13a618796dc8aa5864cc802f716b7acd518353a578ba1bf5fbb93",
+    "sentencepiece.bpe.model": "cfc8146abe2a0488e9e2a0c56de7952f7c11ab059eca145a0a727afce0db2865",
+    "special_tokens_map.json": "06e405a36dfe4b9604f484f6a1e619af1a7f7d09e34a8555eb0b77b66318067f",
+    "tokenizer.json": "3a56def25aa40facc030ea8b0b87f3688e4b3c39eb8b45d5702b3a1300fe2a20",
+    "tokenizer_config.json": "ccf223ba3d5b3cc7fa6c3bf451f3bb40557a5c92b0aa33f63d17802ff1a96fd9"
+  },
+  "config": {
+    "model_name": "xlm-roberta-base",
+    "learning_rate": 5e-05,
+    "seed": 12,
+    "epochs": 3,
+    "batch_size": 8,
+    "gradient_accumulation_steps": 2,
+    "git_commit": "1251e4b4ffae6401126abf58be2b9bc10e2c7541",
+    "train_sha256": "678300c86faa0a45373f015693ba48dec9a43ba27b5838cf203e6466148aa97c",
+    "dev_sha256": "357c6201498682180ede6ca6ac2069970d31463e3e85e1ff69d243714d735f81",
+    "gold_sha256": "738c602183e11e718a736fe37595a43138e0b91dc6426b96bce084fa459b3568"
+  },
+  "evaluation_dir": "/kaggle/working/A_QA_FULL_RERUN_V2/metrics/A_v2_xlmr_lr5e-5_seed12_nbest20",
+  "summary_path": "/kaggle/working/A_QA_FULL_RERUN_V2/metrics/A_v2_xlmr_lr5e-5_seed12_nbest20/summary.json",
+  "predictions_path": "/kaggle/working/A_QA_FULL_RERUN_V2/metrics/A_v2_xlmr_lr5e-5_seed12_nbest20/dev_predictions.jsonl",
+  "nbest_path": "/kaggle/working/A_QA_FULL_RERUN_V2/metrics/A_v2_xlmr_lr5e-5_seed12_nbest20/nbest_dev.jsonl",
+  "dev_f1": 0.41725621460878864,
+  "dev_em": 0.3457369942196532,
+  "threshold": 1.6272823810577393,
+  "summary": {
+    "eval_split": "ViQuAD title-held-out Dev",
+    "dev_questions": 2768,
+    "features": 3916,
+    "checkpoint": "/kaggle/working/A_QA_FULL_RERUN_V2/checkpoints/xlmr_lr5e-5_seed12/best_model",
+    "n_best_size": 20,
+    "max_answer_length": 30,
+    "baseline_threshold_0": {
+      "em": 0.36054913294797686,
+      "f1": 0.4128449799683162
+    },
+    "tuned_on_dev": {
+      "null_threshold": 1.6272823810577393,
+      "em": 0.3457369942196532,
+      "f1": 0.41725621460878864
+    },
+    "per_category": {
+      "answerable": {
+        "count": 1886,
+        "em": 0.20042417815482502,
+        "f1": 0.3053898208044142
+      },
+      "impossible": {
+        "count": 882,
+        "em": 0.6564625850340136,
+        "f1": 0.6564625850340136
+      }
+    },
+    "notes": [
+      "Features tạo bằng mode=eval (không gold-driven token/window)",
+      "Decoded by exact char offsets and word boundaries",
+      "Không tune threshold trên public Test"
+    ]
+  },
+  "provenance": {
+    "git_commit": "1251e4b4ffae6401126abf58be2b9bc10e2c7541",
+    "checkpoint_hashes": {
+      "config.json": "ac7aff5828f41e25b0a7bd9f950424e6d3dd9bb08c6142cb892e81a638156ca9",
+      "model.safetensors": "f5d8ffcb62a9157869055eee0f6a8486bbc7fda79626cb6265513037e459e064",
+      "qa_config.json": "adea17a0e0e2ad680eabd2a37d4d869fb3076a7696f1953638482a03aeeb48ee",
+      "qa_dropout.pt": "060dfaed0d3cdd05db7c074bb56c3334c1698ecd182e9ecf20f1d89a4787e02a",
+      "qa_head.pt": "b7ab6ad9f2a13a618796dc8aa5864cc802f716b7acd518353a578ba1bf5fbb93",
+      "sentencepiece.bpe.model": "cfc8146abe2a0488e9e2a0c56de7952f7c11ab059eca145a0a727afce0db2865",
+      "special_tokens_map.json": "06e405a36dfe4b9604f484f6a1e619af1a7f7d09e34a8555eb0b77b66318067f",
+      "tokenizer.json": "3a56def25aa40facc030ea8b0b87f3688e4b3c39eb8b45d5702b3a1300fe2a20",
+      "tokenizer_config.json": "ccf223ba3d5b3cc7fa6c3bf451f3bb40557a5c92b0aa33f63d17802ff1a96fd9"
+    },
+    "features_sha256": "357c6201498682180ede6ca6ac2069970d31463e3e85e1ff69d243714d735f81",
+    "gold_sha256": "738c602183e11e718a736fe37595a43138e0b91dc6426b96bce084fa459b3568",
+    "n_best": 20
+  },
+  "sha256_summary": "184f84ac72f5622aa6bb31ef8fa051424ced98539fb22744c9ce31c0232ff0d8",
+  "sha256_predictions": "20c9011abc977603c696eaf18e76699b050c33ed2e947461529afc3ad0f3c6b5",
+  "run_id": "65osbily",
+  "run_url": "https://forge.coreweave.com/wandb/nhom09-vi-qa-rag/vi-qa-rag/runs/65osbily"
+}

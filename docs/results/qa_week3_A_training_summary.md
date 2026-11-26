@@ -1,5 +1,7 @@
 # Tuần 3 — A: PhoBERT trên tập ViQuAD Dev nội bộ sạch
 
+> **Cập nhật 26/11/2026:** Các kết quả trước đợt V2 được giữ làm evidence lịch sử. Nguồn kết quả mới: [QA V2](qa_v2/README.md).
+
 **Phạm vi và nguồn bằng chứng.** Tài liệu tổng hợp kết quả thực nghiệm lịch sử từ `phobert_3lr_clean_dev_EVIDENCE.zip` (15 tệp, gồm lịch sử huấn luyện, tóm tắt huấn luyện, manifest từng lần chạy và kết quả n-best). Gói bằng chứng này được lưu **ngoài repository**; tài liệu không bao gồm trọng số mô hình hoặc bộ dữ liệu huấn luyện.
 
 - **Dữ liệu:** ViQuAD Dev nội bộ tách theo `title`, gồm **2.768 câu hỏi**, 13 title và 3.155 features; 1.886 câu có đáp án / 882 câu không có đáp án. Quá trình tiền xử lý sạch không bỏ qua câu nào; giữ lại 29 trường hợp không căn chỉnh được nhãn (`unalignable`) để đánh giá.
@@ -78,3 +80,36 @@ Các bằng chứng Tuần 4 (đều trên Dev) cho thấy:
 Các cấu hình trên sử dụng **training recipe/decoder khác nhau**, vì vậy không được diễn giải chúng như những phép so sánh nhân quả chỉ thay đổi một yếu tố. Chi tiết xem `docs/results/qa_week4_A_progress.md`.
 
 **Trạng thái lựa chọn mô hình:** checkpoint seed 42 có F1 cao nhất **trong nhóm pipeline mới**; Legacy Recipe seed 12 có F1 71,43% trong **nhóm recipe riêng**. Chưa có biên bản so sánh/freeze cuối cùng; B1 vẫn dùng checkpoint seed 12 lịch sử. Xem `docs/results/qa_results_current_2026-11-25.md`.
+
+
+
+## Đối chiếu các checkpoint lịch sử
+
+| Nguồn | W&B | EM (%) | F1 (%) | Threshold |
+|---|---|---:|---:|---:|
+| Tuần 3 LR 5e-5 | jrduerjp (training history) | 55,78 | 69,94 | -1,489326 |
+| Set 1 re-evaluation | Chưa xác định | 55,23844 | 70,09862 | -0,6444211006164551 |
+| Set 2 re-evaluation | Chưa xác định | 53,61272 | 68,76198 | -0,00926065444946289 |
+| Checkpoint Kaggle lịch sử | i0pttl2l | 56,68 | 70,80 | -1,6078 |
+
+Set 1 QA head SHA256:
+`9cd8c5f92ef9a7af8665b9664801bc58ae8b97b323633321cac8e5ada1ed3e95`.
+
+Set 2 QA head SHA256:
+`7db817d542f9c0021e93a39a540624268ca0ccbbabf8aa572469811690e1be69`.
+
+CSV lịch sử khớp 66/66 ID với Set 2, 3/66 ID với Set 1.
+Chưa xác minh độc lập toàn bộ provenance lịch sử.
+Không gán audit của V2 hoặc i0pttl2l cho CSV Set 2.
+
+W&B training run lịch sử:
+2e-5: w81nmhkx; 3e-5: o977pz63; 5e-5: jrduerjp.
+Các lượt chạy thiếu ID/log được giữ là evidence lịch sử.
+Không suy diễn nguyên nhân chênh lệch giữa các run.
+
+PhoBERT V2, LR 5e-5, seed 12: Dev EM 54.9133%, F1 70.3350%, threshold 0.2479505539; [W&B evaluation j212ro7f](https://forge.coreweave.com/wandb/nhom09-vi-qa-rag/vi-qa-rag/runs/j212ro7f).
+
+Xem [QA V2](qa_v2/README.md).
+
+
+Phân tích lỗi hiện hành: [CSV V2](viquad_66_error.csv). Nguồn chuẩn: [QA V2](qa_v2/README.md).

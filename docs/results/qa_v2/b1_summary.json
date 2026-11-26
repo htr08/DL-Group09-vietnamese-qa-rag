@@ -1,0 +1,70 @@
+{
+  "eval_split": "domain_dev",
+  "questions": 30,
+  "in_scope": 27,
+  "out_of_scope": 3,
+  "top_k": 3,
+  "chunk_count": 216,
+  "checkpoint": "/kaggle/working/A_QA_FULL_RERUN_V2/checkpoints/phobert_lr5e-5_seed12/best_model",
+  "device": "cuda",
+  "preprocessing_mode": "predict_gold_independent",
+  "decoder": "word_char_offsets; global best span vs min null across retrieved windows",
+  "max_answer_length": 30,
+  "fixed_threshold_0": {
+    "threshold": 0.0,
+    "em": 63.33,
+    "f1": 78.98,
+    "breakdown": {
+      "all": {
+        "n": 30,
+        "em": 63.33,
+        "f1": 78.98
+      },
+      "in_scope": {
+        "n": 27,
+        "em": 59.26,
+        "f1": 76.64
+      },
+      "out_of_scope": {
+        "n": 3,
+        "em": 100.0,
+        "f1": 100.0
+      }
+    }
+  },
+  "tuned_on_domain_dev": {
+    "threshold": 1.178055763244629,
+    "em": 66.67,
+    "f1": 85.28,
+    "breakdown": {
+      "all": {
+        "n": 30,
+        "em": 66.67,
+        "f1": 85.28
+      },
+      "in_scope": {
+        "n": 27,
+        "em": 62.96,
+        "f1": 83.64
+      },
+      "out_of_scope": {
+        "n": 3,
+        "em": 100.0,
+        "f1": 100.0
+      }
+    }
+  },
+  "provenance": {
+    "gold_sha256": "2abab76b57a4c27ea4b0841f15ae1c4fc68b30aa7ee032fd5a7c2a8997b17dbe",
+    "bm25_sha256": "b804ca6aab83a0c266ddbf1a113d1c3b2684c93c40bf0f015e5bc77a92a76d73",
+    "chunks_sha256": "2ab38bf1d02f1436f86769acbdecc32cef5d878763951b3164463e9b3d3f12fb",
+    "head_sha256": "9d322cc56b09f43526f29e6925db1d6f8950162c6d6b259291f46d4a90c078e3"
+  },
+  "caveats": [
+    "Top-k retrieval logits are not calibrated across documents; baseline only.",
+    "Domain Dev contains 3 out-of-scope questions, threshold tuning is high-variance.",
+    "Threshold depends on top_k and the exact chunk corpus.",
+    "Dev-tuned EM/F1 are in-sample on the same 30 questions.",
+    "Never tune on domain Test. Do not compare this directly with ViQuAD Dev EM/F1."
+  ]
+}

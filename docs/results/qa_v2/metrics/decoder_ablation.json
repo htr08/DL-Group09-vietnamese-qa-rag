@@ -1,0 +1,54 @@
+[
+  {
+    "n_best": 1,
+    "fixed_threshold_0": {
+      "em": 0.5455202312138728,
+      "f1": 0.6899729828413419
+    },
+    "tuned_threshold": {
+      "null_threshold": 0.22922778129577637,
+      "em": 0.5451589595375722,
+      "f1": 0.6913671798396377
+    },
+    "checkpoint": "/kaggle/working/A_QA_FULL_RERUN_V2/checkpoints/phobert_lr5e-5_seed12/best_model"
+  },
+  {
+    "n_best": 5,
+    "fixed_threshold_0": {
+      "em": 0.548771676300578,
+      "f1": 0.7012328683888422
+    },
+    "tuned_threshold": {
+      "null_threshold": 0.24795055389404297,
+      "em": 0.5491329479768786,
+      "f1": 0.7033496087397394
+    },
+    "checkpoint": "/kaggle/working/A_QA_FULL_RERUN_V2/checkpoints/phobert_lr5e-5_seed12/best_model"
+  },
+  {
+    "n_best": 10,
+    "fixed_threshold_0": {
+      "em": 0.548771676300578,
+      "f1": 0.7012328683888422
+    },
+    "tuned_threshold": {
+      "null_threshold": 0.24795055389404297,
+      "em": 0.5491329479768786,
+      "f1": 0.7033496087397394
+    },
+    "checkpoint": "/kaggle/working/A_QA_FULL_RERUN_V2/checkpoints/phobert_lr5e-5_seed12/best_model"
+  },
+  {
+    "n_best": 20,
+    "fixed_threshold_0": {
+      "em": 0.548771676300578,
+      "f1": 0.7012328683888422
+    },
+    "tuned_threshold": {
+      "null_threshold": 0.24795055389404297,
+      "em": 0.5491329479768786,
+      "f1": 0.7033496087397394
+    },
+    "checkpoint": "/kaggle/working/A_QA_FULL_RERUN_V2/checkpoints/phobert_lr5e-5_seed12/best_model"
+  }
+]

@@ -1,5 +1,7 @@
 # B1 — BM25 (216 chunks) + PhoBERT trên Domain Dev
 
+> **Lưu ý:** Kết quả B1 trong tài liệu này thuộc checkpoint lịch sử. B1 V2 với 216 chunks, Top-3, 30 Domain Dev đạt EM 63.33%, F1 78.98% tại threshold 0. Ngưỡng tuned 1.17805576: EM 66.67%, F1 85.28%. Xem [summary V2](qa_v2/b1_summary.json).
+
 > **Trạng thái 25/11/2026:** đã chạy inference trên **30 câu Dev**. Đây là kết quả hệ thống tại cấu hình đã chạy, dùng bộ Gold chính thức của nhóm, không phải Test. Không rebuild BM25, không đổi checkpoint.
 
 ## Cấu hình
@@ -18,7 +20,7 @@
 
 | Thiết lập | EM | F1 |
 |---|---:|---:|
-| **Fixed threshold = 0 (baseline chính)** | **70,00% (21/30)** | **86,73%** |
+| **Fixed threshold = 0 (baseline lịch sử)** | **70,00% (21/30)** | **86,73%** |
 | Tuned threshold ≈ −0,477434 (Dev) | **70,00%** | **86,73%** |
 
 Phân nhóm tại threshold 0: **in-scope** (27 câu): EM **66,67%**, F1 **85,25%**; **out-of-scope** (3 câu): EM/F1 **100%**. Điều chỉnh threshold trên cùng Dev không cải thiện điểm.
@@ -49,3 +51,5 @@ python scripts/run_b1_domain_dev.py --checkpoint "$CKPT" --top-k 3
 ```
 
 Điều kiện: index BM25 **216 chunks** đã tồn tại tại `data/index/domain` và script B1 ở `scripts/`. Không rebuild hay thay checkpoint để làm tài liệu.
+
+Gold và metadata chunk có hash khác giữa lịch sử và V2; không quy toàn bộ chênh lệch EM/F1 cho riêng checkpoint.

@@ -1,0 +1,34 @@
+{
+  "eval_split": "ViQuAD title-held-out Dev",
+  "dev_questions": 2768,
+  "features": 3952,
+  "checkpoint": "/kaggle/working/A_QA_FULL_RERUN_V2/checkpoints/phobert_noseg_lr5e-5_seed12/best_model",
+  "n_best_size": 20,
+  "max_answer_length": 30,
+  "baseline_threshold_0": {
+    "em": 0.36416184971098264,
+    "f1": 0.42995506791289884
+  },
+  "tuned_on_dev": {
+    "null_threshold": 0.9480321407318115,
+    "em": 0.36127167630057805,
+    "f1": 0.43805510902513717
+  },
+  "per_category": {
+    "answerable": {
+      "count": 1886,
+      "em": 0.19353128313891835,
+      "f1": 0.30622298079617105
+    },
+    "impossible": {
+      "count": 882,
+      "em": 0.719954648526077,
+      "f1": 0.719954648526077
+    }
+  },
+  "notes": [
+    "Features tạo bằng mode=eval (không gold-driven token/window)",
+    "Decoded by exact char offsets and word boundaries",
+    "Không tune threshold trên public Test"
+  ]
+}
