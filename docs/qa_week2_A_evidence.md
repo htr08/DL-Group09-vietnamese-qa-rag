@@ -97,8 +97,8 @@
 - Mô hình PhoBERT QA: tự triển khai QA head/loss, training loop, EM/F1 và n-best decoder theo kế hoạch; tài liệu chi tiết 3 LR, threshold và chỉ số Dev tại `docs/results/qa_week3_A_training_summary.md`.
 - Tư liệu thí nghiệm lịch sử: `phobert_3lr_clean_dev_EVIDENCE.zip` (manifest và summary), **không nằm trong Git repo**, không bao gồm model weights/predictions đầy đủ; không coi có ZIP là đã tái chạy inference.
 - Báo cáo lần chạy W&B: project `nhom09-vi-qa-rag/vi-qa-rag`; commit huấn luyện `b202d3dc9fb4bcdd02131d213d4b1b8d26f1dde8`. **Chưa có URL/ID run riêng được đối chiếu trong tài liệu này**; cần dẫn link cụ thể khi tổng hợp báo cáo cuối.
-- Đóng góp nhãn của A: **viết 33 câu**, **gán nhãn độc lập 33 câu của B**. Bộ Gold nhóm có **30 Dev / 70 Test** (trên `main` theo lần kiểm tra Git); việc chốt bất đồng và bằng chứng đồng thuận hai vòng cần đối chiếu với hồ sơ gán nhãn trước khi khẳng định toàn bộ đã *finalized*.
-- B1 hiện tại: BM25 Top-3 + PhoBERT, index 216 chunks, đánh giá trên 30 câu Domain Dev (27 in-scope, 3 out-of-scope). Fixed threshold = 0: EM 70,00%, F1 86,73%. Evidence và SHA-256: `docs/results/b1_domain_dev/summary.json`. Kết quả 213 chunks là thí nghiệm lịch sử, không tái lập được bằng mã build index hiện tại. Gold 30 Dev / 70 Test đã có; việc chốt nhãn cuối chưa được xác minh.
+- Đóng góp nhãn của A: **viết 33 câu**, **gán nhãn độc lập 33 câu của B**. Bộ Gold nhóm có **30 Dev / 70 Test** (trên `main`) và là bản chính thức; nhãn tác giả, nhãn độc lập và resolution nằm trong `data/gold/drafts/`.
+- B1 hiện tại: BM25 Top-3 + PhoBERT, index 216 chunks, đánh giá trên 30 câu Domain Dev (27 in-scope, 3 out-of-scope). Fixed threshold = 0: EM 70,00%, F1 86,73%. Evidence và SHA-256: `docs/results/b1_domain_dev/summary.json`. Kết quả 213 chunks là thí nghiệm lịch sử, không tái lập được bằng mã build index hiện tại. Gold 30 Dev / 70 Test là bản chính thức của nhóm.
 
 ## 6. Giới hạn và vị trí bằng chứng
 

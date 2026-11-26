@@ -137,7 +137,7 @@ def test_load_gold_queries_raises_when_file_is_empty(tmp_path, monkeypatch):
 
 
 def test_test_split_requires_explicit_rrf_k(monkeypatch):
-    """Trên tập test, k của RRF phải truyền từ dev qua --rrf_k, không được tự chọn lại (§8.2)."""
+    """Trên tập test, k của RRF phải truyền từ dev qua --rrf_k, không được tự chọn lại (§3.5c)."""
     monkeypatch.setattr(sys, "argv", ["run_eval.py", "--split", "domain_test", "--method", "hybrid"])
     monkeypatch.setattr(run_eval, "load_gold_queries", lambda split: [])
     monkeypatch.setattr(run_eval, "load_doc_titles", lambda corpus: {})

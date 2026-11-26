@@ -205,8 +205,21 @@ Mỗi tác giả kiểm tra tệp của mình trước khi gửi:
 - [ ] Tệp là JSON Lines hợp lệ, UTF-8, tiếng Việt có dấu, khóa đúng mục 5.1.
 - [ ] Nhãn của tác giả chưa được commit trước khi người gán nhãn nộp xong (mục 4.1).
 
-## 10. Lịch sử chỉnh sửa
+## 10. Công cụ (scripts/gold_tool.py)
+
+| Lệnh | Việc |
+|---|---|
+| `python scripts/gold_tool.py validate` | Kiểm tra nhãn tác giả theo mục 9 (đủ ba tác giả A/B/C, quota, id, cụm bị cấm, giới hạn mỗi Điều và mỗi loại câu); thiếu tệp của bất kỳ tác giả nào thì thoát với mã 1 |
+| `python scripts/gold_tool.py agreement [--allow-partial]` | Tính ba chỉ số của mục 7 cho từng cặp và gộp; báo thêm kết quả khi chỉ so `answer` (bỏ `alt_answers`). Thiếu tệp hoặc thiếu/thừa/trùng `id` của người gán nhãn, hoặc số câu của tác giả lệch quota (kể cả khi tệp tác giả và tệp gán nhãn cùng thiếu một `id`), thì thoát với mã 1; `--allow-partial` vẫn tính nhưng đánh dấu kết quả một phần (`complete = false` trong JSON) |
+| `python scripts/gold_tool.py build [--resolutions F] [--write]` | Sinh `gold_dev/test.jsonl` và `data/splits/gold_split.json`; mặc định chỉ chạy thử. Kiểm tra `resolutions` (id có thật, `resolution` hợp lệ; câu hai nhãn bất đồng phải ghi đủ `in_scope`, `article`, `clause`, `answers`), độ đầy đủ của nhãn độc lập (thiếu tệp, thiếu/thừa/trùng `id`) và gold cuối (có nhãn độc lập, không còn bất đồng chưa có `resolution`, phạm vi, `article`/`clause`/`answers`, `question_type`, quota mục 6) trước khi ghi; các lỗi này không bỏ qua được bằng `--force`. Lỗi nhãn tác giả về `id` sai tiền tố và trường bắt buộc (thiếu `article`/`answer` ở câu trong phạm vi, có `article`/`answer` ở câu ngoài phạm vi) cũng không bỏ qua được. `--force` bỏ qua các lỗi nhãn tác giả còn lại của `validate`; trong đó quota, cụm bị cấm và `question_type` vẫn được kiểm lại ở gold cuối, còn bốn nhóm không được kiểm lại là câu hỏi trùng, giới hạn mỗi Điều, giới hạn mỗi loại câu (`bang`, `co_khong`) và số câu tối thiểu mỗi nhóm ngoài phạm vi. Khi `gold_split.json` đã có, dùng đúng danh sách dev trong tệp đó (không bốc lại) và từ chối `--write`; `--write` cũng bị từ chối khi `gold_dev.jsonl` hoặc `gold_test.jsonl` đã có nội dung mà chưa có `gold_split.json` |
+
+Chia dev/test: giữ đúng quota ở mục 6; trong các cách bốc hợp lệ (seed 0, 1, 2, …) chọn seed đầu tiên cho ít Khoản có câu ở cả dev lẫn test nhất, để tuning trên dev không chạm đoạn nguồn của câu test. Seed và số Khoản còn bị chia được ghi trong `gold_split.json`. `alt_answers` của người gán nhãn nếu được bổ sung sau khi đã thấy nhãn của tác giả sẽ làm chỉ số (b) cao giả; vì vậy báo cáo ghi cả hai cách tính.
+
+Giới hạn của công cụ: kiểm tra nhất quán trường và quota, nhưng không đối chiếu `answers` với văn bản của đúng Khoản. Việc đối chiếu nguyên văn (mục 9) vẫn làm thủ công trên PDF.
+
+## 11. Lịch sử chỉnh sửa
 
 | Ngày | Nội dung |
 |---|---|
 | 2026-11-13 | Bản đầu, lập ở Tuần 2 T2 theo kế hoạch dự án bản sau rà soát (ngày 2026-11-12). |
+| 2026-11-22 | Thêm mục 10 (công cụ kiểm tra, đồng thuận, sinh gold). |

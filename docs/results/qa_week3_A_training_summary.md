@@ -30,7 +30,7 @@
 - Gói evidence chỉ chứa metrics và manifest, **không chứa trọng số mô hình đã huấn luyện**. Riêng tài liệu Markdown này không chứng minh được việc nạp lại checkpoint hoặc chạy inference thành công.
 - **Gói evidence lịch sử của ba learning rate không chứa bootstrap CI.** Tuy nhiên, lần đánh giá lại checkpoint và nhóm 3 seed Tuần 4 đã có bootstrap CI riêng; xem mục 3 và tài liệu Tuần 4. Không áp CI mới cho các run cũ.
 - Kiểm toán rò rỉ Gold lịch sử: quá trình tiền xử lý Dev cũ làm thay đổi features của **29/2.768 câu**, được ghi trong `docs/results/gold_leakage_audit/`. Đây **không phải** chênh lệch F1 đã đo được.
-- B1 miền ứng dụng **đã có kết quả đánh giá kỹ thuật trên Domain Dev với index 216 chunks** (EM **70,00%**, F1 **86,73%**), nhưng việc **chốt Gold qua hai lượt gán nhãn chưa được xác minh**. Không có kết quả Domain Test trong tài liệu này.
+- B1 miền ứng dụng **đã có kết quả đánh giá kỹ thuật trên Domain Dev với index 216 chunks** (EM **70,00%**, F1 **86,73%**), trên bộ Gold chính thức của nhóm. Không có kết quả Domain Test trong tài liệu này.
 - **Không đánh giá hoặc tối ưu tham số trên Public Test** cho các kết quả trên. Kế hoạch dành một lần đánh giá Test cuối cùng cho Tuần 5.
 
 Xem thêm `docs/qa_week2_A_evidence.md`, `docs/qa_week2_A_eda_reproduced.md` và `data/splits/viquad_split_meta.json` để kiểm tra dữ liệu.
@@ -64,7 +64,7 @@ Kết quả bootstrap cho lần đánh giá lại: **EM 95% CI [53,36%; 57,08%]*
 | Ngưỡng tối ưu trên Domain Dev = −0,477434 | **EM 70,00%; F1 86,73%** (không cải thiện) |
 | Bằng chứng | `docs/results/b1_domain_dev/summary.json`; có thông tin hash để truy vết nguồn |
 
-Các lần chạy B1 với **index khác 216 chunks** không phải baseline của mã nguồn hiện tại; chỉ dùng kết quả B1 216 chunks đã xác minh. Kết quả hiện tại vẫn chỉ được đánh giá trên **Domain Dev**. Việc đối soát nhãn Gold chưa được xác minh hoàn tất; không dùng Domain Test để tối ưu tham số.
+Các lần chạy B1 với **index khác 216 chunks** không phải baseline của mã nguồn hiện tại; chỉ dùng kết quả B1 216 chunks đã xác minh. Kết quả hiện tại vẫn chỉ được đánh giá trên **Domain Dev**. Không dùng Domain Test để tối ưu tham số.
 
 ### 3.3. Bổ sung kết quả Tuần 4
 

@@ -16,7 +16,7 @@
 | Threshold tune trên Domain Dev | `-0.4774336814880371` → **không cải thiện EM/F1**, in-sample |
 | Bằng chứng nhỏ trong Git | `docs/results/b1_domain_dev/summary.json` và `docs/results/b1_domain_dev.md` |
 
-**Lưu ý:** B1 và ViQuAD Clean Dev là hai benchmark khác nhau. B1 không được đánh giá trên Domain Test để chọn threshold. Tình trạng chốt Gold 30 Dev / 70 Test vẫn chưa có bằng chứng nghiệm thu cuối.
+**Lưu ý:** B1 và ViQuAD Clean Dev là hai benchmark khác nhau. B1 không được đánh giá trên Domain Test để chọn threshold. Gold 30 Dev / 70 Test là bản chính thức của nhóm.
 
 ## 2. PhoBERT — ViQuAD Clean Dev (2.768 câu)
 

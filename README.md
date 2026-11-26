@@ -14,7 +14,7 @@ Mã của hệ thống nền (AI Marketing Assistant) không được sao chép 
 | `notebooks/` | EDA, phân tích và Kaggle smoke test (`00_kaggle_qwen_smoke_test.ipynb`) |
 | `data/raw/` | Dữ liệu tải về; được loại khỏi Git |
 | `data/domain/` | Tài liệu miền ứng dụng: Quy chế đào tạo ĐHQGHN 2014 (miền chính) và Samsung Galaxy S24 (nghiên cứu truy hồi liên ngôn ngữ) |
-| `data/gold/` | Tập câu hỏi miền ứng dụng đã có **30 Dev / 70 Test**; việc đối soát bất đồng và xác nhận chốt nhãn cuối cùng **chưa có bằng chứng xác minh** |
+| `data/gold/` | Tập câu hỏi miền ứng dụng đã có **30 Dev / 70 Test**; bản Gold chính thức của nhóm (nhãn tác giả, nhãn độc lập và resolution nằm trong `drafts/`) |
 | `data/splits/` | Danh sách chia dữ liệu và seed |
 | `kaggle/smoke_test_dataset/` | Bộ dữ liệu nhỏ cho Kaggle smoke test |
 | `app/` | Ứng dụng demo |
@@ -77,12 +77,12 @@ pytest
 | 1 | Kiểm tra môi trường tách từ và tokenizer | Smoke test VnCoreNLP + PhoBERT đạt 10/10 mẫu; xem `docs/qa_week2_A_eda_reproduced.md` |
 | 2 | Tải ViQuAD, EDA, EM/F1, sliding window, offsets, lớp QA head | **Đã triển khai và có tests**; xem `notebooks/01_eda_viquad_A.ipynb` và `docs/qa_week2_A_evidence.md` |
 | 2 | Huấn luyện PhoBERT ban đầu | **Đã huấn luyện**; số liệu lấy từ bộ evidence ngoài repository (mục 4.2) |
-| 2 | Viết câu hỏi và gán nhãn miền ứng dụng | A viết 33 câu và gán nhãn 33 câu của B. Tập **30 Dev / 70 Test** đã có trong repository; **chưa xác minh biên bản chốt nhãn cuối** |
-| 2–3 | B1 (BM25 + PhoBERT) — Domain Dev | **Đã chạy local** với index **216 chunks**, Top-3, 30 câu Dev: **EM 70,00%, F1 86,73%** (threshold 0). Có `summary.json` và checksum; trạng thái chốt nhãn Gold chưa xác minh |
+| 2 | Viết câu hỏi và gán nhãn miền ứng dụng | A viết 33 câu và gán nhãn 33 câu của B. Tập **30 Dev / 70 Test** là bản Gold chính thức, đã có trong repository |
+| 2–3 | B1 (BM25 + PhoBERT) — Domain Dev | **Đã chạy local** với index **216 chunks**, Top-3, 30 câu Dev: **EM 70,00%, F1 86,73%** (threshold 0). Có `summary.json` và checksum |
 | 3 | Tuning PhoBERT với LR `2e-5`, `3e-5`, `5e-5`; n-best và no-answer threshold | **Đã thực hiện**; kết quả ở mục 4.2 |
 | 3–4 | Phân tích lỗi, ablation và evidence | **66 mẫu lỗi ViQuAD có nhãn sơ bộ; chưa xác minh ít nhất 50 mẫu được duyệt final**; có kết quả XLM-R, PhoBERT NoSeg, 3 seed của hai recipe. Milestone và experiment freeze chưa xác minh; xem `docs/results/qa_week4_A_progress.md` |
 
-**Gold miền ứng dụng:** `data/gold/gold_dev.jsonl` (**30 câu**) và `data/gold/gold_test.jsonl` (**70 câu**) đã có dữ liệu trong repository theo bản đối chiếu hiện có. **Chưa xác minh** việc giải quyết hết bất đồng giữa người gán nhãn và biên bản chốt Gold; không gọi bộ này là Gold đã nghiệm thu cuối cùng.
+**Gold miền ứng dụng:** `data/gold/gold_dev.jsonl` (**30 câu**) và `data/gold/gold_test.jsonl` (**70 câu**) là bản chính thức của nhóm. Mỗi câu có nhãn của tác giả và nhãn độc lập của người gán nhãn; bất đồng duy nhất (A04) được xử lý bằng resolution `rewritten` trong `data/gold/drafts/resolutions.jsonl`. Phép chia Dev/Test dùng seed 1102 và không để Khoản nào xuất hiện ở cả hai tập (`data/splits/gold_split.json`).
 
 ## 4. Dữ liệu và kết quả PhoBERT
 
@@ -129,7 +129,7 @@ Nguồn đối chiếu là bộ evidence ngoài repository `phobert_3lr_clean_de
 - **Nguồn B1 local:** `outputs/b1_domain_dev/summary.json` (đã chạy trên máy) và bản evidence nhỏ `docs/results/b1_domain_dev/summary.json` để commit. Hash Gold, BM25, chunks và QA head nằm trong summary.
 - B1 hiện tại chỉ sử dụng kết quả từ **index 216 chunks**; các đánh giá với index không đồng nhất trước đây không được coi là baseline.
 - Hai bộ Dev khác nhau; không so EM/F1 của ViQuAD với Domain như cùng benchmark.
-- B1 chưa phải kết quả Test hoặc xác nhận Gold đã chốt nhãn.
+- B1 chưa phải kết quả Test; đây là kết quả trên Domain Dev (30 câu) của bộ Gold chính thức.
 
 ### 4.4. Kết quả ablation Tuần 4
 
