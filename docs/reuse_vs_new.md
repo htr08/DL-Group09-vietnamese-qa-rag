@@ -41,7 +41,7 @@ Bảng dưới phản ánh tình trạng ngày 2026-11-08: chưa có thành ph�
 | Chỉ số: Recall@k, MRR@10, bootstrap CI | `src/metrics.py` | B, C (bootstrap do C) |
 | Truy hồi dense với BGE-M3 | `src/retrieval.py` | B |
 | Sinh câu trả lời bằng Qwen2.5-7B 4-bit: prompt, ràng buộc ngữ cảnh, từ chối, kiểm tra CJK | `src/generate.py` | C |
-| Chế độ trích xuất (PhoBERT đọc các đoạn truy hồi) | `src/pipeline.py` | C |
+| Chế độ trích xuất (PhoBERT đọc các đoạn truy hồi) | `src/extractive.py`, `src/pipeline.py` (`answer_question_extractive`), `app/app.py` | C |
 | Tập 100 câu có nhãn, hướng dẫn gán nhãn, giao thức chấm ảo giác | `data/gold/`, `docs/annotation_guide.md` | Cả nhóm |
 | Script tải dữ liệu, dựng index, chạy đánh giá | `scripts/` | A, B, C |
 | Demo chatbot hai chế độ (Gradio) | `app/app.py` | C |
