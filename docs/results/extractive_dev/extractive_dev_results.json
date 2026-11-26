@@ -11,19 +11,20 @@
   },
   "code_snapshot": {
     "src/__init__.py": "e3b0c44298fc",
-    "src/extractive.py": "2c494463d88a",
+    "src/extractive.py": "5aa957ffe313",
     "src/generate.py": "20fc1bbcd319",
+    "src/gold.py": "76687655cd2b",
     "src/metrics.py": "56a3d3529d0c",
     "src/pipeline.py": "6e686ed80b39",
     "src/preprocessing_qa.py": "53f90c1b5d09",
     "src/qa_metrics.py": "049dd5c5a725",
     "src/qa_nbest.py": "f2e724fe76a7",
     "src/qa_resume.py": "24aa082a3749",
-    "src/retrieval.py": "ed1bd4fb99bb",
+    "src/retrieval.py": "18944395cf18",
     "src/tracking.py": "ddad57e07fd7",
     "src/train_qa.py": "fdbe9b097600",
     "scripts/build_index.py": "a0f5ed2e5de1",
-    "scripts/run_eval.py": "3508e857f5a4",
+    "scripts/run_eval.py": "3481150e76b7",
     "app/app.py": "7a9495f4ed20"
   },
   "gold_dev_sha256_12": "80b434b045f2",
@@ -33,12 +34,12 @@
     "rrf_k": 60,
     "title_rerank": false,
     "null_threshold": 0.0,
-    "checkpoint": "/kaggle/input/datasets/<kaggle-user>/vi-qa-rag-extractive/checkpoint/phobert_qa_lr5e-5_seed12/best_model",
+    "checkpoint": "/kaggle/input/datasets/<kaggle-user>/vi-qa-rag-extractive-rerun/kaggle_rerun_dataset/checkpoint/phobert_qa_lr5e-5_seed12/best_model",
     "real_checkpoint": true,
     "n_chunks": 216
   },
   "load": {
-    "load_seconds": 20.4,
+    "load_seconds": 24.5,
     "vram_allocated_gb": 2.81,
     "max_answer_length": 30
   },
@@ -50,7 +51,7 @@
     "in_scope_refused": 1,
     "out_of_scope_refused": 3,
     "gold_in_top_k": {
-      "top1": 24,
+      "top1": 25,
       "top3": 27,
       "top5": 27
     },
@@ -95,9 +96,9 @@
         "answered": 24
       }
     },
-    "median_retrieval_seconds": 0.023,
-    "median_extract_seconds": 0.095,
-    "max_extract_seconds": 0.2,
+    "median_retrieval_seconds": 0.022,
+    "median_extract_seconds": 0.089,
+    "max_extract_seconds": 0.182,
     "median_windows": 5.0,
     "max_vram_peak_gb": 2.83
   },
@@ -122,12 +123,12 @@
         "dieu44_khoan1",
         "dieu36_khoan1",
         "dieu9_khoan1",
-        "dieu44_khoan2",
-        "dieu16_khoan2"
+        "dieu16_khoan2",
+        "dieu44_khoan2"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.025,
-      "extract_seconds": 0.2,
+      "retrieval_seconds": 0.024,
+      "extract_seconds": 0.182,
       "vram_peak_gb": 2.83
     },
     {
@@ -142,19 +143,19 @@
       "best_text": "giáo viên chủ nhiệm",
       "score_diff": -7.489825129508972,
       "source_id": "dieu19_khoan1",
-      "source_rank": 2,
+      "source_rank": 1,
       "source_is_gold": true,
-      "first_gold_rank": 2,
+      "first_gold_rank": 1,
       "sources": [
-        "dieu19_khoan2",
         "dieu19_khoan1",
-        "dieu35_khoan2",
+        "dieu19_khoan2",
         "dieu10_khoan3",
-        "dieu20_khoan8_diema"
+        "dieu35_khoan2",
+        "dieu11_khoan3"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.027,
-      "extract_seconds": 0.154,
+      "retrieval_seconds": 0.026,
+      "extract_seconds": 0.138,
       "vram_peak_gb": 2.83
     },
     {
@@ -177,11 +178,11 @@
         "dieu37_khoan2",
         "dieu37_intro",
         "dieu32_khoan4_diemc",
-        "dieu32_khoan4_diemb"
+        "dieu37_khoan3"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.025,
-      "extract_seconds": 0.138,
+      "retrieval_seconds": 0.022,
+      "extract_seconds": 0.13,
       "vram_peak_gb": 2.83
     },
     {
@@ -202,13 +203,13 @@
       "sources": [
         "dieu11_khoan1",
         "dieu3_khoan2",
-        "dieu9_khoan1",
         "dieu11_khoan4",
-        "dieu28_khoan1"
+        "dieu9_khoan1",
+        "dieu11_khoan2"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.023,
-      "extract_seconds": 0.095,
+      "retrieval_seconds": 0.022,
+      "extract_seconds": 0.084,
       "vram_peak_gb": 2.83
     },
     {
@@ -236,7 +237,7 @@
       ],
       "windows": 5,
       "retrieval_seconds": 0.023,
-      "extract_seconds": 0.116,
+      "extract_seconds": 0.104,
       "vram_peak_gb": 2.83
     },
     {
@@ -252,19 +253,19 @@
       "best_text": "điểm trung bình chung học kỳ, điểm trung bình\nchung tích lũy",
       "score_diff": -8.215887427330017,
       "source_id": "dieu29_khoan1",
-      "source_rank": 2,
+      "source_rank": 1,
       "source_is_gold": false,
-      "first_gold_rank": 1,
+      "first_gold_rank": 2,
       "sources": [
-        "dieu29_khoan3",
         "dieu29_khoan1",
+        "dieu29_khoan3",
         "dieu29_khoan2",
         "dieu29_khoan4",
-        "dieu28_khoan2"
+        "dieu36_khoan3"
       ],
       "windows": 5,
       "retrieval_seconds": 0.023,
-      "extract_seconds": 0.094,
+      "extract_seconds": 0.093,
       "vram_peak_gb": 2.83
     },
     {
@@ -291,8 +292,8 @@
         "dieu44_khoan9"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.024,
-      "extract_seconds": 0.078,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.076,
       "vram_peak_gb": 2.82
     },
     {
@@ -314,13 +315,13 @@
       "sources": [
         "dieu33_khoan3_diemc",
         "dieu40_khoan2_w1",
-        "dieu5_khoan2",
         "dieu41_khoan1",
-        "dieu40_khoan2_w0"
+        "dieu5_khoan2",
+        "dieu33_khoan3_diemb"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.023,
-      "extract_seconds": 0.127,
+      "retrieval_seconds": 0.022,
+      "extract_seconds": 0.105,
       "vram_peak_gb": 2.83
     },
     {
@@ -336,19 +337,19 @@
       "best_text": "15 ngày làm việc",
       "score_diff": -1.0147759914398193,
       "source_id": "dieu35_khoan7",
-      "source_rank": 2,
+      "source_rank": 1,
       "source_is_gold": true,
-      "first_gold_rank": 2,
+      "first_gold_rank": 1,
       "sources": [
-        "dieu35_khoan1",
         "dieu35_khoan7",
-        "dieu37_khoan2",
+        "dieu35_khoan1",
         "dieu35_khoan4",
-        "dieu35_khoan3"
+        "dieu37_khoan2",
+        "dieu35_khoan8"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.023,
-      "extract_seconds": 0.095,
+      "retrieval_seconds": 0.021,
+      "extract_seconds": 0.088,
       "vram_peak_gb": 2.83
     },
     {
@@ -361,19 +362,19 @@
       "best_text": "có mã hiệu theo quy định của Đại học Quốc gia Hà Nội",
       "score_diff": 19.15523099899292,
       "source_id": "dieu19_khoan1",
-      "source_rank": 3,
+      "source_rank": 4,
       "source_is_gold": false,
       "first_gold_rank": null,
       "sources": [
-        "dieu35_khoan1",
         "dieu5_khoan2",
-        "dieu19_khoan1",
+        "dieu35_khoan1",
         "dieu15_intro",
-        "dieu19_khoan2"
+        "dieu19_khoan1",
+        "dieu2_khoan2"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.023,
-      "extract_seconds": 0.113,
+      "retrieval_seconds": 0.021,
+      "extract_seconds": 0.105,
       "vram_peak_gb": 2.83
     },
     {
@@ -399,8 +400,8 @@
         "dieu8_khoan1_diemb_w0"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.024,
-      "extract_seconds": 0.11,
+      "retrieval_seconds": 0.021,
+      "extract_seconds": 0.099,
       "vram_peak_gb": 2.83
     },
     {
@@ -423,13 +424,13 @@
       "sources": [
         "dieu9_khoan1",
         "dieu24_khoan3",
-        "dieu9_khoan2",
         "dieu17_khoan7",
-        "dieu35_khoan7"
+        "dieu9_khoan2",
+        "dieu17_khoan2"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.024,
-      "extract_seconds": 0.08,
+      "retrieval_seconds": 0.021,
+      "extract_seconds": 0.073,
       "vram_peak_gb": 2.83
     },
     {
@@ -458,7 +459,7 @@
       ],
       "windows": 5,
       "retrieval_seconds": 0.023,
-      "extract_seconds": 0.088,
+      "extract_seconds": 0.089,
       "vram_peak_gb": 2.83
     },
     {
@@ -483,12 +484,12 @@
         "dieu44_khoan6",
         "dieu43_khoan1_dieme",
         "dieu24_khoan6",
-        "dieu43_khoan1_diema"
+        "dieu13_khoan2_dieme"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.023,
-      "extract_seconds": 0.077,
-      "vram_peak_gb": 2.82
+      "retrieval_seconds": 0.021,
+      "extract_seconds": 0.081,
+      "vram_peak_gb": 2.83
     },
     {
       "id": "B20",
@@ -508,14 +509,14 @@
       "first_gold_rank": 1,
       "sources": [
         "dieu39_khoan4",
-        "dieu39_khoan5",
         "dieu39_khoan3",
+        "dieu39_khoan5",
         "dieu40_khoan2_w0",
         "dieu42_khoan2"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.022,
-      "extract_seconds": 0.091,
+      "retrieval_seconds": 0.023,
+      "extract_seconds": 0.089,
       "vram_peak_gb": 2.83
     },
     {
@@ -539,11 +540,11 @@
         "dieu35_khoan2",
         "dieu20_khoan2_diemb",
         "dieu35_khoan1",
-        "dieu21_khoan3"
+        "dieu35_khoan7"
       ],
       "windows": 5,
       "retrieval_seconds": 0.023,
-      "extract_seconds": 0.091,
+      "extract_seconds": 0.09,
       "vram_peak_gb": 2.83
     },
     {
@@ -565,13 +566,13 @@
       "sources": [
         "dieu38_khoan1",
         "dieu38_khoan2_diemc",
-        "dieu34_khoan6",
         "dieu34_khoan1",
+        "dieu34_khoan6",
         "dieu35_khoan8"
       ],
       "windows": 5,
       "retrieval_seconds": 0.022,
-      "extract_seconds": 0.083,
+      "extract_seconds": 0.074,
       "vram_peak_gb": 2.83
     },
     {
@@ -593,12 +594,12 @@
         "dieu40_khoan2_w1",
         "dieu42_khoan2",
         "dieu29_khoan1",
-        "dieu21_khoan1",
-        "dieu40_khoan2_w0"
+        "dieu40_khoan2_w0",
+        "dieu21_khoan1"
       ],
       "windows": 5,
       "retrieval_seconds": 0.023,
-      "extract_seconds": 0.097,
+      "extract_seconds": 0.098,
       "vram_peak_gb": 2.83
     },
     {
@@ -623,10 +624,10 @@
         "dieu44_khoan3",
         "dieu44_khoan10",
         "dieu44_khoan1",
-        "dieu44_khoan8"
+        "dieu44_khoan6"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.022,
+      "retrieval_seconds": 0.023,
       "extract_seconds": 0.076,
       "vram_peak_gb": 2.83
     },
@@ -638,21 +639,21 @@
       "answer": "Không tìm thấy thông tin trong tài liệu.",
       "refusal": true,
       "best_text": "5 năm",
-      "score_diff": 3.662057876586914,
+      "score_diff": 5.081104278564453,
       "source_id": "dieu44_khoan10",
-      "source_rank": 2,
+      "source_rank": 1,
       "source_is_gold": false,
       "first_gold_rank": null,
       "sources": [
-        "dieu26_khoan3_diemb",
         "dieu44_khoan10",
-        "dieu41_khoan2",
+        "dieu26_khoan3_diemb",
         "dieu33_khoan3_diemc",
-        "dieu33_khoan3_diemb"
+        "dieu41_khoan2",
+        "dieu16_khoan1_diemd"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.023,
-      "extract_seconds": 0.101,
+      "retrieval_seconds": 0.021,
+      "extract_seconds": 0.098,
       "vram_peak_gb": 2.83
     },
     {
@@ -679,7 +680,7 @@
       ],
       "windows": 5,
       "retrieval_seconds": 0.023,
-      "extract_seconds": 0.08,
+      "extract_seconds": 0.083,
       "vram_peak_gb": 2.83
     },
     {
@@ -706,7 +707,7 @@
         "dieu29_khoan4"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.022,
+      "retrieval_seconds": 0.021,
       "extract_seconds": 0.07,
       "vram_peak_gb": 2.83
     },
@@ -730,12 +731,12 @@
         "dieu9_khoan1",
         "dieu24_khoan3",
         "dieu17_khoan2",
-        "dieu9_khoan2",
-        "dieu17_khoan7"
+        "dieu17_khoan7",
+        "dieu9_khoan2"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.023,
-      "extract_seconds": 0.079,
+      "retrieval_seconds": 0.024,
+      "extract_seconds": 0.07,
       "vram_peak_gb": 2.83
     },
     {
@@ -763,8 +764,8 @@
         "dieu32_khoan3"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.024,
-      "extract_seconds": 0.11,
+      "retrieval_seconds": 0.021,
+      "extract_seconds": 0.097,
       "vram_peak_gb": 2.83
     },
     {
@@ -780,21 +781,21 @@
       "answer": "bậc 4",
       "refusal": false,
       "best_text": "bậc 4",
-      "score_diff": -4.651995897293091,
+      "score_diff": -4.531283855438232,
       "source_id": "dieu26_khoan3_diema",
-      "source_rank": 2,
+      "source_rank": 1,
       "source_is_gold": true,
       "first_gold_rank": 1,
       "sources": [
-        "dieu26_khoan3_diemb",
         "dieu26_khoan3_diema",
-        "dieu12_khoan3",
+        "dieu26_khoan3_diemb",
         "dieu26_khoan2",
-        "dieu26_khoan1"
+        "dieu12_khoan3",
+        "dieu20_khoan6"
       ],
       "windows": 5,
       "retrieval_seconds": 0.022,
-      "extract_seconds": 0.104,
+      "extract_seconds": 0.103,
       "vram_peak_gb": 2.83
     },
     {
@@ -815,14 +816,14 @@
       "first_gold_rank": 1,
       "sources": [
         "dieu40_khoan2_w0",
-        "dieu38_khoan2_diemc",
         "dieu40_khoan1",
-        "dieu38_khoan2_diemb",
-        "dieu40_khoan2_w1"
+        "dieu38_khoan2_diemc",
+        "dieu40_khoan2_w1",
+        "dieu38_khoan2_diemb"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.022,
-      "extract_seconds": 0.093,
+      "retrieval_seconds": 0.02,
+      "extract_seconds": 0.084,
       "vram_peak_gb": 2.83
     },
     {
@@ -845,13 +846,13 @@
       "sources": [
         "dieu24_khoan1",
         "dieu23_khoan2",
-        "dieu39_khoan4",
         "dieu13_khoan2_diemdd",
-        "dieu40_khoan2_w1"
+        "dieu39_khoan4",
+        "dieu20_khoan1"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.023,
-      "extract_seconds": 0.093,
+      "retrieval_seconds": 0.02,
+      "extract_seconds": 0.096,
       "vram_peak_gb": 2.83
     },
     {
@@ -878,8 +879,8 @@
         "dieu31_khoan3"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.022,
-      "extract_seconds": 0.092,
+      "retrieval_seconds": 0.021,
+      "extract_seconds": 0.077,
       "vram_peak_gb": 2.83
     },
     {
@@ -906,8 +907,8 @@
         "dieu22_khoan1_diemd"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.022,
-      "extract_seconds": 0.101,
+      "retrieval_seconds": 0.019,
+      "extract_seconds": 0.086,
       "vram_peak_gb": 2.83
     },
     {
@@ -920,19 +921,19 @@
       "best_text": "sinh viên chưa dự kỳ thi chính vì lý do chính đáng được cơ quan có thẩm\nquyền xác nhận và được Thủ trưởng đơn vị đào tạo cho phép",
       "score_diff": 7.988629877567291,
       "source_id": "dieu35_khoan2",
-      "source_rank": 4,
+      "source_rank": 3,
       "source_is_gold": false,
       "first_gold_rank": null,
       "sources": [
-        "dieu32_khoan4_diemb",
         "dieu35_khoan1",
-        "dieu32_khoan4_diema",
+        "dieu32_khoan4_diemb",
         "dieu35_khoan2",
-        "dieu37_khoan3"
+        "dieu32_khoan4_diema",
+        "dieu35_khoan9"
       ],
       "windows": 5,
-      "retrieval_seconds": 0.022,
-      "extract_seconds": 0.11,
+      "retrieval_seconds": 0.02,
+      "extract_seconds": 0.091,
       "vram_peak_gb": 2.83
     }
   ]
