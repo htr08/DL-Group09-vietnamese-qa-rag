@@ -11,7 +11,7 @@ Trạng thái tính đến ngày 25/11/2026 (Tuần~3). Các số liệu trong b
 \midrule
 Tập 100 câu miền Quy chế, gán nhãn hai lượt & Hoàn thành; chia 30 dev và 70 test (mục~\ref{sec:rag}) \\
 B1: BM25 + mô hình đọc hiểu & Đã chạy trên 30 câu dev; test chạy ở Tuần~5 \\
-B2: hệ thống nền (Gemini) trên tập 100 câu & Không thực hiện được (0/100 câu): hạn mức API, lỗi quá tải, không có billing; thay bằng B2$'$ (mục~\ref{sec:rag}) \\
+B2: hệ thống nền (Gemini) trên tập 100 câu & Chưa có kết quả (0/100 câu) do hạn mức API (mục~\ref{sec:rag}) \\
 B3: mBERT (số liệu từ bài báo) & Dùng số liệu của \citet{nguyen2022vimrc} \\
 C1: PhoBERT cho extractive QA & Đã tuning ba learning rate (mục~\ref{sec:qa}) \\
 C2: BM25, BGE-M3, hybrid (RRF) & Đã đánh giá trên kho ViQuAD và 30 câu dev; thí nghiệm lệch ngôn ngữ trên S24 đang hoàn thiện (mục~\ref{sec:retrieval}) \\
