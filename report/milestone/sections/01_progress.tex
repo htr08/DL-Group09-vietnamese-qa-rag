@@ -1,20 +1,21 @@
 \section{Tiến độ so với kế hoạch}
 \label{sec:progress}
 
-% Cap nhat trang thai theo tinh hinh thuc te truoc khi nop.
+Trạng thái tính đến ngày 25/11/2026 (Tuần~3). Các số liệu trong báo cáo này đo trên tập dev; tập test chưa được chạy.
+
 \begin{table}[h]
 \centering\small
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.5\columnwidth}>{\raggedright\arraybackslash}p{0.42\columnwidth}@{}}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.43\columnwidth}>{\raggedright\arraybackslash}p{0.49\columnwidth}@{}}
 \toprule
-\textbf{Hạng mục (Proposal, tuần 2--3)} & \textbf{Trạng thái} \\
+\textbf{Hạng mục (Proposal)} & \textbf{Trạng thái} \\
 \midrule
-Tập 100 câu miền Quy chế, gán nhãn hai lượt & \todo{ghi trạng thái} \\
-B1: BM25 + mô hình đọc hiểu & \todo{ghi trạng thái} \\
-B2: hệ thống nền (Gemini) trên tập 100 câu & \todo{ghi trạng thái} \\
+Tập 100 câu miền Quy chế, gán nhãn hai lượt & Hoàn thành; chia 30 dev và 70 test (mục~\ref{sec:rag}) \\
+B1: BM25 + mô hình đọc hiểu & Đã chạy trên 30 câu dev; test chạy ở Tuần~5 \\
+B2: hệ thống nền (Gemini) trên tập 100 câu & Chưa có kết quả (0/100 câu) do hạn mức API (mục~\ref{sec:rag}) \\
 B3: mBERT (số liệu từ bài báo) & Dùng số liệu của \citet{nguyen2022vimrc} \\
-C1: PhoBERT cho extractive QA & \todo{ghi trạng thái} \\
-C2: BM25, BGE-M3, hybrid (RRF) & \todo{ghi trạng thái} \\
-C3: RAG với Qwen2.5-7B, chế độ trích xuất & \todo{ghi trạng thái} \\
+C1: PhoBERT cho extractive QA & Đã tuning ba learning rate (mục~\ref{sec:qa}) \\
+C2: BM25, BGE-M3, hybrid (RRF) & Đã đánh giá trên kho ViQuAD và 30 câu dev; thí nghiệm lệch ngôn ngữ trên S24 đang hoàn thiện (mục~\ref{sec:retrieval}) \\
+C3: RAG với Qwen2.5-7B, chế độ trích xuất & Cả hai chế độ chạy được trên 30 câu dev; chưa chấm tay; demo ở mức khung (mục~\ref{sec:rag}) \\
 \bottomrule
 \end{tabular}
 \caption{Trạng thái các hạng mục của Milestone.}

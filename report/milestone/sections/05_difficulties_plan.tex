@@ -1,6 +1,14 @@
 \section{Khó khăn và kế hoạch còn lại}
 \label{sec:plan}
 
-\paragraph{Khó khăn.} \todo{tài nguyên GPU và hạn mức API; kho miền ứng dụng nhỏ; tập đánh giá tự soạn và mẫu nhỏ; các thay đổi so với Proposal}
+\paragraph{Khó khăn.}
+\begin{itemize}
+\item \emph{Hạn mức API của B2:} 20 lượt sinh mỗi ngày khiến việc chạy 100 câu kéo dài khoảng sáu ngày, và lỗi 503 làm một ngày có thể không thu được câu nào.
+\item \emph{Kho nhỏ:} trên 27 câu dev trong phạm vi, R@3 đạt 1,0 với BM25 và hybrid, R@5 đạt 1,0 với mọi phương pháp, nên chỉ R@1, MRR@10 và R@3 của dense còn phân biệt được các retriever, và các chênh lệch này chưa có ý nghĩa thống kê (khoảng tin cậy của chênh lệch R@1 giữa hybrid và BM25 chứa 0).
+\item \emph{Mẫu nhỏ:} dev có 30 câu (3 ngoài phạm vi) và test có 70 câu (7 ngoài phạm vi); khoảng tin cậy của tỷ lệ từ chối đúng rất rộng, nên kết quả trên miền ứng dụng luôn kèm CI và được nêu trong Limitations.
+\item \emph{Tái lập số liệu PhoBERT:} đánh giá lại checkpoint cho F1 70,10 và EM 55,24, so với 69,94 và 55,78 đã lưu ở Tuần~3; nguyên nhân chưa xác định.
+\end{itemize}
 
-\paragraph{Kế hoạch tuần 4--6.} Tuần~4: ablation (BM25, dense, hybrid; có và không xếp hạng lại; $k \in \{3,5,10\}$; có và không tách từ; chế độ sinh và chế độ trích xuất) và chốt cấu hình, \emph{experiment freeze} cuối tuần. Tuần~5: chạy test một lần, chấm ảo giác, phân tích lỗi, bản nháp báo cáo. Tuần~6: hoàn thiện báo cáo, slide, demo và nộp. \todo{go/no-go LoRA, quyết định ở họp cuối tuần 3}
+\paragraph{Thay đổi so với Proposal.} Miền chính là Quy chế đào tạo thay cho tài liệu Samsung Galaxy S24, vì kho S24 quá nhỏ để phân biệt các retriever; S24 chỉ dùng cho thí nghiệm lệch ngôn ngữ. LoRA \citep{hu2022lora} chuyển từ Tuần~5 sang Tuần~4 và là hạng mục tùy chọn, vì Tuần~5 nằm sau lần chạy test. Model sinh của B2 là \texttt{gemini-3.8-flash} thay cho Gemini~2.5~Flash.
+
+\paragraph{Kế hoạch tuần 4--6.} Tuần~4: ablation (BM25, dense, hybrid; có và không xếp hạng lại; $k \in \{3,5,10\}$; có và không tách từ; có và không ràng buộc ngữ cảnh; chế độ sinh và chế độ trích xuất) và chốt cấu hình, \emph{experiment freeze} cuối tuần; cũng trong tuần này là XLM-R, ba seed cho PhoBERT, ablation dịch câu hỏi trên S24 và phân tích lỗi (XLM-R, seed và dịch câu hỏi nằm trong thứ tự cắt khi chậm); B2 chạy tiếp mỗi ngày đến khi đủ 100 câu. Tuần~5: chạy test một lần, chấm ảo giác và tính kappa, phân tích lỗi, bản nháp báo cáo. Tuần~6: hoàn thiện báo cáo, slide, demo và nộp. LoRA nằm đầu danh sách cắt khi chậm tiến độ; \todo{ghi quyết định go/no-go LoRA của họp cuối tuần 3}
