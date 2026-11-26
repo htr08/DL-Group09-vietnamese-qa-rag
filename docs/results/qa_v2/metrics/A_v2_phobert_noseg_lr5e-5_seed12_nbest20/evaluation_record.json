@@ -1,0 +1,98 @@
+{
+  "name": "A_v2_phobert_noseg_lr5e-5_seed12",
+  "tag": "phobert_noseg",
+  "lr_label": "5e-5",
+  "learning_rate": 5e-05,
+  "seed": 12,
+  "checkpoint": "/kaggle/working/A_QA_FULL_RERUN_V2/checkpoints/phobert_noseg_lr5e-5_seed12/best_model",
+  "best_epoch": 3,
+  "training_dev_f1": 0.42998776922842563,
+  "training_dev_em": 0.36416184971098264,
+  "checkpoint_hashes": {
+    "added_tokens.json": "956163bbe8b0625fcc779207447308285eab218ffe0551d3e0deeae5538da326",
+    "bpe.codes": "9dfe53fb8abbddd3387da99641c36e00bee757a3679aad9cf0a7cdc4b30f6ef8",
+    "config.json": "5266845f82fee95fd82ab96e762e5ddeaf68ac8b86e55bac905a4f6c320dacb2",
+    "model.safetensors": "ebe183ce75c69aa35b69872094d66483dfe502c626e878a84fa54074a5f759d4",
+    "qa_config.json": "adea17a0e0e2ad680eabd2a37d4d869fb3076a7696f1953638482a03aeeb48ee",
+    "qa_dropout.pt": "060dfaed0d3cdd05db7c074bb56c3334c1698ecd182e9ecf20f1d89a4787e02a",
+    "qa_head.pt": "873de2b1a00473e554ca0b507f65bc7dfbadad12c8fc303e5ec79806908cba1a",
+    "special_tokens_map.json": "d05497f1da52c5e09554c0cd874037a083e1dc1b9cfd48034d1c717f1afc07a7",
+    "tokenizer_config.json": "1ab8f3d8190e83c58f68a33888cb62e8e535e99c33383f4c4e0e8531abb08051",
+    "vocab.txt": "dffd7543c401fb6567253ae7c3313004532c33d062525250049c616544bad777"
+  },
+  "config": {
+    "model_name": "vinai/phobert-base",
+    "learning_rate": 5e-05,
+    "seed": 12,
+    "epochs": 3,
+    "batch_size": 8,
+    "gradient_accumulation_steps": 2,
+    "git_commit": "1251e4b4ffae6401126abf58be2b9bc10e2c7541",
+    "train_sha256": "0b9769ec8ee4bb3fc25dfe4915b826ec706fa8e9f23f6c2febc36a98995b2a1c",
+    "dev_sha256": "14f45d08b56e4adffe18fad6d47fb067e37cebdacbde1c37c753542f9483afaf",
+    "gold_sha256": "738c602183e11e718a736fe37595a43138e0b91dc6426b96bce084fa459b3568"
+  },
+  "evaluation_dir": "/kaggle/working/A_QA_FULL_RERUN_V2/metrics/A_v2_phobert_noseg_lr5e-5_seed12_nbest20",
+  "summary_path": "/kaggle/working/A_QA_FULL_RERUN_V2/metrics/A_v2_phobert_noseg_lr5e-5_seed12_nbest20/summary.json",
+  "predictions_path": "/kaggle/working/A_QA_FULL_RERUN_V2/metrics/A_v2_phobert_noseg_lr5e-5_seed12_nbest20/dev_predictions.jsonl",
+  "nbest_path": "/kaggle/working/A_QA_FULL_RERUN_V2/metrics/A_v2_phobert_noseg_lr5e-5_seed12_nbest20/nbest_dev.jsonl",
+  "dev_f1": 0.43805510902513717,
+  "dev_em": 0.36127167630057805,
+  "threshold": 0.9480321407318115,
+  "summary": {
+    "eval_split": "ViQuAD title-held-out Dev",
+    "dev_questions": 2768,
+    "features": 3952,
+    "checkpoint": "/kaggle/working/A_QA_FULL_RERUN_V2/checkpoints/phobert_noseg_lr5e-5_seed12/best_model",
+    "n_best_size": 20,
+    "max_answer_length": 30,
+    "baseline_threshold_0": {
+      "em": 0.36416184971098264,
+      "f1": 0.42995506791289884
+    },
+    "tuned_on_dev": {
+      "null_threshold": 0.9480321407318115,
+      "em": 0.36127167630057805,
+      "f1": 0.43805510902513717
+    },
+    "per_category": {
+      "answerable": {
+        "count": 1886,
+        "em": 0.19353128313891835,
+        "f1": 0.30622298079617105
+      },
+      "impossible": {
+        "count": 882,
+        "em": 0.719954648526077,
+        "f1": 0.719954648526077
+      }
+    },
+    "notes": [
+      "Features tạo bằng mode=eval (không gold-driven token/window)",
+      "Decoded by exact char offsets and word boundaries",
+      "Không tune threshold trên public Test"
+    ]
+  },
+  "provenance": {
+    "git_commit": "1251e4b4ffae6401126abf58be2b9bc10e2c7541",
+    "checkpoint_hashes": {
+      "added_tokens.json": "956163bbe8b0625fcc779207447308285eab218ffe0551d3e0deeae5538da326",
+      "bpe.codes": "9dfe53fb8abbddd3387da99641c36e00bee757a3679aad9cf0a7cdc4b30f6ef8",
+      "config.json": "5266845f82fee95fd82ab96e762e5ddeaf68ac8b86e55bac905a4f6c320dacb2",
+      "model.safetensors": "ebe183ce75c69aa35b69872094d66483dfe502c626e878a84fa54074a5f759d4",
+      "qa_config.json": "adea17a0e0e2ad680eabd2a37d4d869fb3076a7696f1953638482a03aeeb48ee",
+      "qa_dropout.pt": "060dfaed0d3cdd05db7c074bb56c3334c1698ecd182e9ecf20f1d89a4787e02a",
+      "qa_head.pt": "873de2b1a00473e554ca0b507f65bc7dfbadad12c8fc303e5ec79806908cba1a",
+      "special_tokens_map.json": "d05497f1da52c5e09554c0cd874037a083e1dc1b9cfd48034d1c717f1afc07a7",
+      "tokenizer_config.json": "1ab8f3d8190e83c58f68a33888cb62e8e535e99c33383f4c4e0e8531abb08051",
+      "vocab.txt": "dffd7543c401fb6567253ae7c3313004532c33d062525250049c616544bad777"
+    },
+    "features_sha256": "14f45d08b56e4adffe18fad6d47fb067e37cebdacbde1c37c753542f9483afaf",
+    "gold_sha256": "738c602183e11e718a736fe37595a43138e0b91dc6426b96bce084fa459b3568",
+    "n_best": 20
+  },
+  "sha256_summary": "062cf324e62ac0dc8d7d1d3a3b1f431762421b22c8ab7420cec6aaa802e2f630",
+  "sha256_predictions": "3d09145b2657f34f1b8d57debdf0881b301234dd7c28d2e20a37dacb16d9b305",
+  "run_id": "fsrcrbhv",
+  "run_url": "https://forge.coreweave.com/wandb/nhom09-vi-qa-rag/vi-qa-rag/runs/fsrcrbhv"
+}

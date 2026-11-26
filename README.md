@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 ### 2.1. Theo dõi thí nghiệm (Weights & Biases)
 
-Mọi lần chạy tạo số liệu cho báo cáo (huấn luyện, đánh giá, dựng index) được ghi vào project W&B dùng chung: team `nhom09-vi-qa-rag`, project `vi-qa-rag`. Tên run theo dạng `<vai trò>_<mô hình>_<cấu hình>_seed<k>`.
+Theo quy định, mọi lần chạy tạo số liệu cho báo cáo (huấn luyện, đánh giá, dựng index) phải được ghi vào project W&B dùng chung: team `nhom09-vi-qa-rag`, project `vi-qa-rag`. Tên run theo dạng `<vai trò>_<mô hình>_<cấu hình>_seed<k>`.
 
 ```bash
 pip install wandb==0.31.0
@@ -71,20 +71,42 @@ pytest
 
 ### 3.1. Công việc đã thực hiện và còn lại
 
-| Tuần | Nhiệm vụ của A | Tình trạng cập nhật ngày 25/11/2026 |
+| Tuần | Nhiệm vụ của A | Tình trạng cập nhật V2 ngày 27/11/2026 |
 |---|---|---|
 | 1 | Chia ViQuAD theo tiêu đề bài viết (title), chống trùng Train/Dev | **Hoàn thành:** seed `42`, 13 title Dev, 125 title Train, 0 context trùng; xem `data/splits/viquad_split_meta.json` |
 | 1 | Kiểm tra môi trường tách từ và tokenizer | Smoke test VnCoreNLP + PhoBERT đạt 10/10 mẫu; xem `docs/qa_week2_A_eda_reproduced.md` |
 | 2 | Tải ViQuAD, EDA, EM/F1, sliding window, offsets, lớp QA head | **Đã triển khai và có tests**; xem `notebooks/01_eda_viquad_A.ipynb` và `docs/qa_week2_A_evidence.md` |
 | 2 | Huấn luyện PhoBERT ban đầu | **Đã huấn luyện**; số liệu lấy từ bộ evidence ngoài repository (mục 4.2) |
 | 2 | Viết câu hỏi và gán nhãn miền ứng dụng | A viết 33 câu và gán nhãn 33 câu của B. Tập **30 Dev / 70 Test** là bản Gold chính thức, đã có trong repository |
-| 2–3 | B1 (BM25 + PhoBERT) — Domain Dev | **Đã chạy local** với index **216 chunks**, Top-3, 30 câu Dev: **EM 70,00%, F1 86,73%** (threshold 0). Có `summary.json` và checksum |
+| 2–3 | B1 (BM25 + PhoBERT) — Domain Dev | **V2: 216 chunks, Top-3, 30 câu; EM 63.33%, F1 78.98% tại threshold 0.** Tuned: EM 66.67%, F1 85.28%. |
 | 3 | Tuning PhoBERT với LR `2e-5`, `3e-5`, `5e-5`; n-best và no-answer threshold | **Đã thực hiện**; kết quả ở mục 4.2 |
-| 3–4 | Phân tích lỗi, ablation và evidence | **66 mẫu lỗi ViQuAD có nhãn sơ bộ; chưa xác minh ít nhất 50 mẫu được duyệt final**; có kết quả XLM-R, PhoBERT NoSeg, 3 seed của hai recipe. Milestone và experiment freeze chưa xác minh; xem `docs/results/qa_week4_A_progress.md` |
+| 3–4 | Phân tích lỗi, ablation và evidence | **V2: 66 mẫu có phân loại lỗi và giải thích; 18 mẫu cần xem xét Gold.** Có XLM-R, NoSeg, n-best và 3 seed. Experiment freeze chưa chốt. |
 
 **Gold miền ứng dụng:** `data/gold/gold_dev.jsonl` (**30 câu**) và `data/gold/gold_test.jsonl` (**70 câu**) là bản chính thức của nhóm. Mỗi câu có nhãn của tác giả và nhãn độc lập của người gán nhãn; bất đồng duy nhất (A04) được xử lý bằng resolution `rewritten` trong `data/gold/drafts/resolutions.jsonl`. Phép chia Dev/Test dùng seed 1102 và không để Khoản nào xuất hiện ở cả hai tập (`data/splits/gold_split.json`).
 
 ## 4. Dữ liệu và kết quả PhoBERT
+
+### Kết quả QA V2 — 26/11/2026
+
+| Thí nghiệm | EM (%) | F1 (%) |
+|---|---:|---:|
+| PhoBERT LR 5e-5, seed 12 | 54.91 | 70.33 |
+| XLM-R | 34.57 | 41.73 |
+| PhoBERT NoSeg | 36.13 | 43.81 |
+| B1 Domain Dev, threshold 0 | 63.33 | 78.98 |
+| B1 Domain Dev, tuned | 66.67 | 85.28 |
+
+PhoBERT 3 seed (12/42/123):
+EM 55.43 +/- 0.56%;
+F1 70.01 +/- 0.40%.
+
+W&B evaluation: [j212ro7f](https://forge.coreweave.com/wandb/nhom09-vi-qa-rag/vi-qa-rag/runs/j212ro7f).
+
+Các kết quả đều trên Dev, không dùng Test để tuning.
+
+Chi tiết: [QA V2](docs/results/qa_v2/README.md).
+
+Các kết quả tại mục 4.2-4.4 là evidence lịch sử.
 
 ### 4.1. Chia dữ liệu UIT-ViQuAD 2.0
 
@@ -119,25 +141,36 @@ Trong **nhóm ba learning rate lịch sử**, cấu hình tốt nhất theo Dev 
 
 Nguồn đối chiếu là bộ evidence ngoài repository `phobert_3lr_clean_dev_EVIDENCE.zip` (không commit dữ liệu lớn hoặc checkpoint). Bản tóm tắt nhỏ nằm tại `docs/results/qa_week3_A_training_summary.md`.
 
-### 4.3. Đánh giá lại checkpoint và B1 — Dev (25/11/2026)
+### 4.3. Đánh giá lại checkpoint và B1 lịch sử — Dev (25/11/2026)
 
 | Thí nghiệm | Tập | EM | F1 | Diễn giải |
 |---|---|---:|---:|---|
 | PhoBERT LR 5e-5 seed 12, đánh giá lại checkpoint lịch sử | ViQuAD Clean Dev (2.768 câu) | 55,24% | 70,10% | N-best, Dev-tuned threshold ≈ −0,64443; **chưa xác định** nguyên nhân chênh kết quả với lịch sử 55,78/69,94 |
-| **B1: BM25 216 chunks + cùng checkpoint PhoBERT**, Top-3, threshold 0 | Domain Dev (30 câu) | **70,00%** | **86,73%** | 27 câu in-scope / 3 out-of-scope; tuned threshold −0,477434 **không cải thiện** |
+| **B1: BM25 216 chunks + checkpoint PhoBERT lịch sử**, Top-3, threshold 0 | Domain Dev (30 câu) | **70,00%** | **86,73%** | 27 câu in-scope / 3 out-of-scope; tuned threshold −0,477434 **không cải thiện** |
 
 - **Nguồn B1 local:** `outputs/b1_domain_dev/summary.json` (đã chạy trên máy) và bản evidence nhỏ `docs/results/b1_domain_dev/summary.json` để commit. Hash Gold, BM25, chunks và QA head nằm trong summary.
-- B1 hiện tại chỉ sử dụng kết quả từ **index 216 chunks**; các đánh giá với index không đồng nhất trước đây không được coi là baseline.
+- B1 lịch sử trong mục này sử dụng kết quả từ **index 216 chunks**; các đánh giá với index không đồng nhất trước đây không được coi là baseline.
 - Hai bộ Dev khác nhau; không so EM/F1 của ViQuAD với Domain như cùng benchmark.
 - B1 chưa phải kết quả Test; đây là kết quả trên Domain Dev (30 câu) của bộ Gold chính thức.
 
-### 4.4. Kết quả ablation Tuần 4
+### 4.4. Kết quả ablation Tuần 4 (lịch sử)
 
 - **PhoBERT pipeline mới, 3 seed (12/21/42):** F1 lần lượt **69,86% / 69,31% / 69,96%**; mean ± std **69,71 ± 0,35%**. Bootstrap F1 95% CI của trung bình: **[68,33%; 71,16%]**.
 - **PhoBERT Legacy Recipe, 3 seed:** F1 **71,43% / 69,81% / 70,32%**; mean ± std **70,52 ± 0,83%**. Đây là *training recipe khác*, không gộp kết quả với pipeline mới và không đổi checkpoint của B1.
 - **XLM-R:** EM **48,48%**, F1 **61,82%** với subword decoder; **PhoBERT NoSeg GoldBoundary v3:** EM **36,31%**, F1 **43,04%**. NoSeg v3 còn thay cách căn chỉnh/preprocessing, nên **không** quy chênh lệch riêng cho việc không tách từ.
-- **Phân tích lỗi:** 66 câu ViQuAD đã có nhãn **sơ bộ** (`PRELIMINARY_MANUAL_REVIEW`); chưa có bằng chứng xác nhận `FINAL_REVIEWED` tối thiểu 50 mẫu.
-- Bảng kết quả dùng để báo cáo hiện tại: [`docs/results/qa_results_current_2026-11-25.md`](docs/results/qa_results_current_2026-11-25.md). Chi tiết evidence và các hạn chế: `docs/results/qa_week4_A_progress.md`. **Chưa chạy Public Test hoặc Domain Test để tune.**
+- **Phân tích lỗi V2:** [66 mẫu, 10 cột](docs/results/viquad_66_error.csv); [các trường hợp cần xem xét Gold](docs/results/qa_v2/gold_checks.md). Set 2 được giữ riêng làm evidence lịch sử.
+- Bảng kết quả lịch sử ngày 25/11: [`docs/results/qa_results_current_2026-11-25.md`](docs/results/qa_results_current_2026-11-25.md). Chi tiết evidence và các hạn chế: `docs/results/qa_week4_A_progress.md`. **Chưa chạy Public Test hoặc Domain Test để tune.**
+
+### 4.5. QA rerun V2
+
+PhoBERT V2, LR 5e-5, seed 12: Dev EM 54.9133%, F1 70.3350%, threshold 0.2479505539; [W&B evaluation j212ro7f](https://forge.coreweave.com/wandb/nhom09-vi-qa-rag/vi-qa-rag/runs/j212ro7f).
+
+Nguồn chuẩn mới: [QA V2](docs/results/qa_v2/README.md).
+Audit: [audit_summary.json](docs/results/qa_v2/audit_summary.json).
+
+B1 V2 threshold 0: EM 63.33%, F1 78.98%.
+Các số trước mục này được giữ làm evidence lịch sử.
+Chưa chốt experiment freeze.
 
 ## 5. Quy trình chạy lại pipeline QA
 
@@ -169,7 +202,7 @@ python scripts/eval_qa_nbest.py --split dev --checkpoint outputs/phobert_qa_lr3e
 
 Các thí nghiệm lịch sử được ghi với commit gốc `b202d3dc9fb4bcdd02131d213d4b1b8d26f1dde8`; sau đó mã nguồn có các thay đổi sửa review/CI. Chỉ tuning threshold trên **Dev nội bộ**. Theo plan, **Public Test chỉ được đánh giá một lần trong Tuần 5**, không dùng để tuning.
 
-### 5.1. Tái hiện B1 trên Domain Dev (không dựng lại BM25)
+### 5.1. Tái hiện B1 lịch sử trên Domain Dev (không dựng lại BM25)
 
 ```powershell
 $CKPT = "$HOME\Downloads\phobert_5e5_extracted\phobert_qa_lr5e-5_seed12\best_model"
