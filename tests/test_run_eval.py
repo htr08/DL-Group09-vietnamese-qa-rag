@@ -148,9 +148,39 @@ def test_test_split_requires_explicit_rrf_k(monkeypatch):
 
 
 def test_load_samsung_queries(tmp_path, monkeypatch):
+    """Kiểm tra load_samsung_queries hỗ trợ relevant_id, relevant_ids và token_overlap_level."""
     monkeypatch.setattr(run_eval, "GOLD_DIR", tmp_path)
     samsung_path = tmp_path / "samsung_queries.jsonl"
-    samsung_path.write_text(json.dumps({"question": "Q1", "relevant_id": "chunk_01", "in_scope": True}), encoding="utf-8")
+    item1 = {"id": "S01", "question": "Q1", "relevant_id": "chunk_01", "in_scope": True, "token_overlap_level": "none"}
+    item2 = {"id": "S09", "question": "Q2", "relevant_id": "chunk_01", "relevant_ids": ["chunk_01", "chunk_02"], "in_scope": True, "token_overlap_level": "technical_loanword"}
+    samsung_path.write_text(json.dumps(item1) + "\n" + json.dumps(item2), encoding="utf-8")
     queries = run_eval.load_samsung_queries()
-    assert len(queries) == 1
+    assert len(queries) == 2
+    assert queries[0]["id"] == "S01"
     assert queries[0]["relevant_id"] == "chunk_01"
+    assert queries[1]["id"] == "S09"
+    assert queries[1]["relevant_id"] == ["chunk_01", "chunk_02"]
+    assert queries[1]["token_overlap_level"] == "technical_loanword"
+
+
+def test_validate_queries_against_index_success():
+    """Kiểm tra toàn bộ 27 câu Samsung queries đều có relevant_ids nằm trong index Samsung 9 chunks (PR #27 §Điểm 7)."""
+    queries = run_eval.load_samsung_queries()
+    assert len(queries) == 27
+    dense_ids_path = run_eval.INDEX_DIR / "samsung" / "dense_ids.json"
+    if dense_ids_path.exists():
+        with open(dense_ids_path, encoding="utf-8") as f:
+            available_doc_ids = set(json.load(f))
+        # Không được raise lỗi
+        run_eval.validate_queries_against_index(queries, available_doc_ids, "samsung")
+
+
+def test_validate_queries_against_index_raises_error():
+    """Báo lỗi ValueError khi có relevant_id không tồn tại trong index."""
+    fake_queries = [
+        {"id": "ERR01", "question": "Q?", "relevant_id": "non_existent_chunk_id"}
+    ]
+    available_doc_ids = {"s24_chunk_01", "s24_chunk_02"}
+    with pytest.raises(ValueError, match="Lỗi toàn vẹn dữ liệu"):
+        run_eval.validate_queries_against_index(fake_queries, available_doc_ids, "samsung")
+
