@@ -13,7 +13,7 @@ import sys
 import time
 import unicodedata
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Set
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -247,6 +247,60 @@ def load_gold_queries(split: str = "dev") -> List[Dict[str, Any]]:
     return queries
 
 
+def load_samsung_queries() -> List[Dict[str, Any]]:
+    """Tải tập câu hỏi đánh giá miền phụ Samsung Galaxy S24 (cross-lingual)."""
+    path = GOLD_DIR / "samsung_queries.jsonl"
+    if not path.exists() or path.stat().st_size == 0:
+        raise FileNotFoundError(f"Chưa có tệp {path.name}")
+    queries = []
+    with open(path, encoding="utf-8-sig") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            item = json.loads(line)
+            if item.get("in_scope", True):
+                # Hỗ trợ relevant_ids (danh sách các chunk hợp lệ) theo review PR #27 (§Điểm 2)
+                rel_ids = item.get("relevant_ids")
+                if not rel_ids:
+                    rel_ids = [item["relevant_id"]] if "relevant_id" in item else []
+                queries.append({
+                    "id": item.get("id"),
+                    "question": normalize_text(item["question"]),
+                    "relevant_id": rel_ids if len(rel_ids) > 1 else (rel_ids[0] if rel_ids else ""),
+                    "relevant_ids": rel_ids,
+                    "answerable": True,
+                    "token_overlap_level": item.get("token_overlap_level", "unknown"),
+                    "answer": item.get("answer", ""),
+                })
+    print(f"  Samsung queries: {len(queries)} câu hợp lệ dùng đánh giá")
+    return queries
+
+
+def validate_queries_against_index(queries: List[Dict[str, Any]], available_doc_ids: Set[str], corpus_name: str):
+    """
+    Kiểm tra mọi relevant_id/relevant_ids của các câu hỏi có tồn tại trong index hay không.
+    Theo review PR #27 (§Điểm 7), đảm bảo không có câu hỏi nào nhắm vào chunk không tồn tại.
+    """
+    if not available_doc_ids:
+        return
+    missing = []
+    for q in queries:
+        r_ids = q.get("relevant_ids") or q.get("relevant_id")
+        if isinstance(r_ids, str):
+            r_ids = [r_ids]
+        for rid in r_ids:
+            # Kiểm tra khớp chính xác hoặc khớp tiền tố (với chunk sliding window / điều / khoản)
+            if rid not in available_doc_ids and not any(did.startswith(rid) for did in available_doc_ids):
+                missing.append((q.get("id", "N/A"), rid))
+    if missing:
+        raise ValueError(
+            f"Lỗi toàn vẹn dữ liệu: {len(missing)} relevant_id trong tập câu hỏi không tồn tại trong index '{corpus_name}':\n"
+            + "\n".join(f"  - Câu {qid}: chunk ID '{rid}'" for qid, rid in missing)
+        )
+    print(f"  ✓ Kiểm tra toàn vẹn nhãn: Tất cả {len(queries)} câu hỏi đều có relevant_id hợp lệ trong index '{corpus_name}'.")
+
+
 # ---------------------------------------------------------------------------
 # Chạy retrieval và tính chỉ số (kèm đo độ trễ)
 # ---------------------------------------------------------------------------
@@ -381,7 +435,7 @@ def main():
     parser = argparse.ArgumentParser(description="Đánh giá retrieval.")
     parser.add_argument(
         "--split",
-        choices=["viquad_dev", "domain_dev", "domain_test"],
+        choices=["viquad_dev", "domain_dev", "domain_test", "samsung"],
         required=True,
         help="Tập dữ liệu đánh giá",
     )
@@ -409,6 +463,9 @@ def main():
     elif args.split == "domain_dev":
         corpus = "domain"
         queries = load_gold_queries("dev")
+    elif args.split == "samsung":
+        corpus = "samsung"
+        queries = load_samsung_queries()
     else:
         corpus = "domain"
         queries = load_gold_queries("test")
@@ -434,6 +491,21 @@ def main():
     if run_dense or run_hybrid:
         print("Tải Dense index (BGE-M3)...")
         dense_ret = load_dense(corpus)
+
+    # Điểm 7: Kiểm tra tính toàn vẹn nhãn so với index
+    available_doc_ids = set()
+    if bm25_ret and hasattr(bm25_ret, "doc_ids"):
+        available_doc_ids.update(bm25_ret.doc_ids)
+    if dense_ret and hasattr(dense_ret, "doc_ids"):
+        available_doc_ids.update(dense_ret.doc_ids)
+    validate_queries_against_index(queries, available_doc_ids, corpus)
+
+    # Điểm 3: Cảnh báo bão hòa và ngưỡng ngẫu nhiên cho kho nhỏ (Samsung)
+    if args.split == "samsung" and available_doc_ids:
+        n_c = len(available_doc_ids)
+        print(f"\n  [Ghi chú bão hòa & Ngưỡng ngẫu nhiên trên kho {corpus} (N={n_c} chunks)]:")
+        print(f"    - Ngưỡng ngẫu nhiên: R@1 ~ {1/n_c:.3f} ({1}/{n_c}), R@5 ~ {min(5, n_c)/n_c:.3f} ({min(5, n_c)}/{n_c}), R@10 = 1.000 (bão hòa 100%)")
+        print(f"    - Do R@10 = 1.000 cho mọi phương pháp, chỉ số chính để phân biệt là R@1 và MRR@10.")
 
     # Điểm từng câu cho BM25 và Dense (dùng tính Bootstrap CI)
     bm25_r1_scores: List[float] = []
@@ -546,16 +618,29 @@ def main():
                     print(f"    R@5:    estimate={ci_dense_r5['estimate']:+.4f}, 95% CI=[{ci_dense_r5['ci_low']:+.4f}, {ci_dense_r5['ci_high']:+.4f}]")
 
             if bm25_r5_scores and dense_r5_scores:
-                single_r5 = bm25_r5_scores if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else dense_r5_scores
-                best_single_name = "BM25" if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else "Dense"
+                if args.split == "samsung":
+                    # Điểm 3: Trên kho Samsung, dùng MRR@10 làm chỉ số chính vì R@5/R@10 bão hòa
+                    single_main = bm25_mrr_scores if mean_metric(bm25_mrr_scores) >= mean_metric(dense_mrr_scores) else dense_mrr_scores
+                    hybrid_main = hybrid_mrr_scores
+                    main_metric_name = "MRR@10"
+                    best_single_name = "BM25" if mean_metric(bm25_mrr_scores) >= mean_metric(dense_mrr_scores) else "Dense"
+                else:
+                    single_main = bm25_r5_scores if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else dense_r5_scores
+                    hybrid_main = hybrid_r5_scores
+                    main_metric_name = "Recall@5"
+                    best_single_name = "BM25" if mean_metric(bm25_r5_scores) >= mean_metric(dense_r5_scores) else "Dense"
             elif bm25_r5_scores:
-                single_r5 = bm25_r5_scores
+                single_main = bm25_mrr_scores if args.split == "samsung" else bm25_r5_scores
+                hybrid_main = hybrid_mrr_scores if args.split == "samsung" else hybrid_r5_scores
+                main_metric_name = "MRR@10" if args.split == "samsung" else "Recall@5"
                 best_single_name = "BM25"
             else:
-                single_r5 = dense_r5_scores
+                single_main = dense_mrr_scores if args.split == "samsung" else dense_r5_scores
+                hybrid_main = hybrid_mrr_scores if args.split == "samsung" else hybrid_r5_scores
+                main_metric_name = "MRR@10" if args.split == "samsung" else "Recall@5"
                 best_single_name = "Dense"
             ci_info = paired_ci_info(f"Hybrid (k={best_rrf_k}) vs {best_single_name}",
-                                     hybrid_r5_scores, single_r5, metric="Recall@5")
+                                     hybrid_main, single_main, metric=main_metric_name)
             ci_info["detailed"] = ci_dict
         else:
             print("  [CI] Bỏ qua: cần chạy cùng BM25 hoặc Dense để so sánh với hybrid.")
@@ -583,8 +668,35 @@ def main():
         else:
             print("  [Rerank] Bỏ qua: không có tiêu đề chunk.")
 
-    print(f"\n--- Kết quả ({args.split}) ---")
+    print(f"\n--- Kết quả tổng thể ({args.split}) ---")
     print_table(rows, ks)
+
+    # Điểm 4: Phân tầng kết quả theo mức độ trùng lặp từ vựng cho tập Samsung
+    stratified_results = {}
+    if args.split == "samsung":
+        pure_vi_queries = [q for q in queries if q.get("token_overlap_level") in ("none", "brand_only")]
+        loanword_queries = [q for q in queries if q.get("token_overlap_level") == "technical_loanword"]
+
+        print("\n=== Phân tầng kết quả theo mức trùng token (PR #27 §Điểm 4) ===")
+        stratified_groups = [
+            ("Thuần Việt & Chỉ tên máy (none + brand_only)", pure_vi_queries),
+            ("Chứa từ mượn kỹ thuật Latinh (technical_loanwords)", loanword_queries),
+        ]
+        best_k = best_rrf_k if best_rrf_k is not None else 60
+        for group_name, g_queries in stratified_groups:
+            print(f"\n--- Nhóm: {group_name} (n={len(g_queries)}) ---")
+            g_rows = []
+            if run_bm25 and bm25_ret:
+                m_b, _ = evaluate_retriever(bm25_ret, g_queries, ks, "BM25")
+                g_rows.append({"method": "BM25", **m_b})
+            if run_dense and dense_ret:
+                m_d, _ = evaluate_retriever(dense_ret, g_queries, ks, "Dense")
+                g_rows.append({"method": "Dense (BGE-M3)", **m_d})
+            if run_hybrid and bm25_ret and dense_ret:
+                m_h, _ = evaluate_hybrid(bm25_ret, dense_ret, g_queries, ks, rrf_k=best_k)
+                g_rows.append({"method": f"Hybrid (k={best_k})", **m_h})
+            print_table(g_rows, ks)
+            stratified_results[group_name] = g_rows
 
     # Mục 2: Lưu đầy đủ commit hash, n_chunks, device, model, rrf_k, rerank_beta, bootstrap CI vào JSON
     beta_used = DEFAULT_TITLE_BETA if (run_hybrid and doc_titles) else None
@@ -609,6 +721,13 @@ def main():
     elif dense_ret and hasattr(dense_ret, "doc_ids"):
         n_chunks = len(dense_ret.doc_ids)
 
+    saturation_note = (
+        f"Kho Samsung có {n_chunks} chunks. R@10 đạt 1.000 (bão hòa hoàn toàn), "
+        f"ngưỡng ngẫu nhiên R@5 là {min(5, n_chunks or 9)/(n_chunks or 9):.3f}. "
+        f"R@1 và MRR@10 là các chỉ số chính dùng để phân biệt phương pháp."
+        if args.split == "samsung" else None
+    )
+
     output_data = {
         "split": args.split,
         "commit_hash": git_commit_hash(),
@@ -618,10 +737,12 @@ def main():
         "rrf_k": best_rrf_k,
         "rerank_beta": beta_used,
         "ks": ks,
+        "saturation_note": saturation_note,
         "bootstrap_ci": ci_info,
         "bootstrap_ci_detailed": ci_dict,
         "bootstrap_ci_rerank": rerank_ci_info,
         "results": rows,
+        "stratified_results": stratified_results if args.split == "samsung" else None,
     }
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(output_data, f, ensure_ascii=False, indent=2)
